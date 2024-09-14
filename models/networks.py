@@ -131,67 +131,8 @@ def handle_data(client_address: tuple, data: dict) -> bytes:
     # Kiểm tra định dạng data có đúng là dict không
     if not isinstance(data, dict):
         return "Invalid data format".encode()
-
-    # Xử lý các hành động từ client
-    action = data.get("action")
     
-    if action == "register":
-        username = data.get("username")
-        password = data.get("password")
-        if not username or not password:
-            return "Missing username or password".encode()
-        
-        if sqlite3.register(username, password):
-            return json.dumps({"status": "success", "message": "Register success"}).encode()
-        else:
-            return json.dumps({"status": "error", "message": "Register failed"}).encode()
-
-    elif action == "login":
-        username = data.get("username")
-        password = data.get("password")
-        if not username or not password:
-            return "Missing username or password".encode()
-        
-        if sqlite3.login(username, password):
-            return json.dumps({"status": "success", "message": "Login success"}).encode()
-        else:
-            return json.dumps({"status": "error", "message": "Login failed"}).encode()
-
-    elif action == "message":
-        sender = data.get("sender")
-        receiver = data.get("receiver")
-        message = data.get("message")
-        if not sender or not receiver or not message:
-            return "Missing sender, receiver, or message".encode()
-        
-        return sqlite3.handle_message(sender, receiver, message)
-
-    elif action == "friend_request":
-        sender = data.get("sender")
-        receiver = data.get("receiver")
-        if not sender or not receiver:
-            return "Missing sender or receiver".encode()
-        
-        return sqlite3.handle_friend_request(sender, receiver)
-
-    elif action == "accept_friend":
-        sender = data.get("sender")
-        friend = data.get("friend")
-        if not sender or not friend:
-            return "Missing sender or friend".encode()
-
-        return sqlite3.handle_accept_friend(sender, friend)
-
-    elif action == "block":
-        blocker = data.get("blocker")
-        blockee = data.get("blockee")
-        if not blocker or not blockee:
-            return "Missing blocker or blockee".encode()
-
-        return sqlite3.handle_block_user(blocker, blockee)
-
-    else:
-        return "Invalid action".encode()
+    return data
 
 
 
