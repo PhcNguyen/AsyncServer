@@ -9,7 +9,7 @@ from socket import socket as Socket
 from concurrent.futures import ThreadPoolExecutor
 
 from models import settings
-from models.postgres import Postgres
+from models.mysqlite import SQLite
 
 
 
@@ -141,7 +141,7 @@ def handle_data(client_address: tuple, data: dict) -> bytes:
         if not username or not password:
             return "Missing username or password".encode()
         
-        if Postgres.register(username, password):
+        if sqlite3.register(username, password):
             return json.dumps({"status": "success", "message": "Register success"}).encode()
         else:
             return json.dumps({"status": "error", "message": "Register failed"}).encode()
@@ -152,7 +152,7 @@ def handle_data(client_address: tuple, data: dict) -> bytes:
         if not username or not password:
             return "Missing username or password".encode()
         
-        if Postgres.login(username, password):
+        if sqlite3.login(username, password):
             return json.dumps({"status": "success", "message": "Login success"}).encode()
         else:
             return json.dumps({"status": "error", "message": "Login failed"}).encode()
@@ -164,7 +164,7 @@ def handle_data(client_address: tuple, data: dict) -> bytes:
         if not sender or not receiver or not message:
             return "Missing sender, receiver, or message".encode()
         
-        return Postgres.handle_message(sender, receiver, message)
+        return sqlite3.handle_message(sender, receiver, message)
 
     elif action == "friend_request":
         sender = data.get("sender")
@@ -172,7 +172,7 @@ def handle_data(client_address: tuple, data: dict) -> bytes:
         if not sender or not receiver:
             return "Missing sender or receiver".encode()
         
-        return Postgres.handle_friend_request(sender, receiver)
+        return sqlite3.handle_friend_request(sender, receiver)
 
     elif action == "accept_friend":
         sender = data.get("sender")
@@ -180,7 +180,7 @@ def handle_data(client_address: tuple, data: dict) -> bytes:
         if not sender or not friend:
             return "Missing sender or friend".encode()
 
-        return Postgres.handle_accept_friend(sender, friend)
+        return sqlite3.handle_accept_friend(sender, friend)
 
     elif action == "block":
         blocker = data.get("blocker")
@@ -188,7 +188,7 @@ def handle_data(client_address: tuple, data: dict) -> bytes:
         if not blocker or not blockee:
             return "Missing blocker or blockee".encode()
 
-        return Postgres.handle_block_user(blocker, blockee)
+        return sqlite3.handle_block_user(blocker, blockee)
 
     else:
         return "Invalid action".encode()
@@ -196,10 +196,4 @@ def handle_data(client_address: tuple, data: dict) -> bytes:
 
 
 if __name__ == '__main__':
-    postgres = Postgres(
-        Postgres.host, 
-        Postgres.port, 
-        Postgres.dbname, 
-        Postgres.user,
-        Postgres.password
-    )
+    sqlite3 = SQLite(SQLite.db_path)

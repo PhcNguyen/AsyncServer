@@ -25,3 +25,7 @@ class Postgres:
 
     dbname: str = "postgres"
     password: str = "postgres"
+
+
+class MySqlite:
+    db_path: str = 'services/db/database.sql' 
