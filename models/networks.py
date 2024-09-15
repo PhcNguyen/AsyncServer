@@ -9,14 +9,14 @@ from socket import socket as Socket
 from concurrent.futures import ThreadPoolExecutor
 
 from models import settings
-from models.mysqlite import SQLite
 
 
 
 class Networks(settings.Networks):
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, handle_data):
         self.server_address = (host, port)
         
+        self.handle_data = handle_data
         self.client_connections = []
         self.message_callback = None
         self.executor = ThreadPoolExecutor(max_workers=50)
@@ -89,7 +89,7 @@ class Networks(settings.Networks):
                     if not data:
                         break
                     self._notify_data(data)
-                    client_socket.sendall(handle_data(client_address, data))
+                    client_socket.sendall(self.handle_data(client_address, data))
                 except socket.timeout:
                     self._notify_data(f"Connection to {client_address} timed out.")
                     break
@@ -115,26 +115,3 @@ class Networks(settings.Networks):
     def _notify_error(self, message):
         if self.message_callback:
             self.message_callback(f'Error: {message}')
-
-
-
-def handle_data(client_address: tuple, data: dict) -> bytes:
-    """Xử lý dữ liệu từ client và trả về kết quả."""
-    # Nếu data là bytes, giải mã và chuyển sang JSON
-    if isinstance(data, bytes):
-        try:
-            data = data.decode('utf-8')
-            data = json.loads(data)
-        except (UnicodeDecodeError, json.JSONDecodeError) as e:
-            return f"Error decoding data: {e}".encode()
-
-    # Kiểm tra định dạng data có đúng là dict không
-    if not isinstance(data, dict):
-        return "Invalid data format".encode()
-    
-    return data
-
-
-
-if __name__ == '__main__':
-    sqlite3 = SQLite(SQLite.db_path)

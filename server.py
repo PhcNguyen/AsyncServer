@@ -4,10 +4,15 @@
 
 from models.graphics import Graphics
 from models.networks import Networks
+from models.mysqlite import MySQLite
+from models.algorithm import Algorithm
 
 
 
-networks = Networks(Networks.host, Networks.port)
+sql = MySQLite(MySQLite.db_path)
+networks = Networks(Networks.host, Networks.port, Algorithm(sql))
+
 app = Graphics(Graphics.root, networks)
+
 
 Graphics.root.mainloop()

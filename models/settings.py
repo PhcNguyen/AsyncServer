@@ -2,7 +2,11 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
+import os
+import pathlib
 import customtkinter as ctk
+
+from typing import Any
 from models.utils import InternetProtocol
 
 
@@ -28,4 +32,8 @@ class Postgres:
 
 
 class MySqlite:
-    db_path: str = 'services/db/database.sql' 
+    db_path: str = os.path.join(
+        pathlib.Path(__file__).resolve().parent.parent, 
+        'services',
+        'database.sql'
+    )

@@ -9,14 +9,14 @@ import customtkinter as ctk
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
+from models import types
 from models import settings
-from models.networks import Networks
 from models.settings import InternetProtocol
 
 
 
 class Graphics(settings.Graphics):
-    def __init__(self, root: ctk.CTk, server: Networks):
+    def __init__(self, root: ctk.CTk, server: types.Networks):
         self.root = root
         self.server = None
         self.network= server

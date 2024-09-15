@@ -1,13 +1,14 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import json
 import typing
 import sqlite3
+
 from models import settings
 
 
-class SQLite(settings.MySqlite):
+
+class MySQLite(settings.MySqlite):
     def __init__(
         self, db_path: str
     ) -> None:
@@ -129,9 +130,11 @@ class SQLite(settings.MySqlite):
             self.message_callback(f'Error: {message}')
 
     def create_all_tables(self):
+        self.connection()
         self.cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY AUTOINCREMENT
+                token TEXT UNIQUE NOT NULL,
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL
             );
@@ -152,3 +155,4 @@ class SQLite(settings.MySqlite):
             );
         """)
         self.conn.commit()
+        self.close()

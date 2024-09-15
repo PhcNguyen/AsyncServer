@@ -2,7 +2,7 @@ import socket
 import threading
 
 # Target server details
-TARGET_IP = "192.168.1.2"  # Change to your server IP
+TARGET_IP = "192.168.1.11"  # Change to your server IP
 TARGET_PORT = 7272          # Change to your server port
 FAKE_MESSAGE = "GET / HTTP/1.1\r\nHost: {}\r\n\r\n".format(TARGET_IP)
 

@@ -140,6 +140,6 @@ ctk.CTkButton(block_user_frame, text="Block User", command=block_user).grid(row=
 
 # Kết nối tới server
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect(("192.168.1.11", 7272))
+client_socket.connect(("192.168.1.2", 7272))
 
 app.mainloop()
