@@ -3,7 +3,8 @@
 # Distributed under the terms of the Modified BSD License.
 
 import tkinter as tk
-import customtkinter as ctk
+import lib.customtkinter as ctk
+
 import asyncio
 
 from datetime import datetime
