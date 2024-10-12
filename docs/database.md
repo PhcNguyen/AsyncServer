@@ -1,3 +1,4 @@
+```
 -- MySqlite
 -- Python version 3.12.5
 --
@@ -82,3 +83,5 @@ INSERT INTO `history` (`user_id`, `action`, `timestamp`, `ip_address`) VALUES
 (2, 'logout', '2024-10-12 18:30:00', '192.168.1.2'); -- Người dùng 2 đăng xuất
 
 -- --------------------------------------------------------
+COMMIT;
+```
