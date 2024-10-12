@@ -1,11 +1,11 @@
 
+# Copyright (C) PhcNguyen Developers
+# Distributed under the terms of the Modified TUDL License.
+
 # This is an exercise in secure symmetric-key encryption, implemented in pure
 # Python (no external libraries needed).
 
 # Original AES-128 implementation by PhcNguyen at . PKCS#7 padding, CBC mode, PKBDF2, HMAC,
-
-# Copyright (C) PhcNguyen Developers
-# Distributed under the terms of the Modified TUDL License.
 
 # Although this is an exercise, the `encrypt` and `decrypt` functions should
 # provide reasonable security to encrypted messages.
@@ -73,10 +73,10 @@ r_con = (
 )
 
 
-def generate_key(length: int=128) -> bytes:
+def generate_key(length=32) -> bytes:
     """Generate a random AES key."""
-    if length not in [128, 192, 256]:
-        raise ValueError("AES key length must be 128, 192 or 256 bytes.")
+    if length not in [16, 24, 32]:
+        raise ValueError("AES key length must be 16, 24, or 32 bytes.")
     key = bytearray(random.getrandbits(8) for _ in range(length))
     return bytes(key)
 

@@ -2,32 +2,27 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import time
 import tkinter as tk
 import customtkinter as ctk
+import asyncio
 
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
 
-from models import types
-from models import settings
-from models.settings import InternetProtocol
-
+from . import settings, types
+from .settings import InternetProtocol
 
 
 class Graphics(settings.Graphics):
     def __init__(self, root: ctk.CTk, server: types.Networks):
         self.root = root
         self.server = None
-        self.network= server
+        self.network = server
         
         self.root.title("Server Control")
         self.root.geometry("1200x600")
         self.root.resizable(False, False)
         ctk.set_appearance_mode("dark")  # Đặt chế độ giao diện tối
         ctk.set_default_color_theme("dark-blue")  # Đặt chủ đề màu sắc tối
-
-        self.executor = ThreadPoolExecutor(max_workers=5)
 
         # Tạo khung chứa các nút điều khiển
         self.control_frame = ctk.CTkFrame(root)
@@ -102,7 +97,7 @@ class Graphics(settings.Graphics):
 
         # Tạo khung chứa thông tin server
         self.info_frame = ctk.CTkFrame(root)
-        self.info_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10, anchor='nw')
+        self.info_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
         # Label và trường hiển thị IP
         self.local_ip = ctk.CTkLabel(self.info_frame, text="Local IP:")
@@ -122,9 +117,7 @@ class Graphics(settings.Graphics):
         self.ping_value = ctk.CTkLabel(self.info_frame, text="N/A")
         self.ping_value.grid(row=2, column=1, padx=5, pady=5, sticky='w')
 
-
-
-    def start_server(self):
+    async def start_server(self):
         if self.server:
             self._notify("Server is already running.")
             return
@@ -133,18 +126,15 @@ class Graphics(settings.Graphics):
 
             self.server = self.network
 
-            # Reinitialize ThreadPoolExecutor
-            self.executor = ThreadPoolExecutor(max_workers=5)
-
-            # Start server and ping updater in separate threads
-            self.executor.submit(self.server.start)
-            self.executor.submit(self._ping_updater)
+            # Start server and ping updater
+            asyncio.create_task(self.server.start())
+            asyncio.create_task(self._ping_updater())
 
             # Update button states
             self.start_button.configure(state='disabled')
             self.stop_button.configure(state='normal')
 
-            self._update_server_info()
+            await self._update_server_info()
         except Exception as e:
             self._notify_error(f"Error starting server: {e}")
             # Re-enable start button if there was an error
@@ -156,7 +146,7 @@ class Graphics(settings.Graphics):
             return
 
         try:
-            self.server.stop()
+            asyncio.create_task(self.server.stop())
         except Exception as e:
             self._notify_error(f"Error while stopping the server: {e}")
         finally:
@@ -164,11 +154,7 @@ class Graphics(settings.Graphics):
             self.server = None
             self.start_button.configure(state='normal')
             self.stop_button.configure(state='disabled')
-            self._update_server_info()
-
-            # Ensure all threads are properly stopped
-            self.executor.shutdown(wait=False)
-            self.executor = None  # Clear the executor to prevent re-use
+            asyncio.create_task(self._update_server_info())
 
     def clear_logs(self):
         # Xóa nội dung của tất cả các khu vực văn bản
@@ -176,9 +162,7 @@ class Graphics(settings.Graphics):
         self._clear_textbox(self.error_log)
     
     def log_message(self, message: str):
-        """
-        Nhận thông báo từ Networks và phân loại nó để hiển thị đúng tab.
-        """
+        """Nhận thông báo từ Networks và phân loại nó để hiển thị đúng tab."""
         if "Notify:" in message:
             self._notify(message.split('Notify:')[-1].strip())
         elif "Error:" in message:
@@ -187,17 +171,13 @@ class Graphics(settings.Graphics):
         self.root.update()  # Đảm bảo giao diện được cập nhật ngay sau khi log được ghi
 
     def _clear_textbox(self, textbox):
-        """
-        Xóa nội dung của khu vực văn bản.
-        """
+        """Xóa nội dung của khu vực văn bản."""
         textbox.configure(state='normal')
         textbox.delete(1.0, tk.END)
         textbox.configure(state='disabled')
 
     def _log_to_textbox(self, textbox, message):
-        """
-        Ghi lại thông báo vào khu vực văn bản với thời gian hiện tại.
-        """
+        """Ghi lại thông báo vào khu vực văn bản với thời gian hiện tại."""
         time_stamp = datetime.now().strftime('%d-%m %H:%M:%S')
         formatted_message = f"[{time_stamp}]>  {message}"
         textbox.configure(state='normal')
@@ -206,21 +186,15 @@ class Graphics(settings.Graphics):
         textbox.yview(tk.END)
 
     def _notify(self, message):
-        """
-        Thông báo về kết nối và ngắt kết nối của client.
-        """
+        """Thông báo về kết nối và ngắt kết nối của client."""
         self._log_to_textbox(self.server_log, message)
 
     def _notify_error(self, message):
-        """
-        Thông báo lỗi.
-        """
+        """Thông báo lỗi."""
         self._log_to_textbox(self.error_log, message)
 
-    def _update_server_info(self):
-        """
-        Cập nhật thông tin server trong giao diện.
-        """
+    async def _update_server_info(self):
+        """Cập nhật thông tin server trong giao diện."""
         if self.server:
             self.local_value.configure(text=InternetProtocol.local())
             self.public_value.configure(text=InternetProtocol.public())
@@ -230,10 +204,8 @@ class Graphics(settings.Graphics):
             self.public_value.configure(text="N/A")
             self.ping_value.configure(text="N/A")
     
-    def _ping_updater(self):
-        """
-        Cập nhật trạng thái ping định kỳ.
-        """
+    async def _ping_updater(self):
+        """Cập nhật trạng thái ping định kỳ."""
         while self.server:
             self.ping_value.configure(text=f"{InternetProtocol.ping()} ms")
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)

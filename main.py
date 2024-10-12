@@ -2,10 +2,10 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-from models.graphics import Graphics
-from models.networks import Networks
-from models.algorithm import Algorithm
-from models.mysqlite import DatabaseManager
+from src.server.graphics import Graphics
+from src.server.networks import Networks
+from src.server.algorithm import Algorithm
+from src.server.mysqlite import DatabaseManager
 
 
 sql = DatabaseManager(DatabaseManager.db_path)
