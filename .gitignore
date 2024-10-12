@@ -5,8 +5,6 @@
 .Python
 [Bb]in
 [Ii]nclude
-[Ll]ib
-[Ll]ib64
 [Ll]ocal
 [Ss]cripts
 pyvenv.cfg
@@ -33,7 +31,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib64/
 parts/
 sdist/
 var/
@@ -95,13 +92,6 @@ target/
 
 # celery beat schedule file
 celerybeat-schedule
-
-# dotenv
-.env
-
-# virtualenv
-venv/
-ENV/
 
 # Spyder project settings
 .spyderproject
