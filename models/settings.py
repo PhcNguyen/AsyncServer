@@ -6,7 +6,6 @@ import os
 import pathlib
 import customtkinter as ctk
 
-from typing import Any
 from models.utils import InternetProtocol
 
 
@@ -31,7 +30,7 @@ class Postgres:
     password: str = "postgres"
 
 
-class MySqlite:
+class DatabaseManager:
     db_path: str = os.path.join(
         pathlib.Path(__file__).resolve().parent.parent, 
         'services',

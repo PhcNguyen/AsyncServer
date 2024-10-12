@@ -4,12 +4,12 @@
 
 from models.graphics import Graphics
 from models.networks import Networks
-from models.mysqlite import MySQLite
+from models.mysqlite import DatabaseManager
 from models.algorithm import Algorithm
 
 
 
-sql = MySQLite(MySQLite.db_path)
+sql = DatabaseManager(DatabaseManager.db_path)
 networks = Networks(Networks.host, Networks.port, Algorithm(sql))
 
 app = Graphics(Graphics.root, networks)

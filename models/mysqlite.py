@@ -1,6 +1,7 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
+import os
 import typing
 import sqlite3
 
@@ -8,7 +9,7 @@ from models import settings
 
 
 
-class MySQLite(settings.MySqlite):
+class DatabaseManager(settings.DatabaseManager):
     def __init__(
         self, db_path: str
     ) -> None:
@@ -16,6 +17,8 @@ class MySQLite(settings.MySqlite):
         self.conn = None
         self.db_path = db_path
         self.message_callback = None
+        self._isDatabase()
+
 
     def set_message_callback(self, callback):
         self.message_callback = callback
@@ -129,7 +132,7 @@ class MySQLite(settings.MySqlite):
         if self.message_callback:
             self.message_callback(f'Error: {message}')
 
-    def create_all_tables(self):
+    def _create_all_tables(self):
         self.connection()
         self.cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -156,3 +159,9 @@ class MySQLite(settings.MySqlite):
         """)
         self.conn.commit()
         self.close()
+    
+    def _isDatabase(self):
+        if not os.path.exists(self.db_path):
+            open(self.db_path, 'w').close()
+            self._create_all_tables()
+            self._notify('Tạo thành công cơ sở dữ liệu.')

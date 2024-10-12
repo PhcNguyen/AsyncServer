@@ -88,10 +88,10 @@ class Networks(settings.Networks):
                     data = client_socket.recv(1024)
                     if not data:
                         break
-                    self._notify_data(data)
+                    self._notify(data)
                     client_socket.sendall(self.handle_data(client_address, data))
                 except socket.timeout:
-                    self._notify_data(f"Connection to {client_address} timed out.")
+                    self._notify(f"Connection to {client_address} timed out.")
                     break
                 except Exception as e:
                     self._notify_error(f"Error handling client {client_address}: {e}")
@@ -103,14 +103,9 @@ class Networks(settings.Networks):
     def set_message_callback(self, callback):
         self.message_callback = callback
 
-
     def _notify(self, message):
         if self.message_callback:
             self.message_callback(f'Notify: {message}')
-
-    def _notify_data(self, message):
-        if self.message_callback:
-            self.message_callback(f'Data: {message}')
 
     def _notify_error(self, message):
         if self.message_callback:

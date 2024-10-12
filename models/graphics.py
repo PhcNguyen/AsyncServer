@@ -70,18 +70,6 @@ class Graphics(settings.Graphics):
         )
         self.clear_button.pack(side=tk.LEFT, padx=10)
 
-        # Nút create table
-        self.create_button = ctk.CTkButton(
-            self.control_frame,
-            text="CREATE TABLE",
-            command=self.create_table,
-            fg_color="#2196F3",  # Màu nền xanh dương
-            hover_color="#1976D2",  # Màu xanh đậm hơn khi di chuột lên nút
-            width=150,
-            height=40
-        )
-        self.create_button.pack(side=tk.LEFT, padx=10)
-
         # Tạo khung chứa các bản ghi log
         self.log_frame = ctk.CTkFrame(root)
         self.log_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -89,7 +77,6 @@ class Graphics(settings.Graphics):
         # Tạo các tab cho bản ghi log
         self.tab_control = ctk.CTkTabview(self.log_frame)
         self.tab_control.add("SERVER")
-        self.tab_control.add("CLIENTS")
         self.tab_control.add("ERROR")  
         self.tab_control.pack(expand=1, fill='both')
 
@@ -102,16 +89,6 @@ class Graphics(settings.Graphics):
             wrap=tk.WORD
         )
         self.server_log.pack(fill=tk.BOTH, expand=True)
-
-        # Khu vực văn bản để hiển thị bản ghi khách hàng
-        self.clients_log = ctk.CTkTextbox(
-            self.tab_control.tab("CLIENTS"),
-            state='disabled',
-            height=20,
-            width=100,
-            wrap=tk.WORD
-        )
-        self.clients_log.pack(fill=tk.BOTH, expand=True)
 
         # Khu vực văn bản để hiển thị bản ghi lỗi
         self.error_log = ctk.CTkTextbox(
@@ -196,12 +173,7 @@ class Graphics(settings.Graphics):
     def clear_logs(self):
         # Xóa nội dung của tất cả các khu vực văn bản
         self._clear_textbox(self.server_log)
-        self._clear_textbox(self.clients_log)
         self._clear_textbox(self.error_log)
-    
-    def create_table(self):
-        pass
-        self._notify_data('Đã tạo thành công bảng !')
     
     def log_message(self, message: str):
         """
@@ -209,8 +181,6 @@ class Graphics(settings.Graphics):
         """
         if "Notify:" in message:
             self._notify(message.split('Notify:')[-1].strip())
-        elif "Data:" in message:
-            self._notify_data(message.split('Data:')[-1].strip())
         elif "Error:" in message:
             self._notify_error(message.split('Error:')[-1].strip())
         
@@ -242,12 +212,6 @@ class Graphics(settings.Graphics):
         Thông báo về kết nối và ngắt kết nối của client.
         """
         self._log_to_textbox(self.server_log, message)
-
-    def _notify_data(self, message):
-        """
-        Thông báo dữ liệu nhận từ client.
-        """
-        self._log_to_textbox(self.clients_log, message)
 
     def _notify_error(self, message):
         """
