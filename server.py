@@ -4,9 +4,8 @@
 
 from models.graphics import Graphics
 from models.networks import Networks
-from models.mysqlite import DatabaseManager
 from models.algorithm import Algorithm
-
+from models.mysqlite import DatabaseManager
 
 
 sql = DatabaseManager(DatabaseManager.db_path)

@@ -1,5 +1,6 @@
 
-
+# Copyright (C) PhcNguyen Developers
+# Distributed under the terms of the Modified BSD License.
 
 class Algorithm:
     @staticmethod

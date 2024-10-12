@@ -1,3 +1,7 @@
+
+# Copyright (C) PhcNguyen Developers
+# Distributed under the terms of the Modified BSD License.
+
 import customtkinter as ctk
 import socket
 import json

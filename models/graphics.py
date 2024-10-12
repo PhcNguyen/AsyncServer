@@ -185,8 +185,6 @@ class Graphics(settings.Graphics):
             self._notify_error(message.split('Error:')[-1].strip())
         
         self.root.update()  # Đảm bảo giao diện được cập nhật ngay sau khi log được ghi
-    
-
 
     def _clear_textbox(self, textbox):
         """
