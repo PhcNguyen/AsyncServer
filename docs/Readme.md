@@ -2,11 +2,11 @@
 ---
 ## Giới thiệu
 
-Chào mừng bạn đến với dự án **Craps**! Đây là một trò chơi xúc xắc thú vị và hấp dẫn, nơi người chơi có thể trải nghiệm cảm giác hồi hộp của việc ném xúc xắc mà không cần phải tham gia vào việc đánh cược thật. Craps là một trong những trò chơi sòng bài phổ biến nhất, nhưng phiên bản này tập trung vào giải trí và niềm vui.
+- Chào mừng bạn đến với dự án **Craps**! Đây là một trò chơi xúc xắc thú vị và hấp dẫn, nơi người chơi có thể trải nghiệm cảm giác hồi hộp của việc ném xúc xắc mà không cần phải tham gia vào việc đánh cược thật. Craps là một trong những trò chơi sòng bài phổ biến nhất, nhưng phiên bản này tập trung vào giải trí và niềm vui.
 ---
 ## Mục tiêu của trò chơi
 
-Mục tiêu chính của trò chơi Craps là dự đoán kết quả của các lần ném xúc xắc. Người chơi có thể chơi một mình hoặc cùng bạn bè mà không cần đặt cược tiền thật, tạo ra một trải nghiệm thư giãn và vui vẻ.
+- Mục tiêu chính của trò chơi Craps là dự đoán kết quả của các lần ném xúc xắc. Người chơi có thể chơi một mình hoặc cùng bạn bè mà không cần đặt cược tiền thật, tạo ra một trải nghiệm thư giãn và vui vẻ.
 ---
 ### Đặc điểm nổi bật
 
@@ -43,7 +43,7 @@ Mục tiêu chính của trò chơi Craps là dự đoán kết quả của các
 ---
 ## Liên hệ
 
-Nếu bạn có bất kỳ câu hỏi hoặc ý kiến nào về trò chơi, hãy liên hệ với tôi qua [phcnguyenz@proton.me].
+- Nếu bạn có bất kỳ câu hỏi hoặc ý kiến nào về trò chơi, hãy liên hệ với tôi qua [phcnguyenz@proton.me].
 ---
 # Lưu ý:
 
