@@ -1,27 +1,23 @@
 # CRAPS PROJECT
-## Structure
+
 ```
 [ CRAPS - 1.0.31 ]
-├───[ database ]
-├───[ docs ]
-├───[ lib ]
-│      ├───Crypto
-│      ├───customtkinter
-│      └───pyasn1
-├───[ src ]
-│      ├───manager
-│      ├───security
-│      │   ├───aes
-│      │   └───rsa
-│      └───server
-├───[ test ]
-├─── server.py
-└─── main.py
+    ├───[ database ]
+    ├───[ docs ]
+    ├───[ lib ]
+    │      ├───Crypto
+    │      ├───customtkinter
+    │      └───pyasn1
+    ├───[ src ]
+    │      ├───manager
+    │      ├───security
+    │      │   ├───aes
+    │      │   └───rsa
+    │      └───server
+    ├───[ test ]
+    ├─── server.py
+    └─── main.py
 ```
-
----
-
-## Language
 
 --- 
 
@@ -52,6 +48,19 @@
 
 ---
 
+#### ADDITIONAL FEATURES
+- **User-Friendly Interface**: Built using `customtkinter` to provide an enhanced user experience.
+- **Security**: Implements strong encryption techniques to ensure player data is safe and secure.
+- **Testing**: Comprehensive tests included to ensure all features function correctly before deployment.
+- **No Real Money Involvement**: The game is designed purely for entertainment without any real money gambling, complying with legal requirements.
+
+#### FUTURE IMPROVEMENTS
+- **Multiplayer Support**: Explore options for adding multiplayer features.
+- **Leaderboards**: Implement a system for tracking and displaying player scores.
+- **Game Variants**: Introduce new game modes or rules to keep the gameplay fresh and exciting.
+
+---
+
 ### 2. Vietnamese
 - **[ CRAPS - 1.0.31 ]**: Tên của dự án trò chơi xúc xắc.
 
@@ -76,3 +85,4 @@
 - **server.py**: Tệp chính cho server, có khả năng khởi tạo server trò chơi và xử lý các kết nối đến.
 
 - **main.py**: Điểm vào của ứng dụng, chịu trách nhiệm khởi động trò chơi và khởi tạo giao diện người dùng.
+
