@@ -1,5 +1,5 @@
-# CRAPS PROJECT STRUCTURE
-### STRUCTURE
+# CRAPS PROJECT
+## Structure
 ```
 [ CRAPS - 1.0.31 ]
 ├───[ database ]
@@ -18,12 +18,14 @@
 ├─── server.py
 └─── main.py
 ```
+
 ---
 
-### LANGUAGE
+## Language
 
+--- 
 
-#### 1. English
+### 1. English
 - **[ CRAPS - 1.0.31 ]**: The name of the dice game project.
 
 - **[ database ]**: This folder contains the data files and configurations required for the game.
@@ -48,8 +50,9 @@
 
 - **main.py**: The entry point of the application, which is responsible for launching the game and initializing the user interface.
 
+---
 
-#### 2. Vietnamese
+### 2. Vietnamese
 - **[ CRAPS - 1.0.31 ]**: Tên của dự án trò chơi xúc xắc.
 
 - **[ database ]**: Thư mục này chứa các tệp dữ liệu và cấu hình cần thiết cho trò chơi.
