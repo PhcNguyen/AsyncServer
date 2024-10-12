@@ -22,6 +22,8 @@
 --- 
 
 ### 1. English
+
+#### EXPLAIN THE STRUCTURE
 - **[ CRAPS - 1.0.31 ]**: The name of the dice game project.
 
 - **[ database ]**: This folder contains the data files and configurations required for the game.
@@ -45,8 +47,6 @@
 - **server.py**: The main file for the server, capable of initializing the game server and handling incoming connections.
 
 - **main.py**: The entry point of the application, which is responsible for launching the game and initializing the user interface.
-
----
 
 #### ADDITIONAL FEATURES
 - **User-Friendly Interface**: Built using `customtkinter` to provide an enhanced user experience.
