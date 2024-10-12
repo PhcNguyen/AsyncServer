@@ -1,5 +1,4 @@
 # CRAPS PROJECT STRUCTURE
----
 ### STRUCTURE
 ```
 [ CRAPS - 1.0.31 ]
@@ -19,6 +18,7 @@
 ├─── server.py
 └─── main.py
 ```
+---
 ### LANGUAGE
 1. English
 ```
@@ -41,7 +41,7 @@ security: This module includes security functions, providing encryption algorith
     AES: Implement the advanced encryption standard AES to encrypt data securely.
 
 ```
----
+
 2. Vietnamese
 Giải thích cấu trúc:
 [ CRAPS - 1.0.31 ]: Tên của dự án trò chơi xúc xắc.
