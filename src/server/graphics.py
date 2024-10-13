@@ -11,7 +11,6 @@ from src.model.settings import UISettings
 from src.server.utils import InternetProtocol
 
 
-
 class Graphics(UISettings):
     def __init__(self, root: ctk.CTk, server: NetworksTypes):
         super().__init__(root)  # Gọi khởi tạo của lớp cha

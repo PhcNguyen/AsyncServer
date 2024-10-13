@@ -11,7 +11,6 @@ import requests
 import subprocess
 
 
-
 class Colors:
     @staticmethod
     def start(color: str) -> str: 
@@ -29,7 +28,6 @@ class Colors:
     orange = start.__func__('255;150;0')
     pink = start.__func__('255;0;150')
     turquoise = start.__func__('0;150;255')
-
 
 
 class System:
@@ -62,7 +60,6 @@ class System:
     @staticmethod
     def exit() -> typing.NoReturn:
         sys.exit()
-
 
 
 class InternetProtocol:
