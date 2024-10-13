@@ -1,4 +1,3 @@
-```
 -- MySqlite
 -- Python version 3.12.5
 --
@@ -84,4 +83,3 @@ INSERT INTO `history` (`user_id`, `action`, `timestamp`, `ip_address`) VALUES
 
 -- --------------------------------------------------------
 COMMIT;
-```

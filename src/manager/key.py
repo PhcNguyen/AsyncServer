@@ -1,9 +1,7 @@
-
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
 from src.security import rsa
-
 
 
 def isAnotherKeyServer(

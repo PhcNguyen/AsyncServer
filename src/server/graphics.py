@@ -1,4 +1,3 @@
-
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
@@ -7,8 +6,8 @@ import threading
 import lib.customtkinter as ctk
 
 from src.server.utils import System
-from src.server.types import NetworksTypes
-from src.server.settings import UISettings
+from src.model.types import NetworksTypes
+from src.model.settings import UISettings
 from src.server.utils import InternetProtocol
 
 

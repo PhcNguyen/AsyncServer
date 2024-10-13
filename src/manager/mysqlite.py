@@ -1,9 +1,12 @@
+# Copyright (C) PhcNguyen Developers
+# Distributed under the terms of the Modified BSD License.
+
 import os
 import asyncio
 import aiosqlite
 from typing import Any, Optional
 
-from src.server.settings import DBSettings
+from src.model.settings import DBSettings
 
 
 class DBManager(DBSettings):

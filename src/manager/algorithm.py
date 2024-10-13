@@ -1,4 +1,3 @@
-
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
@@ -10,15 +9,15 @@ import typing
 import hashlib
 
 from src.security import rsa
-from src.server.settings import AlgorithmSettings
+from src.model.types import DBManager
+from src.model.settings import AlgorithmSettings
 from src.manager.key import (
     isAnotherKeyServer,
 )
 
 
-
 class AlgorithmHandler(AlgorithmSettings):
-    def __init__(self, sql) -> None:
+    def __init__(self, sql: DBManager) -> None:
         self.sql = sql
 
         self.public_key = None
@@ -85,54 +84,33 @@ class AlgorithmHandler(AlgorithmSettings):
     def handle_data(
         self, 
         client_address: tuple, 
-        data: bytes
+        client_data: bytes
     ) -> bytes:
         """Xử lý dữ liệu từ client và trả về kết quả."""
+        data = decrypted_data(client_data, self.public_key, self.private_key)
 
-        def response(self, data: dict) -> dict:
-            """Xử lý dữ liệu và tạo phản hồi."""
-            status =  data.get("status", "Unknown")
-            message = data.get("message", "Unknown")
+        # GET DATA 
+        action = data.get("action", "Unknown")
+        message = data.get("message", "Unknown")
 
-            pub_key_client = data.get("pub_key_client", "Unknown")
-            pub_key_server = data.get("pub_key_client", "Unknown")
-            
-
-            result = {
-                "status": status,
-                "message": message,
-                "pub_key_server": self.public_key,
-                "received_data": data  
-            }
-            return rsa.encrypt(
-                json.dumps(response).encode("utf-8"), 
-                pub_key_client
-            )
+        pub_key_client = data.get("pub_key_client", "Unknown")
+        pub_key_server = data.get("pub_key_client", "Unknown")
         
-        # Giải mã dữ liệu
-        try:
-            decrypted_data = rsa.decrypt(data, self.private_key)
-            data = decrypted_data.decode("utf-8")
-            data = json.loads(data)
-        except (rsa.DecryptionError, UnicodeDecodeError, json.JSONDecodeError) as e:
-            result = {
-                "status": False,
-                "pub_key_server": self.public_key,
-                "message": str(e)
-            }
-            return json.dumps(result).encode("utf-8")
-
-        # Kiểm tra định dạng data có đúng là dict không
-        if not isinstance(data, dict):
-            result = {
-                "status": False,
-                "pub_key_server": self.public_key,
-                "message": "Invalid data format"
-            }
-            return json.dumps(result).encode("utf-8")
+        if 'status' in data:
+            return data
 
         # Kiểm tra xem public_key_server đúng không
-        if not isAnotherKeyServer():
+        if not isAnotherKeyServer(self.public_key, pub_key_server):
+            result = {
+                "status": True,
+                "pub_key_server": self.public_key,
+                "message": "This is your Public Key"
+            }
+            return json.dumps(result).encode("utf-8")
+        
+        
+
+        if action == "Unknown":
             result = {
                 "status": True,
                 "pub_key_server": self.public_key,
@@ -141,7 +119,28 @@ class AlgorithmHandler(AlgorithmSettings):
             return json.dumps(result).encode("utf-8")
 
 
-
-        return data  # Hoặc trả về một phản hồi nào đó
-
-
+def decrypted_data(
+    client_data: bytes,
+    public_key: rsa.PublicKey, 
+    private_key: rsa.PrivateKey
+) -> typing.Dict:
+    """Giải mã dữ liệu."""
+    try:
+        decrypted_data = rsa.decrypt(client_data, private_key)
+        data = decrypted_data.decode("utf-8")
+        data = json.loads(data)
+        # Kiểm tra định dạng data có đúng là dict không
+        if not isinstance(data, dict):
+            return {
+                "status": False,
+                "pub_key_server": public_key,
+                "message": "Invalid data format"
+            }
+    except (rsa.DecryptionError, UnicodeDecodeError, json.JSONDecodeError) as e:
+        return {
+            "status": False,
+            "pub_key_server": public_key,
+            "message": str(e)
+        }
+    
+    return data

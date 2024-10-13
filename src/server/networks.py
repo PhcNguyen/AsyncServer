@@ -9,7 +9,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Optional, List, Tuple
 
-from src.server.settings import NetworkSttings
+from src.model.settings import NetworkSttings
 
 
 MAX_CONNECTIONS = 1000  # Define your max connections
@@ -22,12 +22,12 @@ class Networks(NetworkSttings):
         port: int, 
         handle_data: Callable[[tuple, bytes], bytes]
     ):
-        self.server_address = (host, port)
-        self.handle_data = handle_data
-        self.client_connections = []
-        self.message_callback = None
+        self.server_address: Tuple[str, int] = (host, port)
+        self.handle_data: Callable[[Tuple[str, int], bytes], bytes] = handle_data
         self.executor = ThreadPoolExecutor(max_workers=50)
-        self.running: bool = None
+        self.message_callback: Optional[Callable[[str], None]] = None
+        self.running: bool = False  # Khởi tạo với False
+        self.client_connections: List[Tuple[socket.socket, tuple]] = [] 
 
     def _notify(self, message):
         if self.message_callback:
@@ -106,7 +106,6 @@ class Networks(NetworkSttings):
         self.server_socket.close()
         self.executor.shutdown(wait=True)  # Wait for all threads to finish
         self._notify('Server stopped.')
-
 
 
 class AsyncNetworks(NetworkSttings):
