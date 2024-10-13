@@ -11,8 +11,8 @@ from typing import Callable, Optional, List, Tuple
 
 from src.server.settings import NetworkSttings
 
-MAX_CONNECTIONS = 100  # Define your max connections
 
+MAX_CONNECTIONS = 1000  # Define your max connections
 
 
 class Networks(NetworkSttings):
@@ -114,13 +114,13 @@ class AsyncNetworks(NetworkSttings):
         self, 
         host: str, 
         port: int, 
-        handle_data: typing.Callable[[tuple, bytes], bytes]
+        handle_data: Callable[[Tuple[str, int], bytes], bytes]
     ):
-        self.server_address: Tuple[str, int] = (host, port)  # Host and port tuple
-        self.handle_data: Callable[[Tuple[str, int], bytes], bytes] = handle_data  # Function to process incoming data
-        self.message_callback: Optional[Callable[[str], None]] = None  # Callback for messages (optional)
-        self.running: Optional[bool] = None  # Running state of the server
-        self.client_connections: List[Tuple[asyncio.StreamReader, asyncio.StreamWriter]] = []  # List of client connections
+        self.server_address: Tuple[str, int] = (host, port)
+        self.handle_data: Callable[[Tuple[str, int], bytes], bytes] = handle_data
+        self.message_callback: Optional[Callable[[str], None]] = None
+        self.running: bool = False  # Khởi tạo với False
+        self.client_connections: List[Tuple[asyncio.StreamReader, asyncio.StreamWriter]] = []
 
     def _notify(self, message: str):
         if self.message_callback:
@@ -131,17 +131,22 @@ class AsyncNetworks(NetworkSttings):
             self.message_callback(f'Error: {message}')
 
     def set_message_callback(
-        self, callback: 
-        typing.Callable[[str], None]
-    ):  self.message_callback = callback
+        self, callback: Callable[[str], None]
+    ):
+        self.message_callback = callback
 
     async def start(self):
         """Start the server and listen for incoming connections asynchronously."""
+        if self.running:
+            self._notify_error("Server is already running.")
+            return
+        
         try:
             self._notify(f'Starting async server at {self.server_address}')
             self.running = True
             server = await asyncio.start_server(self.handle_client, *self.server_address)
             async with server:
+                # self._notify('Server started successfully.')  # Thông báo thành công
                 await server.serve_forever()
         except OSError as error:
             self._notify_error("OSError: " + str(error))
@@ -156,7 +161,6 @@ class AsyncNetworks(NetworkSttings):
 
         try:
             while True:
-                # Read data with a timeout
                 try:
                     data = await asyncio.wait_for(reader.read(1024), timeout=60.0)  # 60s timeout
                 except asyncio.TimeoutError:
@@ -166,8 +170,6 @@ class AsyncNetworks(NetworkSttings):
                 if not data:
                     break  # Client disconnected
 
-                #self._notify(f"Received data: {data}")
-
                 response: bytes = self.handle_data(client_address, data)
                 writer.write(response)
                 await writer.drain()  # Ensure the data is sent
@@ -176,18 +178,23 @@ class AsyncNetworks(NetworkSttings):
         finally:
             writer.close()
             await writer.wait_closed()
-            self.client_connections.remove((reader, writer))
+            # Xóa kết nối đã đóng
+            self.client_connections = [(r, w) for r, w in self.client_connections if not w.is_closing()]
 
     async def stop(self):
         """Stop the server and close all connections asynchronously."""
+        if not self.running:
+            return
+        
         self.running = False
         # Gracefully close all client connections
         for reader, writer in self.client_connections:
             writer.close()
             await writer.wait_closed()
             
+        self.client_connections.clear()  # Dọn dẹp danh sách kết nối
         
         # Ensure all active tasks finish before shutting down the server
         await asyncio.sleep(0.1)  # Small delay to let any pending operations complete
         
-        self._notify('Server stopped.')
+        self._notify('Server stopped.')  # Thông báo dừng server
