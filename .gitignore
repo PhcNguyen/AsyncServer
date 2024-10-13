@@ -130,3 +130,10 @@ fabric.properties
 .DS_Store
 
 .*cache
+
+# Bỏ qua các khóa RSA
+database/key/private_key.pem
+database/key/public_key.pem
+
+# Bỏ qua file SQL
+database/server.sql
