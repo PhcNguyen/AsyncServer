@@ -6,12 +6,148 @@ import threading
 import lib.customtkinter as ctk
 
 from src.server.utils import System
-from src.model.types import NetworksTypes
-from src.model.settings import UISettings
+from src.models.types import NetworksTypes
+from src.models.settings import UISettings
 from src.server.utils import InternetProtocol
 
 
 class Graphics(UISettings):
+    def __init__(self, root: ctk.CTk, server: NetworksTypes):
+        super().__init__(root)
+        self.server = None
+        self.network = server
+
+        self.current_log = None
+
+        self.root.title("Server Control")
+        self.root.geometry("1200x600")
+        self.root.resizable(False, False)
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("dark-blue")
+
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+        threading.Thread(target=self.loop.run_forever, daemon=True).start()
+
+    def start_server(self):
+        if self.server:
+            return
+        asyncio.run_coroutine_threadsafe(self._start_server(), self.loop)
+
+    def stop_server(self):
+        if not self.server:
+            self._log_to_textbox(self.server_log, "Server is not running.")
+            return
+        try:
+            asyncio.run_coroutine_threadsafe(self._stop_server(), self.loop)
+        except Exception as e:
+            self._log_to_textbox(self.error_log, f"Error while trying to stop the server: {e}")
+
+    def log_message(self, message: str):
+        """Log messages from the server and categorize them."""
+        if "Notify:" in message:
+            msg = message.split('Notify:')[-1].strip()
+            self.root.after(0, self.update_server_log, msg)
+        elif "Error:" in message:
+            msg = message.split('Error:')[-1].strip()
+            self.root.after(0, self.update_error_log, msg)
+        else:
+            self.root.after(0, self.update_server_log, f"Unknown message: {message}")
+
+    def update_server_log(self, msg: str):
+        """Update the server log textbox."""
+        self._log_to_textbox(self.server_log, msg)
+
+    def update_error_log(self, msg: str):
+        """Update the error log textbox."""
+        self._log_to_textbox(self.error_log, msg)
+
+    async def _update_server_info(self):
+        """Update server information in the UI."""
+        if self.server:
+            self.root.after(0, self.update_local_value)
+            self.root.after(0, self.update_public_value)
+            self.root.after(0, self.update_ping_value)
+        else:
+            self.root.after(0, self.update_local_value, "N/A")
+            self.root.after(0, self.update_public_value, "N/A")
+            self.root.after(0, self.update_ping_value, "N/A")
+
+    def update_local_value(self, value: str = None):
+        """Update the local value label."""
+        if value is None:
+            value = InternetProtocol.local()
+        self.local_value.configure(text=value)
+
+    def update_public_value(self, value: str = None):
+        """Update the public value label."""
+        if value is None:
+            value = InternetProtocol.public()
+        self.public_value.configure(text=value)
+
+    def update_ping_value(self, value: str = None):
+        """Update the ping value label."""
+        if value is None:
+            value = f"{InternetProtocol.ping()} ms"
+        self.ping_value.configure(text=value)
+    
+    def on_closing(self):
+        """Xử lý khi người dùng nhấn nút X để đóng cửa sổ."""
+        if self.server:
+            try:
+                asyncio.run_coroutine_threadsafe(self.stop_server(), self.loop)  # Dừng server nếu đang chạy
+            except Exception as e:
+                print(f"Error stopping server: {e}")
+
+        self.loop.stop()     # Dừng vòng lặp asyncio
+        self.root.destroy()  # Đóng cửa sổ giao diện
+
+        print("Application is closing...")  # Thông báo cho biết ứng dụng đang đóng
+        System.exit()                       # Thoát chương trình
+
+    async def _ping_updater(self):
+        """Periodically update ping status."""
+        while self.server:
+            ping_value = InternetProtocol.ping()
+            self.root.after(0, self.update_ping_value, ping_value)
+            await asyncio.sleep(0.8)
+
+    async def _start_server(self):
+        if self.server:
+            return
+        try:
+            self.network.set_message_callback(self.log_message)
+            self.server = self.network
+
+            self.start_button.configure(state='disabled')
+            self.stop_button.configure(state='normal')
+
+            await asyncio.gather(
+                self.server.start(),
+                self._update_server_info(),
+                self._ping_updater(),
+            )
+        except Exception as e:
+            self._log_to_textbox(self.error_log, f"Error starting server: {e}")
+            self.start_button.configure(state='normal')
+
+    async def _stop_server(self):
+        if self.server:
+            try:
+                await self.server.stop()
+            except Exception as e:
+                self._log_to_textbox(self.error_log, f"Error while stopping the server: {e}")
+            finally:
+                self.server = None
+                self.start_button.configure(state='normal')
+                self.stop_button.configure(state='disabled')
+                await self._update_server_info()
+
+
+class Graphics2(UISettings):
     def __init__(self, root: ctk.CTk, server: NetworksTypes):
         super().__init__(root)  # Gọi khởi tạo của lớp cha
         self.server = None
@@ -127,5 +263,3 @@ class Graphics(UISettings):
                 self.start_button.configure(state='normal')
                 self.stop_button.configure(state='disabled')
                 await self._update_server_info()  # Cập nhật thông tin sau khi dừng server
-
-

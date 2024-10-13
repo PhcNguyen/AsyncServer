@@ -12,14 +12,12 @@ class AlgorithmTypes:
     - generate_id: Generates a unique identifier based on the provided string.
     - handle_data: Processes incoming data from a client and returns a response.
     """
-    
-    @staticmethod
-    def generate_id(string: str) -> str:
-        """Generate a unique identifier from the given string."""
-        ...
 
-    def handle_data(self, client_address: tuple, data: dict) -> bytes:
+    def handle_data(self, client_address: typing.Tuple[str, int], data: dict) -> bytes:
         """Handle incoming data from a client and return a response as bytes."""
+        ...
+    
+    def close(self):
         ...
 
 
@@ -41,7 +39,7 @@ class NetworksTypes:
         self, 
         host: str, 
         port: int, 
-        handle_data: typing.Callable[[tuple, bytes], bytes]
+        algorithm: AlgorithmTypes
     ):
         """Initialize network settings and the data handling callback."""
         ...
@@ -108,16 +106,16 @@ class DBManager:
         """Establish a connection to the database."""
         ...
     
-    async def _close(self):
-        """Close the connection to the database."""
-        ...
-    
     async def _create_tables(self) -> bool:
         """Create necessary tables in the database and return success status."""
         ...
     
     def set_message_callback(self, callback):
         """Set a callback function for handling messages."""
+        ...
+    
+    async def close(self):
+        """Close the connection to the database."""
         ...
     
     async def insert_account(self, username: str, password: str, ip_address: str) -> bool:

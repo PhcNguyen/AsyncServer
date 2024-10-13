@@ -7,8 +7,8 @@ import typing
 
 from src.security import rsa
 from src.server.cmd import Cmd
-from src.model.types import DBManager
-from src.model.settings import AlgorithmSettings
+from src.models.types import DBManager
+from src.models.settings import AlgorithmSettings
 from src.manager.utils import (
     isAnotherKeyServer,
     decrypted_data,
@@ -133,3 +133,6 @@ class AlgorithmHandler(AlgorithmSettings):
         
         elif command == Cmd.CLIENT_INFO:
             self.sqlite.get_player_coin(username)
+    
+    def close(self):
+        self.sqlite.close()

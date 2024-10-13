@@ -46,10 +46,12 @@ class DBSettings:
 
     Attributes:
     - DEBUG: Boolean indicating if debug mode is enabled
-    - db_path: Path to the database file (default is 'server.sql' in the database directory)
+    - db_path: Path to the database file (default is 'server.db' in the database directory)
     """
     DEBUG: bool = True
-    db_path: str = os.path.join(dir_db, 'server.sql')  # Database file path
+    table_path: str = os.path.join(dir_db, 'table.sql')
+    queries_path: str = os.path.join(dir_db, 'queries.sql')
+    db_path: str = os.path.join(dir_db, 'server.db')  # Database file path
 
 
 class AlgorithmSettings:

@@ -3,11 +3,12 @@
 
 import os
 import asyncio
-import aiosqlite
 import lib.bcrypt as bcrypt
+import lib.aiofiles as aiofiles
+import lib.aiosqlite as aiosqlite
 from typing import Any, Optional
 
-from src.model.settings import DBSettings
+from src.models.settings import DBSettings
 from src.realtime.time import formatted_time
 
 
@@ -31,13 +32,21 @@ class DBManager(DBSettings):
         if self.message_callback:
             self.message_callback(f'Error: {message}')
     
+    async def _read_sql_file(self, path: str) -> str:
+        """Read SQL commands from a file asynchronously."""
+        try:
+            async with aiofiles.open(path, mode='r', encoding='utf-8', errors='ignore') as file:
+                return await file.read()
+        except Exception as e:
+            print(f"Error reading SQL file: {e}")
+            return ""
+    
     async def _initialize_database(self):
         """Initialize the database and create tables if they do not exist."""
-        await self._connection()  # Ensure connection is established
-        if not os.path.exists(self.db_path):
-            await self._create_tables()
-            self._notify('Successfully created the database.')
-
+        if self.conn is None:
+            self.conn = await aiosqlite.connect(self.db_path)  # Establish the connection
+        await self._create_tables()
+        
     async def _connection(self):
         """Establish a connection to the SQLite database."""
         if not self.conn:
@@ -48,7 +57,44 @@ class DBManager(DBSettings):
             except aiosqlite.OperationalError as e:
                 self._notify_error(f"Failed to connect to database: {e}")
 
-    async def _close(self):
+    async def _create_tables(self) -> bool:
+        """Create all necessary tables in the database."""
+        sql_commands = await self._read_sql_file(DBManager.table_path)
+        if not sql_commands:
+            return False  # Exit if no SQL commands are found
+
+        async with self.lock:  # Ensure thread safety using asyncio.Lock
+            try:
+                # Use the connection directly, ensuring it is initialized
+                await self.conn.executescript(sql_commands)
+                self._notify("Tables created successfully.")
+                return True  
+            except aiosqlite.Error as e:
+                self._notify_error(f"An error occurred while creating tables: {e}")
+                return False
+            
+    async def _queries_line(self, line_number: int):
+        try:
+            async with aiofiles.open(self.queries_path, mode='r') as file:
+                lines = await file.readlines()  # Đọc tất cả các dòng
+                # Loại bỏ các dòng trống và dòng bắt đầu bằng "--"
+                valid_lines = [line.strip() for line in lines if line.strip() and not line.strip().startswith('--')]
+                
+                # Kiểm tra xem dòng yêu cầu có nằm trong phạm vi hợp lệ không
+                if 1 <= line_number <= len(valid_lines): 
+                    return valid_lines[line_number - 1]  # Trả về dòng yêu cầu
+                return None
+        except Exception as e:
+            self._notify_error(f"Error reading file: {e}")
+            return None
+        
+    # ------------------------------- #
+    # FUNCTION PUBLIC
+    def set_message_callback(self, callback):
+        """Set a callback for messages."""
+        self.message_callback = callback 
+
+    async def close(self):
         """Close the database connection."""
         if self.cur:
             await self.cur.close()
@@ -56,62 +102,8 @@ class DBManager(DBSettings):
             await self.conn.close()
         self.conn = None  # Set to None to indicate closed state
 
-    async def _create_tables(self) -> bool:
-        """Create all necessary tables in the database."""
-        async with self.lock:  # Ensure thread safety using asyncio.Lock
-            try:
-                async with self.conn:
-                    await self.conn.executescript(''' 
-                        CREATE TABLE IF NOT EXISTS account (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            username TEXT NOT NULL UNIQUE,
-                            password TEXT NOT NULL,
-                            create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            ip_address TEXT
-                        );
-                        CREATE TABLE IF NOT EXISTS player (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            name TEXT NOT NULL,
-                            coin INTEGER DEFAULT 0,
-                            appellation TEXT NOT NULL,
-                            last_login_time TIMESTAMP DEFAULT '1979-12-31 11:01:01',
-                            last_logout_time TIMESTAMP DEFAULT '1979-12-31 11:01:01',
-                            ip_address TEXT
-                        );
-                        CREATE TABLE IF NOT EXISTS history (
-                            id INTEGER NOT NULL,
-                            command TEXT NOT NULL,
-                            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            ip_address TEXT,
-                            PRIMARY KEY (id, timestamp),
-                            FOREIGN KEY (id) REFERENCES account (id) ON DELETE CASCADE
-                        );
-                        CREATE TABLE IF NOT EXISTS history_transfer (
-                            id INTEGER NOT NULL,
-                            sender_name TEXT NOT NULL,
-                            receiver_name TEXT NOT NULL,
-                            amount INTEGER NOT NULL,
-                            message TEXT,
-                            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            ip_address TEXT,
-                            PRIMARY KEY (id, timestamp),
-                            FOREIGN KEY (id) REFERENCES account (id) ON DELETE CASCADE
-                        );
-                    ''')
-                self._notify("Tables created successfully.")
-                return True  
-            except aiosqlite.Error as e:
-                self._notify_error(f"An error occurred while creating tables: {e}")
-                return False
-    # ------------------------------- #
-    # FUNCTION PUBLIC
-    def set_message_callback(self, callback):
-        """Set a callback for messages."""
-        self.message_callback = callback 
-
     # INSERT DATA
-    async def insert_account(self, username: str, password: str, ip_address: str) -> bool:
+    async def insert_account(self, username: str, password: str) -> bool:
         """Register a new account in the account table."""
         # Check if the username already exists
         async with self.lock:
@@ -119,9 +111,7 @@ class DBManager(DBSettings):
                 password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
                 async with self.conn:
                     # Check if the username exists in the database
-                    result = await self.conn.execute('''
-                        SELECT * FROM account WHERE username = ?
-                    ''', (username,))
+                    result = await self.conn.execute(await self._queries_line(1), (username,))
                     account_exists = await result.fetchone()
 
                     if account_exists:
@@ -130,8 +120,8 @@ class DBManager(DBSettings):
 
                     # If the username does not exist, insert the new account
                     await self.conn.execute('''
-                        INSERT INTO account (username, password, ip_address) VALUES (?, ?, ?)
-                    ''', (username, password, ip_address))
+                        INSERT INTO account (username, password) VALUES (?, ?)
+                    ''', (username, password))
                     await self.conn.commit()  # Commit the transaction
 
                     self._notify(f"[{username}]> Successfully registered.")
@@ -148,7 +138,6 @@ class DBManager(DBSettings):
         appellation = kwargs.get('appellation', '')
         last_login_time = kwargs.get('last_login_time', '1979-12-31 11:01:01')
         last_logout_time = kwargs.get('last_logout_time', '1979-12-31 11:01:01')
-        ip_address = kwargs.get('ip_address', '')
 
         async with self.lock:
             try:
@@ -156,10 +145,9 @@ class DBManager(DBSettings):
                     await self.conn.execute('''
                         INSERT INTO player (
                             name, coin, appellation, 
-                            last_login_time, last_logout_time, 
-                            ip_address
-                        ) VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (name, coin, appellation, last_login_time, last_logout_time, ip_address))
+                            last_login_time, last_logout_time,
+                        ) VALUES (?, ?, ?, ?, ?)
+                    ''', (name, coin, appellation, last_login_time, last_logout_time))
                     await self.conn.commit()  # Commit the transaction
                 return True
             except aiosqlite.Error as e:

@@ -1,7 +1,6 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import typing
 import socket
 import asyncio
 
@@ -9,41 +8,40 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Optional, List, Tuple
 
-from src.model.settings import NetworkSttings
+from src.models.types import AlgorithmTypes
+from src.models.settings import NetworkSettings
 
 
 MAX_CONNECTIONS = 1000  # Define your max connections
 
 
-class Networks(NetworkSttings):
+class Networks(NetworkSettings):
     def __init__(
         self, 
         host: str, 
         port: int, 
-        handle_data: Callable[[tuple, bytes], bytes]
+        handle_data: Callable[[Tuple[str, int], bytes], bytes]
     ):
         self.server_address: Tuple[str, int] = (host, port)
         self.handle_data: Callable[[Tuple[str, int], bytes], bytes] = handle_data
         self.executor = ThreadPoolExecutor(max_workers=50)
         self.message_callback: Optional[Callable[[str], None]] = None
-        self.running: bool = False  # Khởi tạo với False
+        self.running: bool = False  # Initialize with False
         self.client_connections: List[Tuple[socket.socket, tuple]] = [] 
 
-    def _notify(self, message):
+    def _notify(self, message: str):
         if self.message_callback:
             self.message_callback(f'Notify: {message}')
 
-    def _notify_error(self, message):
+    def _notify_error(self, message: str):
         if self.message_callback:
             self.message_callback(f'Error: {message}')
     
-    def set_message_callback(
-        self, callback: 
-        typing.Callable[[str], None]
-    ):  self.message_callback = callback
+    def set_message_callback(self, callback: Callable[[str], None]):
+        self.message_callback = callback
 
     def start(self):
-        """Khởi động server và lắng nghe các kết nối đến."""
+        """Start the server and listen for incoming connections."""
         try:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -51,18 +49,20 @@ class Networks(NetworkSttings):
             self.server_socket.listen()
             self._notify(f'Starting server at {self.server_address}.')
             self.running = True
-            self.accept_connections()
+            asyncio.run(self.accept_connections())  # Start accepting connections asynchronously
         except OSError as error:
             self._notify_error("OSError: " + str(error))
         except Exception as error:
             self._notify_error("Unknown error: " + str(error))
 
-    def accept_connections(self):
-        """Chấp nhận các kết nối đến."""
+    async def accept_connections(self):
+        """Accept incoming connections asynchronously."""
         while self.running:
             if len(self.client_connections) >= MAX_CONNECTIONS:
                 self._notify("Maximum connection limit reached. Rejecting new connections.")
+                await asyncio.sleep(1)  # Wait before retrying to accept new connections
                 continue
+            
             try:
                 client_socket, client_address = self.server_socket.accept()
                 self.client_connections.append((client_socket, client_address))
@@ -78,8 +78,8 @@ class Networks(NetworkSttings):
         self, 
         client_socket: socket.socket, 
         client_address: tuple[str, int]
-    ) -> bytes:
-        """Xử lý dữ liệu từ client."""
+    ):
+        """Handle data from client."""
         try:
             while True:
                 data = client_socket.recv(1024)
@@ -99,7 +99,7 @@ class Networks(NetworkSttings):
             self.client_connections.remove((client_socket, client_address))
 
     def stop(self):
-        """Dừng server và đóng tất cả các kết nối."""
+        """Stop the server and close all connections."""
         self.running = False
         for conn, addr in self.client_connections:
             conn.close()
@@ -108,15 +108,15 @@ class Networks(NetworkSttings):
         self._notify('Server stopped.')
 
 
-class AsyncNetworks(NetworkSttings):
+class AsyncNetworks(NetworkSettings):
     def __init__(
         self, 
         host: str, 
         port: int, 
-        handle_data: Callable[[Tuple[str, int], bytes], bytes]
+        algorithm: AlgorithmTypes
     ):
         self.server_address: Tuple[str, int] = (host, port)
-        self.handle_data: Callable[[Tuple[str, int], bytes], bytes] = handle_data
+        self.algorithm: AlgorithmTypes = algorithm
         self.message_callback: Optional[Callable[[str], None]] = None
         self.running: bool = False  # Khởi tạo với False
         self.client_connections: List[Tuple[asyncio.StreamReader, asyncio.StreamWriter]] = []
@@ -169,7 +169,7 @@ class AsyncNetworks(NetworkSttings):
                 if not data:
                     break  # Client disconnected
 
-                response: bytes = self.handle_data(client_address, data)
+                response: bytes = self.algorithm.handle_data(client_address, data)
                 writer.write(response)
                 await writer.drain()  # Ensure the data is sent
         except Exception as e:
@@ -190,7 +190,8 @@ class AsyncNetworks(NetworkSttings):
         for reader, writer in self.client_connections:
             writer.close()
             await writer.wait_closed()
-            
+        
+        self.algorithm.close()
         self.client_connections.clear()  # Dọn dẹp danh sách kết nối
         
         # Ensure all active tasks finish before shutting down the server

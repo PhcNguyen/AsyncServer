@@ -21,9 +21,7 @@
 
 ---
 
-### 1.English
-
-#### EXPLAIN THE STRUCTURE
+## 1.English
 
 - **[ CRAPS - 1.0.31 ]**: The name of the dice game project.
 
@@ -49,14 +47,14 @@
 
 - **main.py**: The entry point of the application, which is responsible for launching the game and initializing the user interface.
 
-#### ADDITIONAL FEATURES
+### ADDITIONAL FEATURES
 
 - **User-Friendly Interface**: Built using `customtkinter` to provide an enhanced user experience.
 - **Security**: Implements strong encryption techniques to ensure player data is safe and secure.
 - **Testing**: Comprehensive tests included to ensure all features function correctly before deployment.
 - **No Real Money Involvement**: The game is designed purely for entertainment without any real money gambling, complying with legal requirements.
 
-#### FUTURE IMPROVEMENTS
+### FUTURE IMPROVEMENTS
 
 - **Multiplayer Support**: Explore options for adding multiplayer features.
 - **Leaderboards**: Implement a system for tracking and displaying player scores.
@@ -64,7 +62,7 @@
 
 ---
 
-### 2.Vietnamese
+## 2.Vietnamese
 
 - **[ CRAPS - 1.0.31 ]**: Tên của dự án trò chơi xúc xắc.
 
