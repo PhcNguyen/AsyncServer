@@ -136,3 +136,5 @@ database/key/private_key.pem
 
 # Bỏ qua file SQL
 database/server.sql
+
+res/

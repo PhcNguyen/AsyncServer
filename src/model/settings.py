@@ -24,32 +24,64 @@ dir_db: str = os.path.join(
 )
 
     
-class NetworkSttings:
-    DEBUG: bool = True
-    host: str = InternetProtocol.local()
-    public: str = InternetProtocol.public()
+class NetworkSettings:
+    """
+    Configuration settings for network communication.
 
-    port: int = 7272
+    Attributes:
+    - DEBUG: Boolean indicating if debug mode is enabled
+    - host: Local IP address of the machine
+    - public: Public IP address of the machine
+    - port: Port number for network communication (default is 7272)
+    """
+    DEBUG: bool = True
+    host: str = InternetProtocol.local()  # Retrieve local IP address
+    public: str = InternetProtocol.public()  # Retrieve public IP address
+    port: int = 7272  # Default port number
 
 
 class DBSettings:
+    """
+    Configuration settings for database connection.
+
+    Attributes:
+    - DEBUG: Boolean indicating if debug mode is enabled
+    - db_path: Path to the database file (default is 'server.sql' in the database directory)
+    """
     DEBUG: bool = True
-    db_path: str = os.path.join(dir_db, 'server.sql')
+    db_path: str = os.path.join(dir_db, 'server.sql')  # Database file path
 
 
 class AlgorithmSettings:
+    """
+    Configuration settings for cryptographic algorithms.
+
+    Attributes:
+    - DEBUG: Boolean indicating if debug mode is enabled
+    - key_path: Dictionary containing paths to public and private key files
+    """
     DEBUG: bool = False
     key_path: dict = {
         'public': os.path.join(
-            dir_db, 'key', 'public_key.pem'
+            dir_db, 'key', 'public_key.pem'  # Path to the public key
         ),
         'private': os.path.join(
-            dir_db, 'key', 'private_key.pem'
+            dir_db, 'key', 'private_key.pem'  # Path to the private key
         )
     }
 
 
 class UISettings:
+    """
+    UISettings class to create and manage the user interface for the server application.
+
+    Attributes:
+    - root: The main window of the application.
+    - control_frame: Frame containing control buttons (START, STOP, CLEAR LOGS).
+    - log_frame: Frame for displaying logs (SERVER, ERROR).
+    - info_frame: Frame for displaying server information (Local IP, Public IP, Ping).
+    """
+    
     root = ctk.CTk()
 
     def __init__(self, root: ctk.CTk):

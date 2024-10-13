@@ -63,6 +63,21 @@ class System:
 
 
 class InternetProtocol:
+    """
+    2 variables:
+    - host: The address of the server to ping (default is google.com)
+    - param: The parameter for the ping command, depending on the operating system
+
+    3 functions:
+    - local()   |   Retrieves the local IP address of the machine
+    - public()  |   Retrieves the public IP address from an external service
+    - ping()    |   Executes a ping command to the host and returns the response time
+    """
+
+    # Xác định lệnh ping dựa trên hệ điều hành
+    param = "-n" if platform.system().lower() == "windows" else "-c"
+    host = "google.com"
+
     @staticmethod
     def local() -> str:
         try:
@@ -85,13 +100,12 @@ class InternetProtocol:
     
     @staticmethod
     def ping() -> (int | str):
-        # Xác định lệnh ping dựa trên hệ điều hành
-        host = "google.com"
-        param = "-n" if platform.system().lower() == "windows" else "-c"
-        
         try:
             # Thực hiện lệnh ping
-            output = subprocess.check_output(["ping", param, "1", host], universal_newlines=True)
+            output = subprocess.check_output(
+                ["ping", InternetProtocol.param, "1", InternetProtocol.host], 
+                universal_newlines=True
+            )
             
             # Phân tích đầu ra để tìm thời gian ping
             if platform.system().lower() == "windows":
