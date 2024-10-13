@@ -1,6 +1,6 @@
 # CRAPS PROJECT
 
-```
+```text
 [ CRAPS - 1.0.31 ]
     ├───[ database ]
     ├───[ docs ]
@@ -19,11 +19,12 @@
     └─── main.py
 ```
 
---- 
+---
 
-### 1. English
+### 1.English
 
 #### EXPLAIN THE STRUCTURE
+
 - **[ CRAPS - 1.0.31 ]**: The name of the dice game project.
 
 - **[ database ]**: This folder contains the data files and configurations required for the game.
@@ -49,19 +50,22 @@
 - **main.py**: The entry point of the application, which is responsible for launching the game and initializing the user interface.
 
 #### ADDITIONAL FEATURES
+
 - **User-Friendly Interface**: Built using `customtkinter` to provide an enhanced user experience.
 - **Security**: Implements strong encryption techniques to ensure player data is safe and secure.
 - **Testing**: Comprehensive tests included to ensure all features function correctly before deployment.
 - **No Real Money Involvement**: The game is designed purely for entertainment without any real money gambling, complying with legal requirements.
 
 #### FUTURE IMPROVEMENTS
+
 - **Multiplayer Support**: Explore options for adding multiplayer features.
 - **Leaderboards**: Implement a system for tracking and displaying player scores.
 - **Game Variants**: Introduce new game modes or rules to keep the gameplay fresh and exciting.
 
 ---
 
-### 2. Vietnamese
+### 2.Vietnamese
+
 - **[ CRAPS - 1.0.31 ]**: Tên của dự án trò chơi xúc xắc.
 
 - **[ database ]**: Thư mục này chứa các tệp dữ liệu và cấu hình cần thiết cho trò chơi.
@@ -85,4 +89,3 @@
 - **server.py**: Tệp chính cho server, có khả năng khởi tạo server trò chơi và xử lý các kết nối đến.
 
 - **main.py**: Điểm vào của ứng dụng, chịu trách nhiệm khởi động trò chơi và khởi tạo giao diện người dùng.
-
