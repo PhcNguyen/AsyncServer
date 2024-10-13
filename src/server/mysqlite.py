@@ -1,26 +1,23 @@
-# Copyright (C) PhcNguyen Developers
-# Distributed under the terms of the Modified BSD License.
-
 import os
-import typing
 import asyncio
 import aiosqlite
-import threading
+from typing import Any, Optional
 
-from . import settings
+from src.server.settings import DBSettings
 
 
-class DatabaseManager(settings.DatabaseManager):
+class DBManager(DBSettings):
     def __init__(self, db_path: str) -> None:
-        self.cur = None
         self.conn = None
-        self.lock = threading.Lock()
+        self.cur = None
+        self.lock = asyncio.Lock()
         self.db_path = db_path
         self.message_callback = None
         asyncio.run(self._initialize_database())
 
     async def _initialize_database(self):
         """Initialize the database and create tables if they do not exist."""
+        await self._connection()  # Ensure connection is established
         if not os.path.exists(self.db_path):
             await self._create_tables()
             self._notify('Successfully created the database.')
@@ -35,11 +32,28 @@ class DatabaseManager(settings.DatabaseManager):
         if self.message_callback:
             self.message_callback(f'Error: {message}')
 
+    async def _connection(self):
+        """Establish a connection to the SQLite database."""
+        if not self.conn:
+            try:
+                self.conn = await aiosqlite.connect(self.db_path)
+                self.cur = await self.conn.cursor()
+                self._notify("Database connection established.")
+            except aiosqlite.OperationalError as e:
+                self._notify_error(f"Failed to connect to database: {e}")
+
+    async def _close(self):
+        """Close the database connection."""
+        if self.cur:
+            await self.cur.close()
+        if self.conn:
+            await self.conn.close()
+        self.conn = None  # Set to None to indicate closed state
+
     async def _create_tables(self) -> bool:
         """Create all necessary tables in the database."""
-        with self.lock:  # Ensure thread safety
+        async with self.lock:  # Ensure thread safety using asyncio.Lock
             try:
-                await self._connection()  # Establish connection if not already
                 async with self.conn:
                     await self.conn.executescript(''' 
                         CREATE TABLE IF NOT EXISTS account (
@@ -73,143 +87,52 @@ class DatabaseManager(settings.DatabaseManager):
             except aiosqlite.Error as e:
                 self._notify_error(f"An error occurred while creating tables: {e}")
                 return False
-
-    async def _connection(self):
-        """Establish a connection to the SQLite database."""
-        try:
-            self.conn = await aiosqlite.connect(database=self.db_path)
-            self.cur = await self.conn.cursor()
-        except aiosqlite.OperationalError as e:
-            self._notify_error(e)
-
-    async def _close(self):
-        """Close the database connection."""
-        if self.cur:
-            await self.cur.close()
-        if self.conn:
-            await self.conn.close()
-
+    
     def set_message_callback(self, callback):
         """Set a callback for messages."""
         self.message_callback = callback 
 
-    async def execute_query(self, query: str, params: tuple = None) -> typing.Any:
-        """Execute an SQL query."""
-        if self.cur:
-            try:
-                await self.cur.execute(query, params or ())
-                return await self.cur.fetchall()
-            except Exception as e:
-                self._notify_error(f"Query failed: {e} | Query: {query}")
-                return None
-        else:
-            self._notify_error("Cursor is not initialized.")
-            return None
-
     async def insert_account(self, username: str, password: str, ip_address: str) -> bool:
         """Insert a new account into the account table."""
-        with self.lock:  # Ensure thread safety
-            await self._connection()  # Establish connection if not already
+        async with self.lock:
             try:
-                async with self.conn:  # Use a transaction context
-                    await self.conn.execute('''INSERT INTO account (username, password, ip_address) VALUES (?, ?, ?)''', (username, password, ip_address))
-                return True  # Indicate success
+                async with self.conn:
+                    await self.conn.execute('''
+                        INSERT INTO account (username, password, ip_address) VALUES (?, ?, ?)
+                    ''', (username, password, ip_address))
+                    await self.conn.commit()  # Commit the transaction
+                return True
             except aiosqlite.IntegrityError:
-                self._notify_error("Username already exists.")  # Notify error
-                return False  # Indicate failure
+                self._notify_error("Username already exists.")
+                return False
             except aiosqlite.Error as e:
                 self._notify_error(f"Failed to insert account: {e}")
-                return False  # Indicate failure
-            finally:
-                await self._close()  # Close the connection
-
-    async def insert_player(self, name: str, coin: int, appellation: str, ip_address: str) -> bool:
-        """Insert a new player into the player table."""
-        with self.lock:  # Ensure thread safety
-            await self._connection()  # Establish connection if not already
-            try:
-                async with self.conn:
-                    await self.conn.execute('''INSERT INTO player (name, coin, appellation, ip_address) VALUES (?, ?, ?, ?)''', (name, coin, appellation, ip_address))
-                return True  # Indicate success
-            except aiosqlite.Error as e:
-                self._notify_error(f"Failed to insert player: {e}")
-                return False  # Indicate failure
-            finally:
-                await self._close()  # Close the connection
-
-    async def insert_history(self, id: int, action: str, ip_address: str) -> bool:
-        """Insert a new history record."""
-        with self.lock:  # Ensure thread safety
-            await self._connection()  # Establish connection if not already
-            try:
-                async with self.conn:
-                    await self.conn.execute('''INSERT INTO history (id, action, ip_address) VALUES (?, ?, ?)''', (id, action, ip_address))
-                return True  # Indicate success
-            except aiosqlite.Error as e:
-                self._notify_error(f"Failed to insert history record: {e}")
-                return False  # Indicate failure
-            finally:
-                await self._close()  # Close the connection
-
-    async def get_player_history(self, id: int):
-        """Query history records for a specific player."""
-        with self.lock:
-            await self._connection()
-            history_records = await self.conn.execute('SELECT * FROM history WHERE id = ?', (id,))
-            results = await history_records.fetchall()
-            await self._close()  # Close the connection
-            return results
+                return False
 
     async def login(self, username: str, password: str) -> bool:
         """Check if the username and password match an account."""
-        with self.lock:
-            await self._connection()
+        async with self.lock:
             try:
-                account = await self.conn.execute('SELECT * FROM account WHERE username = ? AND password = ?', (username, password))
-                result = await account.fetchone()
-                return result is not None  # Return True if account exists
+                async with self.conn:
+                    result = await self.conn.execute('''
+                        SELECT * FROM account WHERE username = ? AND password = ?
+                    ''', (username, password))
+                    account = await result.fetchone()
+                return account is not None  # Return True if account exists
             except aiosqlite.Error as e:
                 self._notify_error(f"Login failed: {e}")
                 return False
-            finally:
-                await self._close()
 
-    async def register(self, username: str, password: str, ip_address: str) -> bool:
-        """Register a new user account."""
-        return await self.insert_account(username, password, ip_address)  # Reuse insert_account method
-
-    async def get_account_data(self, username: str) -> typing.Optional[dict]:
-        """Retrieve account data based on the username."""
-        with self.lock:
-            await self._connection()
-            try:
-                account = await self.conn.execute('SELECT * FROM account WHERE username = ?', (username,))
-                result = await account.fetchone()
-                if result:
-                    return {
-                        'id': result[0],
-                        'username': result[1],
-                        'create_time': result[3],
-                        'update_time': result[4],
-                        'ip_address': result[5]
-                    }
-                return None
-            except aiosqlite.Error as e:
-                self._notify_error(f"Failed to retrieve account data: {e}")
-                return None
-            finally:
-                await self._close()
-    
-    async def get_player_coin(self, name: str) -> typing.Optional[int]:
+    async def get_player_coin(self, name: str) -> Optional[int]:
         """Retrieve the coin amount of a specific player."""
-        with self.lock:
-            await self._connection()
+        async with self.lock:
             try:
-                player = await self.conn.execute('SELECT coin FROM player WHERE name = ?', (name,))
-                result = await player.fetchone()
-                return result[0] if result else None  # Return coin amount or None if player not found
+                async with self.conn:
+                    result = await self.conn.execute('''
+                        SELECT coin FROM player WHERE name = ?
+                    ''', (name,))
+                    player = await result.fetchone()
+                return player[0] if player else None
             except aiosqlite.Error as e:
                 self._notify_error(f"Failed to retrieve player coin: {e}")
                 return None
-            finally:
-                await self._close()

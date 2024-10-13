@@ -9,12 +9,14 @@ import asyncio
 
 from datetime import datetime
 
-from . import settings, types
-from .settings import InternetProtocol
+from src.server.types import NetworksTypes
+from src.server.settings import UISettings
+from src.server.utils import InternetProtocol
 
 
-class Graphics(settings.Graphics):
-    def __init__(self, root: ctk.CTk, server: types.Networks):
+
+class Graphics(UISettings):
+    def __init__(self, root: ctk.CTk, server: NetworksTypes):
         self.root = root
         self.server = None
         self.network = server
