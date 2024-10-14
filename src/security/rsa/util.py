@@ -17,7 +17,7 @@
 import sys
 from optparse import OptionParser
 
-import rsa.key
+import src.security.rsa.key as rsakey
 
 
 def private_to_public() -> None:
@@ -79,8 +79,8 @@ def private_to_public() -> None:
     assert type(in_data) == bytes, type(in_data)
 
     # Take the public fields and create a public key
-    priv_key = rsa.key.PrivateKey.load_pkcs1(in_data, cli.inform)
-    pub_key = rsa.key.PublicKey(priv_key.n, priv_key.e)
+    priv_key = rsakey.PrivateKey.load_pkcs1(in_data, cli.inform)
+    pub_key = rsakey.PublicKey(priv_key.n, priv_key.e)
 
     # Save to the output file
     out_data = pub_key.save_pkcs1(cli.outform)

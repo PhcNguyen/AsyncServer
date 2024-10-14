@@ -5,59 +5,30 @@ import os
 import json
 import typing
 
-from src.security import rsa
 from src.server.cmd import Cmd
+from src.security.cipher import Cipher
 from src.models.types import DBManager
 from src.models.settings import AlgorithmSettings
-from src.manager.utils import (
-    isAnotherKeyServer,
-    decrypted_data,
-    encrypted_data
-)
+from src.manager import utils
+
 
 
 class AlgorithmHandler(AlgorithmSettings):
     def __init__(self, sql: DBManager) -> None:
         self.sqlite = sql
 
+        self.cipher = None
         self.public_key = None
         self.private_key = None
 
         self.message_callback = None
 
-         # Khởi tạo cặp khóa RSA
-        self._initialize_RsaKeys()
+        self._load_keys()
     
-    def _initialize_RsaKeys(self):
-        """Kiểm tra và tạo cặp khóa RSA nếu chưa tồn tại."""
-
-        if not (os.path.exists(self.key_path["public"]) 
-        and os.path.exists(self.key_path["private"])
-        ):  
-            """Tạo cặp khóa RSA mới và lưu vào file."""
-            try:
-                self._notify("Create a new RSA key pair and save it to a file.")
-                self.public_key, self.private_key = rsa.newkeys(512)  # Tạo cặp khóa 512-bit
-
-                with open(self.key_path["public"], "wb") as pub_file, \
-                    open(self.key_path["private"], "wb") as priv_file:
-                    pub_file.write(self.public_key.save_pkcs1())
-                    priv_file.write(self.private_key.save_pkcs1())  
-
-            except Exception as error:
-                self._notify_error(f"Error creating a key: {error}")
-        
-        """Tải khóa RSA từ file."""
-        try:
-            self._notify("Download the RSA key from the file.")
-
-            with open(self.key_path["public"], "rb") as pub_file, \
-                 open(self.key_path["private"], "rb") as priv_file:
-                self.public_key = rsa.PublicKey.load_pkcs1(pub_file.read())
-                self.private_key = rsa.PrivateKey.load_pkcs1(priv_file.read())
-
-        except Exception as error:
-            self._notify_error(f"Error loading the lock: {error}")
+    def _load_keys(self):
+        self.cipher = Cipher(self.key_path)
+        self.public_key = self.cipher.public_key
+        self.private_key = self.cipher.private_key
     
     def _notify(self, message):
         """Notification method."""
@@ -74,52 +45,36 @@ class AlgorithmHandler(AlgorithmSettings):
         typing.Callable[[str], None]
     ):  self.message_callback = callback
 
-    def handle_data(
+    async def close(self):
+        await self.sqlite.close()
+
+    async def handle_data(
         self, 
         client_address: tuple, 
         client_data: bytes
     ) -> bytes:
         """Xử lý dữ liệu từ client và trả về kết quả."""
         
-        data = decrypted_data(
-            client_data, 
-            self.public_key, 
-            self.private_key
-        )
-
-        if 'status' in data:
-            return data
+        data = self.cipher.decrypt(client_data)
 
         # GET DATA 
-        command  = data.get("command",   "Unknown")
-        message  = data.get("message",   "Unknown")
-        username = data.get("username", "Unknown")
-        password = data.get("password", "Unknown")
-        ip_address = data.get("ip_address", "Unknown")
+        command  = data.get("command",  "")
+        username = data.get("username", "")
+        password = data.get("password", "")
+        ip_address = data.get("ip_address", "")
 
-        pub_key_client = data.get("pub_key_client", "Unknown")
-        pub_key_server = data.get("pub_key_client", "Unknown")
-        
+        key_client = data.get("key_client", "")
+        key_server = data.get("key_server", "")
 
-        # Kiểm tra xem public_key_server đúng không
-        if not isAnotherKeyServer(self.public_key, pub_key_server):
-            result = {
-                "status": True,
-                "pub_key_server": self.public_key,
-                "message": "This is your Public Key"
+
+        if data is None:
+            return {
+                "status": False,
+                "message": "Decryption failed: No data returned.",
+                "key_server": self.public_key
             }
-            return json.dumps(result).encode("utf-8")
-        
 
         """Xử lý các lệnh từ client."""
-
-        if command == "Unknown":
-            result = {
-                "status": True,
-                "pub_key_server": self.public_key,
-                "message": "This is your Public Key"
-            }
-            return json.dumps(result).encode("utf-8")
 
         if command == Cmd.LOGIN:
             self.sqlite.login(username, password)
@@ -133,6 +88,3 @@ class AlgorithmHandler(AlgorithmSettings):
         
         elif command == Cmd.CLIENT_INFO:
             self.sqlite.get_player_coin(username)
-    
-    def close(self):
-        self.sqlite.close()

@@ -4,7 +4,7 @@
 import os
 import pathlib
 import tkinter as tk
-import lib.customtkinter as ctk
+import customtkinter as ctk
 
 from datetime import datetime
 from src.server.utils import InternetProtocol

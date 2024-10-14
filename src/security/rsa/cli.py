@@ -22,11 +22,11 @@ import sys
 import typing
 import optparse
 
-import rsa
-import rsa.key
-import rsa.pkcs1
+import src.security.rsa as rsa
+import src.security.rsa.key as rsakey
+import src.security.rsa.pkcs1 as rsapkcs1
 
-HASH_METHODS = sorted(rsa.pkcs1.HASH_METHODS.keys())
+HASH_METHODS = sorted(rsapkcs1.HASH_METHODS.keys())
 Indexable = typing.Union[typing.Tuple, typing.List[str]]
 
 
@@ -123,7 +123,7 @@ class CryptoOperation(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def perform_operation(
-        self, indata: bytes, key: rsa.key.AbstractKey, cli_args: Indexable
+        self, indata: bytes, key: rsakey.AbstractKey, cli_args: Indexable
     ) -> typing.Any:
         """Performs the program's operation.
 
@@ -175,7 +175,7 @@ class CryptoOperation(metaclass=abc.ABCMeta):
 
         return cli, cli_args
 
-    def read_key(self, filename: str, keyform: str) -> rsa.key.AbstractKey:
+    def read_key(self, filename: str, keyform: str) -> rsakey.AbstractKey:
         """Reads a public or private key."""
 
         print("Reading %s key from %s" % (self.keyname, filename), file=sys.stderr)
@@ -219,10 +219,10 @@ class EncryptOperation(CryptoOperation):
     operation_progressive = "encrypting"
 
     def perform_operation(
-        self, indata: bytes, pub_key: rsa.key.AbstractKey, cli_args: Indexable = ()
+        self, indata: bytes, pub_key: rsakey.AbstractKey, cli_args: Indexable = ()
     ) -> bytes:
         """Encrypts files."""
-        assert isinstance(pub_key, rsa.key.PublicKey)
+        assert isinstance(pub_key, rsakey.PublicKey)
         return rsa.encrypt(indata, pub_key)
 
 
@@ -240,10 +240,10 @@ class DecryptOperation(CryptoOperation):
     key_class = rsa.PrivateKey
 
     def perform_operation(
-        self, indata: bytes, priv_key: rsa.key.AbstractKey, cli_args: Indexable = ()
+        self, indata: bytes, priv_key: rsakey.AbstractKey, cli_args: Indexable = ()
     ) -> bytes:
         """Decrypts files."""
-        assert isinstance(priv_key, rsa.key.PrivateKey)
+        assert isinstance(priv_key, rsakey.PrivateKey)
         return rsa.decrypt(indata, priv_key)
 
 
@@ -268,10 +268,10 @@ class SignOperation(CryptoOperation):
     )
 
     def perform_operation(
-        self, indata: bytes, priv_key: rsa.key.AbstractKey, cli_args: Indexable
+        self, indata: bytes, priv_key: rsakey.AbstractKey, cli_args: Indexable
     ) -> bytes:
         """Signs files."""
-        assert isinstance(priv_key, rsa.key.PrivateKey)
+        assert isinstance(priv_key, rsakey.PrivateKey)
 
         hash_method = cli_args[1]
         if hash_method not in HASH_METHODS:
@@ -297,10 +297,10 @@ class VerifyOperation(CryptoOperation):
     has_output = False
 
     def perform_operation(
-        self, indata: bytes, pub_key: rsa.key.AbstractKey, cli_args: Indexable
+        self, indata: bytes, pub_key: rsakey.AbstractKey, cli_args: Indexable
     ) -> None:
         """Verifies files."""
-        assert isinstance(pub_key, rsa.key.PublicKey)
+        assert isinstance(pub_key, rsakey.PublicKey)
 
         signature_file = cli_args[1]
 

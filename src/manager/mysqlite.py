@@ -3,9 +3,9 @@
 
 import os
 import asyncio
-import lib.bcrypt as bcrypt
-import lib.aiofiles as aiofiles
-import lib.aiosqlite as aiosqlite
+import bcrypt as bcrypt
+import aiofiles as aiofiles
+import aiosqlite as aiosqlite
 from typing import Any, Optional
 
 from src.models.settings import DBSettings
@@ -35,10 +35,13 @@ class DBManager(DBSettings):
     async def _read_sql_file(self, path: str) -> str:
         """Read SQL commands from a file asynchronously."""
         try:
-            async with aiofiles.open(path, mode='r', encoding='utf-8', errors='ignore') as file:
+            async with aiofiles.open(
+                path, mode='r', 
+                encoding='utf-8', errors='ignore'
+            ) as file:
                 return await file.read()
-        except Exception as e:
-            print(f"Error reading SQL file: {e}")
+        except Exception as error:
+            self._notify_error(error)
             return ""
     
     async def _initialize_database(self):
@@ -53,9 +56,8 @@ class DBManager(DBSettings):
             try:
                 self.conn = await aiosqlite.connect(self.db_path)
                 self.cur = await self.conn.cursor()
-                self._notify("Database connection established.")
-            except aiosqlite.OperationalError as e:
-                self._notify_error(f"Failed to connect to database: {e}")
+            except aiosqlite.OperationalError as error:
+                self._notify_error(error)
 
     async def _create_tables(self) -> bool:
         """Create all necessary tables in the database."""
@@ -84,8 +86,8 @@ class DBManager(DBSettings):
                 if 1 <= line_number <= len(valid_lines): 
                     return valid_lines[line_number - 1]  # Trả về dòng yêu cầu
                 return None
-        except Exception as e:
-            self._notify_error(f"Error reading file: {e}")
+        except Exception as error:
+            self._notify_error(error)
             return None
         
     # ------------------------------- #
@@ -119,16 +121,12 @@ class DBManager(DBSettings):
                         return False  # Username already exists
 
                     # If the username does not exist, insert the new account
-                    await self.conn.execute('''
-                        INSERT INTO account (username, password) VALUES (?, ?)
-                    ''', (username, password))
+                    await self.conn.execute(await self._queries_line(7), (username, password))
                     await self.conn.commit()  # Commit the transaction
 
-                    self._notify(f"[{username}]> Successfully registered.")
                     return True
-
-            except aiosqlite.Error:
-                self._notify_error(f"[{username}]> Failed to register.")
+            except aiosqlite.Error as error:
+                self._notify_error(error)
                 return False
     
     async def insert_player(self, **kwargs) -> bool:
@@ -142,16 +140,14 @@ class DBManager(DBSettings):
         async with self.lock:
             try:
                 async with self.conn:
-                    await self.conn.execute('''
-                        INSERT INTO player (
-                            name, coin, appellation, 
-                            last_login_time, last_logout_time,
-                        ) VALUES (?, ?, ?, ?, ?)
-                    ''', (name, coin, appellation, last_login_time, last_logout_time))
+                    await self.conn.execute(
+                        await self._queries_line(8), 
+                        (name, coin, appellation, last_login_time, last_logout_time)
+                    )
                     await self.conn.commit()  # Commit the transaction
                 return True
-            except aiosqlite.Error as e:
-                self._notify_error(f"[{name}]> Failed to insert player.")
+            except aiosqlite.Error as error:
+                self._notify_error(error)
                 return False
                 
     async def increase_player_coin(self, name: str, amount: int) -> bool:
@@ -160,13 +156,11 @@ class DBManager(DBSettings):
             try:
                 async with self.conn:
                     # Cập nhật số tiền của người chơi
-                    await self.conn.execute('''
-                        UPDATE player SET coin = coin + ? WHERE name = ?
-                    ''', (amount, name))
+                    await self.conn.execute(await self._queries_line(14), (amount, name))
                     await self.conn.commit()  # Commit the transaction
                 return True
-            except aiosqlite.Error as e:
-                self._notify_error(f"[{name}]> Failed to increase player coin.")
+            except aiosqlite.Error as error:
+                self._notify_error(error)
                 return False
             
     # GET DATA
@@ -174,17 +168,15 @@ class DBManager(DBSettings):
         async with self.lock:
             try:
                 async with self.conn:
-                    result = await self.conn.execute(''' 
-                        SELECT password FROM account WHERE username = ? 
-                    ''', (username,))
+                    result = await self.conn.execute(await self._queries_line(2), (username,))
                     account = await result.fetchone()
 
                 if (account and bcrypt.checkpw(
                     password.encode('utf-8'), account[0])):
                     return True
                 return False  # Tài khoản không hợp lệ
-            except aiosqlite.Error as e:
-                self._notify_error(f"Login failed: {e}")
+            except aiosqlite.Error as error:
+                self._notify_error(error)
                 return False
 
     async def get_player_info(self, name: str) -> Optional[dict]:
@@ -192,9 +184,7 @@ class DBManager(DBSettings):
         async with self.lock:
             try:
                 async with self.conn:
-                    result = await self.conn.execute(''' 
-                        SELECT * FROM player WHERE name = ? 
-                    ''', (name,))
+                    result = await self.conn.execute(await self._queries_line(3), (name,))
                     player_info = await result.fetchone()
                     
                 if player_info:
@@ -209,8 +199,8 @@ class DBManager(DBSettings):
                         "ip_address": player_info[6]
                     }
                 return None  # Return None if player not found
-            except aiosqlite.Error as e:
-                self._notify_error(f"Failed to retrieve player info: {e}")
+            except aiosqlite.Error as error:
+                self._notify_error(error)
                 return None
     
     # UPDATE DATA
@@ -220,13 +210,11 @@ class DBManager(DBSettings):
             try:
                 async with self.conn:
                     # Cập nhật danh hiệu của người chơi
-                    await self.conn.execute('''
-                        UPDATE player SET appellation = ? WHERE name = ?
-                    ''', (new_appellation, name))
+                    await self.conn.execute(await self._queries_line(15), (new_appellation, name))
                     await self.conn.commit()  # Commit the transaction
                 return True
-            except aiosqlite.Error as e:
-                self._notify_error(f"Failed to update player appellation: {e}")
+            except aiosqlite.Error as error:
+                self._notify_error(error)
                 return False
     
     async def update_player_coin(
@@ -240,14 +228,10 @@ class DBManager(DBSettings):
         async with self.lock:
             try:
                 async with self.conn:
-                    await self.conn.execute('''
-                        UPDATE player SET coin = coin + ? WHERE name = ?
-                    ''', (amount, name))
+                    await self.conn.execute(await self._queries_line(14), (amount, name))
                     await self.conn.commit()  # Commit the transaction
                 
-                    result = await self.conn.execute(''' 
-                            SELECT coin FROM player WHERE name = ? 
-                        ''', (name,))
+                    result = await self.conn.execute(await self._queries_line(14), (name,))
                     coins = await result.fetchone()
                     
                     sign = '+' if amount > 0 else ''
@@ -259,8 +243,8 @@ class DBManager(DBSettings):
                     )
 
                 return True
-            except aiosqlite.Error as e:
-                self._notify_error(f"Failed to increase player coin: {e}")
+            except aiosqlite.Error as error:
+                self._notify_error(error)
                 return False
     
     async def transfer_coins(
@@ -276,9 +260,7 @@ class DBManager(DBSettings):
             try:
                 async with self.conn:
                     # Kiểm tra số dư của người gửi
-                    result = await self.conn.execute(''' 
-                        SELECT coin FROM player WHERE name = ? 
-                    ''', (sender_name,))
+                    result = await self.conn.execute(await self._queries_line(4), (sender_name,))
                     sender_coins = await result.fetchone()
 
                     if not sender_coins or sender_coins[0] < amount:
@@ -286,9 +268,7 @@ class DBManager(DBSettings):
                         return False
                     
                     # Kiểm tra số dư của người nhận
-                    result = await self.conn.execute(''' 
-                        SELECT coin, id FROM player WHERE name = ? 
-                    ''', (receiver_name,))
+                    result = await self.conn.execute(await self._queries_line(4), (receiver_name,))
                     receiver = await result.fetchone()
 
                     message = f"GD: {{}}{amount:,}COINS {formatted_time()}|SD: {{}}COINS"
@@ -309,8 +289,8 @@ class DBManager(DBSettings):
                     )
                 
                 return True
-            except aiosqlite.Error as e:
-                self._notify_error(f"Failed to transfer coins: {e}")
+            except aiosqlite.Error as error:
+                self._notify_error(error)
                 return False
     # ------------------------------- # 
     # HISTORY
@@ -319,14 +299,11 @@ class DBManager(DBSettings):
         async with self.lock:
             try:
                 async with self.conn:
-                    await self.conn.execute(''' 
-                        INSERT INTO history (id, command, ip_address) 
-                        VALUES (?, ?, ?)
-                    ''', (id, command, ip_address))
+                    await self.conn.execute(await self._queries_line(9), (id, command, ip_address))
                     await self.conn.commit()  # Commit the transaction
                 return True
-            except aiosqlite.Error as e:
-                self._notify_error(f"Failed to log action: {e}")
+            except aiosqlite.Error as error:
+                self._notify_error(error)
                 return False
         
     async def log_transfer(
@@ -342,18 +319,15 @@ class DBManager(DBSettings):
         async with self.lock:
             try:
                 async with self.conn:
-                    await self.conn.execute(''' 
-                        INSERT INTO history_transfer (
-                            id, sender_name, receiver_name, 
-                            amount, text, ip_address
-                        ) 
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (player_id, sender_name, receiver_name, 
-                          amount, message, ip_address
+                    await self.conn.execute(
+                        await self._queries_line(10), 
+                        (
+                            player_id, sender_name, receiver_name, 
+                            amount, message, ip_address
                         )
                     )
                     await self.conn.commit()  # Commit the transaction
                 return True
-            except aiosqlite.Error as e:
-                self._notify_error(f"Failed to log transfer history: {e}")
+            except aiosqlite.Error as error:
+                self._notify_error(error)
                 return False

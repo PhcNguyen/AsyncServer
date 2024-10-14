@@ -169,16 +169,22 @@ class AsyncNetworks(NetworkSettings):
                 if not data:
                     break  # Client disconnected
 
-                response: bytes = self.algorithm.handle_data(client_address, data)
+                response: bytes = (
+                    await self.algorithm.handle_data(
+                        client_address, data
+                    )
+                )
                 writer.write(response)
                 await writer.drain()  # Ensure the data is sent
         except Exception as e:
-            self._notify_error(f"Error handling client {client_address}: {e}")
+            self._notify_error(f"{client_address}: {e}")
         finally:
             writer.close()
             await writer.wait_closed()
             # Xóa kết nối đã đóng
-            self.client_connections = [(r, w) for r, w in self.client_connections if not w.is_closing()]
+            self.client_connections = [
+                (r, w) for r, w in self.client_connections if not w.is_closing()
+            ]
 
     async def stop(self):
         """Stop the server and close all connections asynchronously."""
@@ -191,7 +197,7 @@ class AsyncNetworks(NetworkSettings):
             writer.close()
             await writer.wait_closed()
         
-        self.algorithm.close()
+        await self.algorithm.close()
         self.client_connections.clear()  # Dọn dẹp danh sách kết nối
         
         # Ensure all active tasks finish before shutting down the server

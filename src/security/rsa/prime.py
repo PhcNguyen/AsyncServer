@@ -18,8 +18,8 @@ Implementation based on the book Algorithm Design by Michael T. Goodrich and
 Roberto Tamassia, 2002.
 """
 
-import rsa.common
-import rsa.randnum
+import src.security.rsa.common as rsacommon
+import src.security.rsa.randnum as rsarandnum
 
 __all__ = ["getprime", "are_relatively_prime"]
 
@@ -50,7 +50,7 @@ def get_primality_testing_rounds(number: int) -> int:
     """
 
     # Calculate number bitsize.
-    bitsize = rsa.common.bit_size(number)
+    bitsize = rsacommon.bit_size(number)
     # Set number of rounds.
     if bitsize >= 1536:
         return 3
@@ -94,7 +94,7 @@ def miller_rabin_primality_testing(n: int, k: int) -> bool:
     # Test k witnesses.
     for _ in range(k):
         # Generate random integer a, where 2 <= a <= (n - 2)
-        a = rsa.randnum.randint(n - 3) + 1
+        a = rsarandnum.randint(n - 3) + 1
 
         x = pow(a, d, n)
         if x == 1 or x == n - 1:
@@ -160,7 +160,7 @@ def getprime(nbits: int) -> int:
     assert nbits > 3  # the loop will hang on too small numbers
 
     while True:
-        integer = rsa.randnum.read_random_odd_int(nbits)
+        integer = rsarandnum.read_random_odd_int(nbits)
 
         # Test for primeness
         if is_prime(integer):
