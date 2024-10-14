@@ -34,11 +34,13 @@ class Colors:
 
 class System:
     """
-    4 functions: 
+    6 functions: 
     - clear()   |   Clears the terminal screen
     - command() |   Executes a system command
     - reset()   |   Resets the Python script by re-executing it
     - exit()    |   Exits the Python script
+    - cpu()     |   Returns the current CPU usage percentage.
+    - ram()     |   Returns the current RAM usage percentage.
     """
 
     Windows = os.name == 'nt'
@@ -51,17 +53,30 @@ class System:
         
     @staticmethod
     def command(command: str) -> int:
+        print("Application is command...")
         return os.system(command)
 
     @staticmethod
     def reset() -> typing.NoReturn:
+        print("Application is reset...")
         return os.execv(
             sys.executable, ['python'] + sys.argv
         )
 
     @staticmethod
     def exit() -> typing.NoReturn:
+        print("Application is closing...")
         sys.exit()
+    
+    @staticmethod
+    def cpu():
+        """Trả về tỷ lệ sử dụng CPU."""
+        return psutil.cpu_percent(interval=1)
+
+    @staticmethod
+    def ram():
+        """Trả về tỷ lệ sử dụng RAM."""
+        return psutil.virtual_memory().percent
 
 
 class InternetProtocol:
@@ -124,15 +139,3 @@ class InternetProtocol:
             return 999
         except (subprocess.CalledProcessError, Exception) as error:
             return 999
-
-
-class SystemInfo:
-    @staticmethod
-    def cpu():
-        """Trả về tỷ lệ sử dụng CPU."""
-        return psutil.cpu_percent(interval=1)
-
-    @staticmethod
-    def ram():
-        """Trả về tỷ lệ sử dụng RAM."""
-        return psutil.virtual_memory().percent

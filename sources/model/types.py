@@ -6,6 +6,7 @@ import asyncio
 import collections
 
 
+
 class AlgorithmTypes:
     """
     AlgorithmTypes class to define various algorithm-related functionalities.
@@ -91,6 +92,7 @@ class NetworksTypes:
     def stop(self):
         """Stop the network server and close all connections."""
         ...
+
 
 
 class DBManager:

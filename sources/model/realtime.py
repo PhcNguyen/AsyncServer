@@ -5,7 +5,6 @@ import datetime
 
 
 
-
 class Realtime:
     @staticmethod
     def formatted_time() -> str:
@@ -30,9 +29,12 @@ class Realtime:
         return time
     
     @staticmethod
-    def now(tz = None) -> datetime.datetime:
+    def now(
+        format: str = "%d/%m/%Y %H:%M:%S", 
+        tz = None
+    ) -> str:
         """Construct a datetime from time.time() and optional time zone info."""
-        return datetime.datetime.now()
+        return datetime.datetime.now(tz).strftime(format)
 
     @staticmethod
     def strptime(

@@ -2,6 +2,7 @@
 # Distributed under the terms of the Modified BSD License.
 
 
+
 class Cmd:
     """
     This class defines various command types used in the application.

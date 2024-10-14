@@ -18,6 +18,7 @@ MAX_REQUESTS = 10  # Maximum allowed requests in 5 second
 REQUEST_WINDOW = 5  # Time window in 5 seconds
 
 
+
 class AsyncNetworks(Configs.Network):
     def __init__(
         self, 
@@ -103,20 +104,29 @@ class AsyncNetworks(Configs.Network):
     def active_client(self):
         """Return the number of active connections."""
         return len(self.client_connections)
-    
+
     async def auto_unblock_ips(self):
         """Auto unblock IPs after BLOCK_TIME."""
         while self.running:
-            current_time = Realtime.now()
+            # Convert current_time string to a datetime object
+            current_time = Realtime.now("%Y-%m-%d %H:%M:%S")
+            current_time = Realtime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
+
             # Unblock IPs that have been blocked for more than BLOCK_TIME
             for ip in list(self.block_ips):  # Create a copy to modify safely
                 block_time = self.ip_requests[ip][0]
+
+                # If block_time is a string, convert it to a datetime object
+                if isinstance(block_time, str):
+                    block_time = Realtime.strptime(block_time, "%Y-%m-%d %H:%M:%S")
+
+                # Now both current_time and block_time are datetime objects
                 if (current_time - block_time).total_seconds() > BLOCK_TIME.total_seconds():
                     self.block_ips.remove(ip)
                     self._notify(f"Unblocked IP: {ip}")
                     asyncio.create_task(self._save_block_ips())
 
-            self._notify_error("Automatically unblock activated IP, run again after 5 minutes.")
+            self._notify("Automatically unblock activated IP, run again after 5 minutes.")
             await asyncio.sleep(60 * 5)  # Check every 5 minutes
 
     async def start(self):
@@ -144,7 +154,7 @@ class AsyncNetworks(Configs.Network):
             self._notify_error(f"OSError: {str(error)} - {self.server_address}")
             await asyncio.sleep(5)  # Retry after 5 seconds
         except Exception as error:
-            self._notify_error("Unknown error: " + str(error))
+            self._notify_error(error)
 
     async def handle_client(
         self, 
@@ -176,7 +186,7 @@ class AsyncNetworks(Configs.Network):
                     # Timeout is set to 60s, adjust as necessary
                     data = await asyncio.wait_for(reader.read(1024), timeout=60.0)  
                 except asyncio.TimeoutError:
-                    self._notify(f"Client {client_address} timed out.")
+                    if self.DEBUG:self._notify(f"Client {client_address} timed out.")
                     break
                 
                 if not data:
@@ -187,7 +197,7 @@ class AsyncNetworks(Configs.Network):
                 writer.write(response)
                 await writer.drain()  # Ensure the data is sent
         except Exception as e:
-            self._notify_error(f"Error handling client {client_address}: {e}")
+            self._notify_error(f"{client_address}: {e}")
         finally:
             # Ensure client connection is properly closed
             writer.close()
@@ -214,5 +224,3 @@ class AsyncNetworks(Configs.Network):
         await self.algorithm.close()  # Đóng thuật toán
 
         self._notify('Server stopped.')
-
-    

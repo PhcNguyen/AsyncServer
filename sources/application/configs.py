@@ -23,10 +23,12 @@ class Configs:
         Configuration settings for network communication.
 
         Attributes:
-        - DEBUG: Boolean indicating if debug mode is enabled
-        - local: Local IP address of the machine
-        - public: Public IP address of the machine
-        - port: Port number for network communication (default is 7272)
+        - DEBUG (bool): Indicates if debug mode is enabled.
+        - local (str): Local IP address of the machine.
+        - public (str): Public IP address of the machine.
+        - port (int): Port number for network communication (default is 7272).
+        - DIR_DATA (str): Directory path for data storage.
+        - block_file (str): Path to the block file.
         """
         DEBUG: bool = False
         local: str = InternetProtocol.local()  # Retrieve local IP address
@@ -34,18 +36,20 @@ class Configs:
         port: int = 7272  # Default port number
 
         DIR_DATA = os.path.join(DIR_DB, 'data')
-
         block_file = os.path.join(DIR_DATA, 'block.txt')
 
     class DirPath:
         """
-        Configuration settings for cryptographic algorithms.
+        Configuration settings for cryptographic algorithms and database paths.
 
         Attributes:
-        - DEBUG: Boolean indicating if debug mode is enabled
-        - key_path: Dictionary containing paths to public and private key files
+        - DIR_KEY (str): Directory path for key storage.
+        - DIR_DATA (str): Directory path for data storage.
+        - table_path (str): Path to the SQL table file.
+        - queries_path (str): Path to the SQL queries file.
+        - db_path (str): Path to the database file.
+        - key_path (dict): Dictionary containing paths to public and private key files.
         """
-
         
         DIR_KEY = os.path.join(DIR_DB, 'key')
         DIR_DATA = os.path.join(DIR_DB, 'data')
@@ -55,10 +59,10 @@ class Configs:
         db_path: str = os.path.join(DIR_DB, 'server.db')  # Database file path
 
         key_path = {
-            "public": os.path.join(DIR_KEY, "public.key"),
-            "private": os.path.join(DIR_KEY, "private.key")
+            "public": os.path.join(DIR_KEY, "public_key.pem"),
+            "private": os.path.join(DIR_KEY, "private_key.pem")
         }
-        
+
 
 
 class UIConfigs:
@@ -66,10 +70,19 @@ class UIConfigs:
     UIConfigs class to create and manage the user interface for the server application.
 
     Attributes:
-    - root: The main window of the application.
-    - control_frame: Frame containing control buttons (START, STOP, CLEAR LOGS).
-    - log_frame: Frame for displaying logs (SERVER, ERROR).
-    - info_frame: Frame for displaying server information (Local IP, Public IP, Ping).
+    - root (ctk.CTk): The main window of the application.
+    - control_frame (ctk.CTkFrame): Frame containing control buttons (START, STOP, CLEAR LOGS).
+    - log_frame (ctk.CTkFrame): Frame for displaying logs (SERVER, ERROR).
+    - info_frame (ctk.CTkFrame): Frame for displaying server information (Local IP, Public IP, Ping).
+    - info_frame2 (ctk.CTkFrame): Frame for displaying additional server information (CPU, RAM, Connections).
+    - server_log (ctk.CTkTextbox): Text area for displaying server logs.
+    - error_log (ctk.CTkTextbox): Text area for displaying error logs.
+    - local_value (ctk.CTkLabel): Label showing the local IP address.
+    - public_value (ctk.CTkLabel): Label showing the public IP address.
+    - ping_value (ctk.CTkLabel): Label showing the ping status.
+    - cpu_value (ctk.CTkLabel): Label showing the CPU usage.
+    - ram_value (ctk.CTkLabel): Label showing the RAM usage.
+    - connections_value (ctk.CTkLabel): Label showing the number of connections.
     """
     
     root = ctk.CTk()
@@ -79,6 +92,8 @@ class UIConfigs:
 
         self.server_line = 0
         self.error_line = 0
+
+        self.log_format = "[ {:05d} | {:<12} ]> {}"
         
         # Khởi tạo khung chứa các nút điều khiển
         self.control_frame = ctk.CTkFrame(root)

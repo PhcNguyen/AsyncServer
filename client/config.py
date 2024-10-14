@@ -38,8 +38,8 @@ create_file_conf(os.path.join(CRAPS, "network.conf"))
 
 class ConfigClient:
     key_path = {
-        "public": os.path.join(KEY_DIR, "public.key"),
-        "private": os.path.join(KEY_DIR, "private.key")
+        "public": os.path.join(KEY_DIR, "public_key.pem"),
+        "private": os.path.join(KEY_DIR, "private_key.pem")
     }
 
     @staticmethod
