@@ -5,13 +5,14 @@ import asyncio
 import threading
 import customtkinter as ctk
 
-from src.server.utils import System
-from src.models.types import NetworksTypes
-from src.models.settings import UISettings
-from src.server.utils import InternetProtocol
+from sources.model.realtime import Realtime
+from sources.model.types import NetworksTypes
+from sources.application.configs import UIConfigs
+from sources.application.utils import InternetProtocol, System, SystemInfo
 
 
-class Graphics(UISettings):
+
+class Graphics(UIConfigs):
     def __init__(self, root: ctk.CTk, server: NetworksTypes):
         super().__init__(root)  # Gọi khởi tạo của lớp cha
         self.server = None
@@ -20,7 +21,7 @@ class Graphics(UISettings):
         self.current_log = None  # Biến để theo dõi khu vực văn bản hiện tại
 
         self.root.title("Server Control")
-        self.root.geometry("1200x600")
+        self.root.geometry("1200x620")
         self.root.resizable(False, False)
         ctk.set_appearance_mode("dark")  # Đặt chế độ giao diện tối
         ctk.set_default_color_theme("dark-blue")  # Đặt chủ đề màu sắc tối
@@ -37,45 +38,62 @@ class Graphics(UISettings):
 
     def start_server(self):
         if self.server:
+            # self._log_to_textbox(self.server_log, "Server is already running.")
             return
-        
+
         """Bắt đầu server với coroutine."""
         asyncio.run_coroutine_threadsafe(self._start_server(), self.loop)
 
     def stop_server(self):
         if not self.server:
-            self._log_to_textbox(self.server_log, "Server is not running.")
+            # self._log_to_textbox(self.server_log, "Server is not running.")
             return
 
         try:
-            # Gọi hàm dừng server từ luồng asyncio
             asyncio.run_coroutine_threadsafe(self._stop_server(), self.loop)
         except Exception as e:
             self._log_to_textbox(self.error_log, f"Error while trying to stop the server: {e}")
 
     def log_message(self, message: str):
-        """Nhận thông báo từ Networks và phân loại nó để hiển thị đúng tab."""
+        """Nhận thông báo từ Networks, ... và phân loại nó để hiển thị đúng tab."""
         if "Notify:" in message:
-            self._log_to_textbox(self.server_log, message.split('Notify:')[-1].strip())
+            self.server_line += 1  
+            
+            formatted_message = "[ {} | {} | {} ]".format(
+                self.server_line,
+                Realtime.formatted_time(),
+                message.split('Notify:')[-1].strip()
+            )
+            self._log_to_textbox(self.server_log, formatted_message, "green")
         elif "Error:" in message:
-            self._log_to_textbox(self.error_log, message.split('Error:')[-1].strip())
-        else:
-            self._log_to_textbox(self.server_log, f"Unknown message: {message}")
+            self.error_line += 1  
+            
+            formatted_message = "[ {} | {} | {} ]".format(
+                self.error_line,
+                Realtime.formatted_time(),
+                message.split('Error:')[-1].strip()
+            )
+            self._log_to_textbox(self.error_log, formatted_message, "red")
 
-        self.root.update()  # Đảm bảo giao diện được cập nhật ngay sau khi log được ghi
+        self.root.update()
     
+    def clear_logs(self):
+        """Xóa nội dung của tất cả các khu vực văn bản."""
+        self._clear_textbox(self.server_log)
+        self._clear_textbox(self.error_log)
+
     def on_closing(self):
         """Xử lý khi người dùng nhấn nút X để đóng cửa sổ."""
         if self.server:
             try:
-                asyncio.run_coroutine_threadsafe(self.stop_server(), self.loop)  # Dừng server nếu đang chạy
+                asyncio.run_coroutine_threadsafe(self.stop_server(), self.loop)
             except Exception as e:
                 print(f"Error stopping server: {e}")
 
         self.loop.stop()     # Dừng vòng lặp asyncio
         self.root.destroy()  # Đóng cửa sổ giao diện
 
-        print("Application is closing...")  # Thông báo cho biết ứng dụng đang đóng
+        print("Application is closing...")
         System.exit()                       # Thoát chương trình
 
     async def _update_server_info(self):
@@ -84,17 +102,34 @@ class Graphics(UISettings):
             self.local_value.configure(text=InternetProtocol.local())
             self.public_value.configure(text=InternetProtocol.public())
             self.ping_value.configure(text=f"{InternetProtocol.ping()} ms")
+
+            self.cpu_value.configure(text=f"{SystemInfo.cpu()} %") 
+            self.ram_value.configure(text=f"{SystemInfo.ram()} MB")
+            self.connections_value.config(text=f"{len(self.server.active_client())}")
         else:
             self.local_value.configure(text="N/A")
             self.public_value.configure(text="N/A")
             self.ping_value.configure(text="N/A")
 
-    async def _ping_updater(self):
-        """Cập nhật trạng thái ping định kỳ."""        
-        while self.server:
+            self.cpu_value.configure(text="0.0 %") 
+            self.ram_value.configure(text="0 MB")
+            self.connections_value.config(text="0")
+
+    async def _auto_updater(self):
+        """Cập nhật trạng thái CPU, RAM, Ping và số lượng kết nối định kỳ."""
+        while True:
+            # Kiểm tra xem server có còn hoạt động hay không
+            if not self.server:
+                break  # Dừng vòng lặp nếu server không còn hoạt động
+
+            # Cập nhật thông tin server
             self.ping_value.configure(text=f"{InternetProtocol.ping()} ms")
-            await asyncio.sleep(0.8)  # Cập nhật mỗi 0.8 giây
-    
+            self.cpu_value.configure(text=f"{SystemInfo.cpu()} %")  # Cập nhật giá trị CPU
+            self.ram_value.configure(text=f"{SystemInfo.ram()} MB")  # Cập nhật giá trị RAM
+            self.connections_value.configure(text=f"{len(self.server.active_client())}")
+
+            await asyncio.sleep(0.5)  # Chờ trước khi tiếp tục vòng lặp
+            
     async def _start_server(self):
         if self.server:
             # self._log_to_textbox(self.server_log, "Server is already running.")
@@ -107,9 +142,9 @@ class Graphics(UISettings):
             self.stop_button.configure(state='normal')
 
             await asyncio.gather(
-                self.server.start(), # Đảm bảo đây là coroutine
+                self.server.start(),  # Đảm bảo đây là coroutine
+                self._auto_updater(),
                 self._update_server_info(),
-                self._ping_updater(),      
             )
         except Exception as e:
             self._log_to_textbox(self.error_log, f"Error starting server: {e}")
@@ -126,4 +161,4 @@ class Graphics(UISettings):
                 self.server = None
                 self.start_button.configure(state='normal')
                 self.stop_button.configure(state='disabled')
-                await self._update_server_info()  # Cập nhật thông tin sau khi dừng server
+                await self._update_server_info()

@@ -18,8 +18,8 @@ Implementation based on the book Algorithm Design by Michael T. Goodrich and
 Roberto Tamassia, 2002.
 """
 
-import src.security.rsa.common as rsacommon
-import src.security.rsa.randnum as rsarandnum
+from . import common as rsacommon
+from . import randnum as rsarandnum
 
 __all__ = ["getprime", "are_relatively_prime"]
 

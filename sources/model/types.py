@@ -2,6 +2,8 @@
 # Distributed under the terms of the Modified BSD License.
 
 import typing
+import asyncio
+import collections
 
 
 class AlgorithmTypes:
@@ -17,7 +19,13 @@ class AlgorithmTypes:
         """Handle incoming data from a client and return a response as bytes."""
         ...
     
-    def close(self):
+    async def close(self):
+        ...
+
+    def set_message_callback(
+        self, callback: 
+        typing.Callable[[str], None]
+    ):
         ...
 
 
@@ -42,18 +50,26 @@ class NetworksTypes:
         algorithm: AlgorithmTypes
     ):
         """Initialize network settings and the data handling callback."""
-        ...
-    
-    def _notify(self, message):
-        """Notify about a general event or message."""
-        ...
-    
-    def _notify_error(self, message):
-        """Notify about an error event."""
-        ...
-    
-    def set_message_callback(self, callback):
+        self.server_address: typing.Tuple[str, int] = (host, port)
+        self.algorithm: AlgorithmTypes = algorithm
+        self.message_callback: typing.Optional[typing.Callable[[str], None]] = None
+        self.running: bool = False  # Initialize with False
+        self.client_connections: typing.List[typing.Tuple[asyncio.StreamReader, asyncio.StreamWriter]] = []
+
+        self.block_ips: set = set()  # Set to hold blocked IP addresses
+        self.block_ips_lock = asyncio.Lock()
+        self.ip_requests = collections.defaultdict(list)  # Track requests per IP (IP: [timestamps])
+
+    def set_message_callback(self, callback: typing.Callable[[str], None]):
         """Set a callback function for message handling."""
+        ...
+    
+    def active_client(self):
+        """Return the number of active connections."""
+        ...
+
+    async def auto_unblock_ips(self):
+        """Auto unblock IPs after BLOCK_TIME."""
         ...
     
     def start(self):
@@ -64,7 +80,11 @@ class NetworksTypes:
         """Accept incoming client connections."""
         ...
     
-    def handle_client(self, client_socket, client_address: tuple):
+    async def handle_client(
+        self, 
+        reader: asyncio.StreamReader, 
+        writer: asyncio.StreamWriter
+    ):
         """Handle communication with a connected client."""
         ...
     
@@ -88,26 +108,6 @@ class DBManager:
     
     def __init__(self, db_path: str) -> None:
         """Initialize the database manager with the database path."""
-        ...
-    
-    async def _initialize_database(self):
-        """Initialize the database and create necessary tables."""
-        ...
-    
-    def _notify(self, message: str):
-        """Notify about a general database event."""
-        ...
-    
-    def _notify_error(self, message: str):
-        """Notify about a database error event."""
-        ...
-    
-    async def _connection(self):
-        """Establish a connection to the database."""
-        ...
-    
-    async def _create_tables(self) -> bool:
-        """Create necessary tables in the database and return success status."""
         ...
     
     def set_message_callback(self, callback):

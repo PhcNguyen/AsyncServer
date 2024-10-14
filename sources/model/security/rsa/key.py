@@ -35,11 +35,11 @@ import threading
 import typing
 import warnings
 
-import src.security.rsa.prime as rsaprime
-import src.security.rsa.pem as rsapem
-import src.security.rsa.common as rsacommon
-import src.security.rsa.randnum as rsarandnum
-import src.security.rsa.core as rsacore
+from . import prime as rsaprime
+from . import pem as rsapem
+from . import common as rsacommon
+from . import randnum as rsarandnum
+from . import core as rsacore
 
 
 DEFAULT_EXPONENT = 65537
@@ -293,7 +293,7 @@ class PublicKey(AbstractKey):
         """
 
         from pyasn1.codec.der import decoder
-        from src.security.rsa.asn1 import AsnPubKey
+        from .asn1 import AsnPubKey
 
         (priv, _) = decoder.decode(keyfile, asn1Spec=AsnPubKey())
         return cls(n=int(priv["modulus"]), e=int(priv["publicExponent"]))
@@ -306,7 +306,7 @@ class PublicKey(AbstractKey):
         """
 
         from pyasn1.codec.der import encoder
-        from src.security.rsa.asn1 import AsnPubKey
+        from .asn1 import AsnPubKey
 
         # Create the ASN object
         asn_key = AsnPubKey()
@@ -368,7 +368,7 @@ class PublicKey(AbstractKey):
         :return: a PublicKey object
         """
 
-        from src.security.rsa.asn1 import OpenSSLPubKey
+        from .asn1 import OpenSSLPubKey
         from pyasn1.codec.der import decoder
         from pyasn1.type import univ
 
@@ -822,7 +822,7 @@ def newkeys(
 
     # Determine which getprime function to use
     if poolsize > 1:
-        from src.security.rsa import parallel
+        from . import parallel
 
         def getprime_func(nbits: int) -> int:
             return parallel.getprime(nbits, poolsize=poolsize)

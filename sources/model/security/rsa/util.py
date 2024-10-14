@@ -17,7 +17,7 @@
 import sys
 from optparse import OptionParser
 
-import src.security.rsa.key as rsakey
+from . import key as rsakey
 
 
 def private_to_public() -> None:

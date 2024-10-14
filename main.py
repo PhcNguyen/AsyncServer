@@ -1,16 +1,19 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-from src.server.utils import System
-from src.manager.mysqlite import DBManager
-from src.manager.algorithm import AlgorithmHandler
-from src.server.graphics import Graphics
-from src.server.networks import Networks, AsyncNetworks
- 
+from sources.manager.database import DBManager
+from sources.application.graphics import Graphics
+from sources.application.networks import AsyncNetworks
+from sources.manager.handlers import AlgorithmProcessing
+
+
 
 # Initialize DatabaseManager, Graphics2, AsyncNetworks
-sql = DBManager(DBManager.db_path)
-async_networks = AsyncNetworks(AsyncNetworks.host, AsyncNetworks.port, AlgorithmHandler(sql))  
+async_networks = AsyncNetworks(
+    AsyncNetworks.local, 
+    AsyncNetworks.port, 
+    AlgorithmProcessing(DBManager())
+)  
 app = Graphics(Graphics.root, async_networks)
 
 

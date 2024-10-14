@@ -6,9 +6,11 @@ import os
 import sys
 import socket
 import typing
+import psutil
 import platform
 import requests
 import subprocess
+
 
 
 class Colors:
@@ -85,7 +87,7 @@ class InternetProtocol:
                 s.connect(("8.8.8.8", 80))  # Kết nối đến một máy chủ DNS công cộng
                 ip_address = s.getsockname()[0]  # Lấy địa chỉ IP của máy tính
             return ip_address
-        except Exception as e:
+        except Exception:
             return 'N/A'
 
     @staticmethod
@@ -95,15 +97,15 @@ class InternetProtocol:
             response.raise_for_status()  # Kiểm tra lỗi HTTP
             ip_data = response.json()
             return ip_data.get("ip")
-        except Exception as e:
+        except Exception:
             return 'N/A'
     
     @staticmethod
-    def ping() -> (int | str):
+    def ping(timeout: int = 1) -> (int | str):
         try:
-            # Thực hiện lệnh ping
+            # Sử dụng lệnh ping với timeout
             output = subprocess.check_output(
-                ["ping", InternetProtocol.param, "1", InternetProtocol.host], 
+                ["ping", InternetProtocol.param, str(timeout), InternetProtocol.host], 
                 universal_newlines=True
             )
             
@@ -119,6 +121,18 @@ class InternetProtocol:
                 if match:
                     return match.group(1)  # Trả về thời gian ping
             
-            return 'N/A'
-        except subprocess.CalledProcessError:
-            return 'N/A'
+            return 999
+        except (subprocess.CalledProcessError, Exception) as error:
+            return 999
+
+
+class SystemInfo:
+    @staticmethod
+    def cpu():
+        """Trả về tỷ lệ sử dụng CPU."""
+        return psutil.cpu_percent(interval=1)
+
+    @staticmethod
+    def ram():
+        """Trả về tỷ lệ sử dụng RAM."""
+        return psutil.virtual_memory().percent

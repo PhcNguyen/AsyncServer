@@ -25,9 +25,8 @@ Introduced in Python-RSA 3.1.
 import multiprocessing as mp
 from multiprocessing.connection import Connection
 
-import src.security.rsa.prime as rsaprime
-import src.security.rsa.randnum as rsarandnum
-
+from . import prime as rsaprime
+from . import randnum as rsarandnum
 
 def _find_prime(nbits: int, pipe: Connection) -> None:
     while True:

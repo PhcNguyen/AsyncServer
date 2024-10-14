@@ -21,8 +21,8 @@ prevent repetitions, or other common security improvements. Use with care.
 
 """
 
-from src.security.rsa.key import newkeys, PrivateKey, PublicKey
-from src.security.rsa.pkcs1 import (
+from .key import newkeys, PrivateKey, PublicKey
+from .pkcs1 import (
     encrypt,
     decrypt,
     sign,

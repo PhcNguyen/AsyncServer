@@ -6,76 +6,64 @@ import pathlib
 import tkinter as tk
 import customtkinter as ctk
 
-from datetime import datetime
-from src.server.utils import InternetProtocol
+from sources.application.utils import InternetProtocol
 
 
-#          STRUCTURE DATABASE
-#  [ DATABASE ]
-#      ├─── [ KEY ]
-#      │      ├─── public.key
-#      │      └─── private.key
-#      └─── server.sql
-
-
-dir_db: str = os.path.join(
+DIR_DB: str = os.path.join(
     pathlib.Path(__file__).resolve().parent.parent.parent, 
     'database'
 )
 
+
+
+class Configs:
     
-class NetworkSettings:
+    class Network:
+        """
+        Configuration settings for network communication.
+
+        Attributes:
+        - DEBUG: Boolean indicating if debug mode is enabled
+        - local: Local IP address of the machine
+        - public: Public IP address of the machine
+        - port: Port number for network communication (default is 7272)
+        """
+        DEBUG: bool = False
+        local: str = InternetProtocol.local()  # Retrieve local IP address
+        public: str = InternetProtocol.public()  # Retrieve public IP address
+        port: int = 7272  # Default port number
+
+        DIR_DATA = os.path.join(DIR_DB, 'data')
+
+        block_file = os.path.join(DIR_DATA, 'block.txt')
+
+    class DirPath:
+        """
+        Configuration settings for cryptographic algorithms.
+
+        Attributes:
+        - DEBUG: Boolean indicating if debug mode is enabled
+        - key_path: Dictionary containing paths to public and private key files
+        """
+
+        
+        DIR_KEY = os.path.join(DIR_DB, 'key')
+        DIR_DATA = os.path.join(DIR_DB, 'data')
+
+        table_path: str = os.path.join(DIR_DB, 'table.sql')
+        queries_path: str = os.path.join(DIR_DB, 'queries.sql')
+        db_path: str = os.path.join(DIR_DB, 'server.db')  # Database file path
+
+        key_path = {
+            "public": os.path.join(DIR_KEY, "public.key"),
+            "private": os.path.join(DIR_KEY, "private.key")
+        }
+        
+
+
+class UIConfigs:
     """
-    Configuration settings for network communication.
-
-    Attributes:
-    - DEBUG: Boolean indicating if debug mode is enabled
-    - host: Local IP address of the machine
-    - public: Public IP address of the machine
-    - port: Port number for network communication (default is 7272)
-    """
-    DEBUG: bool = True
-    host: str = InternetProtocol.local()  # Retrieve local IP address
-    public: str = InternetProtocol.public()  # Retrieve public IP address
-    port: int = 7272  # Default port number
-
-
-class DBSettings:
-    """
-    Configuration settings for database connection.
-
-    Attributes:
-    - DEBUG: Boolean indicating if debug mode is enabled
-    - db_path: Path to the database file (default is 'server.db' in the database directory)
-    """
-    DEBUG: bool = True
-    table_path: str = os.path.join(dir_db, 'table.sql')
-    queries_path: str = os.path.join(dir_db, 'queries.sql')
-    db_path: str = os.path.join(dir_db, 'server.db')  # Database file path
-
-
-class AlgorithmSettings:
-    """
-    Configuration settings for cryptographic algorithms.
-
-    Attributes:
-    - DEBUG: Boolean indicating if debug mode is enabled
-    - key_path: Dictionary containing paths to public and private key files
-    """
-    DEBUG: bool = False
-    key_path: dict = {
-        'public': os.path.join(
-            dir_db, 'key', 'public_key.pem'  # Path to the public key
-        ),
-        'private': os.path.join(
-            dir_db, 'key', 'private_key.pem'  # Path to the private key
-        )
-    }
-
-
-class UISettings:
-    """
-    UISettings class to create and manage the user interface for the server application.
+    UIConfigs class to create and manage the user interface for the server application.
 
     Attributes:
     - root: The main window of the application.
@@ -88,6 +76,9 @@ class UISettings:
 
     def __init__(self, root: ctk.CTk):
         self.root = root
+
+        self.server_line = 0
+        self.error_line = 0
         
         # Khởi tạo khung chứa các nút điều khiển
         self.control_frame = ctk.CTkFrame(root)
@@ -160,44 +151,75 @@ class UISettings:
         )
         self.error_log.pack(fill=tk.BOTH, expand=True)
 
+        # Tạo khung cha chứa thông tin server
+        self.info_container = ctk.CTkFrame(root)
+        self.info_container.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
+
         # Tạo khung chứa thông tin server
-        self.info_frame = ctk.CTkFrame(root)
+        self.info_frame = ctk.CTkFrame(self.info_container)
         self.info_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
+
+        # Tạo khung chứa thông tin bổ sung
+        self.info_frame2 = ctk.CTkFrame(self.info_container)
+        self.info_frame2.pack(side=tk.LEFT, fill=tk.Y, expand=True, padx=10, pady=10)
 
         # Label và trường hiển thị IP
         self.local_ip = ctk.CTkLabel(self.info_frame, text="Local IP:")
         self.local_ip.grid(row=0, column=0, padx=5, pady=5, sticky='w')  
+
         self.local_value = ctk.CTkLabel(self.info_frame, text="N/A")
         self.local_value.grid(row=0, column=1, padx=5, pady=5, sticky='w')
 
         # Label và trường hiển thị Port
         self.public_ip = ctk.CTkLabel(self.info_frame, text="Public IP:")
         self.public_ip.grid(row=1, column=0, padx=5, pady=5, sticky='w') 
+
         self.public_value = ctk.CTkLabel(self.info_frame, text="N/A")
         self.public_value.grid(row=1, column=1, padx=5, pady=5, sticky='w')
 
         # Label và trường hiển thị Trạng thái Server
         self.ping_label = ctk.CTkLabel(self.info_frame, text="Ping:")
-        self.ping_label.grid(row=2, column=0, padx=5, pady=5, sticky='w')  
+        self.ping_label.grid(row=2, column=0, padx=5, pady=5, sticky='w')
+
         self.ping_value = ctk.CTkLabel(self.info_frame, text="N/A")
         self.ping_value.grid(row=2, column=1, padx=5, pady=5, sticky='w')
 
-    def clear_logs(self):
-        """Xóa nội dung của tất cả các khu vực văn bản."""
-        self._clear_textbox(self.server_log)
-        self._clear_textbox(self.error_log)
+        # Add new labels for CPU, RAM, and Connections
+        self.cpu_label = ctk.CTkLabel(self.info_frame2, text="CPU:")
+        self.cpu_label.grid(row=0, column=0, padx=5, pady=5, sticky='w')
 
-    def _clear_textbox(self, textbox):
+        self.cpu_value = ctk.CTkLabel(self.info_frame2, text="N/A")
+        self.cpu_value.grid(row=0, column=1, padx=5, pady=5, sticky='w')
+
+        self.ram_label = ctk.CTkLabel(self.info_frame2, text="RAM:")
+        self.ram_label.grid(row=1, column=0, padx=5, pady=5, sticky='w')
+
+        self.ram_value = ctk.CTkLabel(self.info_frame2, text="N/A")
+        self.ram_value.grid(row=1, column=1, padx=5, pady=5, sticky='w')
+
+        self.connections_label = ctk.CTkLabel(self.info_frame2, text="Connections:")
+        self.connections_label.grid(row=2, column=0, padx=5, pady=5, sticky='w')
+
+        self.connections_value = ctk.CTkLabel(self.info_frame2, text="0")
+        self.connections_value.grid(row=2, column=1, padx=5, pady=5, sticky='w')
+    
+    def _clear_textbox(self, textbox: ctk.CTkTextbox):
         """Xóa nội dung của khu vực văn bản."""
         textbox.configure(state='normal')
         textbox.delete(1.0, tk.END)
         textbox.configure(state='disabled')
-
-    def _log_to_textbox(self, textbox, message):
-        """Ghi lại thông báo vào khu vực văn bản với thời gian hiện tại."""
-        time_stamp = datetime.now().strftime('%d-%m %H:%M:%S')
-        formatted_message = f"[{time_stamp}]>  {message}"
-        textbox.configure(state='normal')
-        textbox.insert(tk.END, f"{formatted_message}\n")
-        textbox.configure(state='disabled')
-        textbox.yview(tk.END)
+    
+    def _log_to_textbox(
+        self, 
+        textbox: ctk.CTkTextbox, 
+        message: str, 
+        text_color: str = "white"
+    ):
+        """Append a message to the specified textbox with optional text color.""" 
+        textbox.configure(state='normal')  # Cho phép chỉnh sửa
+        textbox.insert('end', message + "\n")  # Chèn thông điệp vào cuối khu vực văn bản
+        textbox.tag_add('color_tag', 'end-1c linestart', 'end-1c lineend')  # Đánh dấu dòng cuối cùng để thay đổi màu
+        textbox.tag_config('color_tag', foreground=text_color)  # Thiết lập màu sắc cho văn bản
+        
+        textbox.configure(state='disabled')  # Vô hiệu hóa chỉnh sửa lại
+        textbox.yview('end')  # Cuộn xuống cuối khu vực văn bản

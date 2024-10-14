@@ -1,25 +1,26 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import os
+import typing
+import bcrypt
 import asyncio
-import bcrypt as bcrypt
-import aiofiles as aiofiles
-import aiosqlite as aiosqlite
-from typing import Any, Optional
+import aiofiles 
+import aiosqlite
 
-from src.models.settings import DBSettings
-from src.realtime.time import formatted_time
+from sources.application.configs import Configs
+from sources.model.realtime import Realtime
 
 
-class DBManager(DBSettings):
-    def __init__(self, db_path: str) -> None:
+
+class DBManager(Configs.DirPath):
+    def __init__(self) -> None:
         self.conn = None
         self.cur = None
         self.lock = asyncio.Lock()
-        self.db_path = db_path
+        self.db_path = DBManager.db_path
         self.message_callback = None
         asyncio.run(self._initialize_database())
+
     # ------------------------------- #
     # FUNCTION PRIVATE
     def _notify(self, message: str):
@@ -104,6 +105,7 @@ class DBManager(DBSettings):
             await self.conn.close()
         self.conn = None  # Set to None to indicate closed state
 
+    # ------------------------------- #
     # INSERT DATA
     async def insert_account(self, username: str, password: str) -> bool:
         """Register a new account in the account table."""
@@ -162,7 +164,8 @@ class DBManager(DBSettings):
             except aiosqlite.Error as error:
                 self._notify_error(error)
                 return False
-            
+    
+    # ------------------------------- #
     # GET DATA
     async def login(self, username: str, password: str) -> bool:
         async with self.lock:
@@ -179,7 +182,7 @@ class DBManager(DBSettings):
                 self._notify_error(error)
                 return False
 
-    async def get_player_info(self, name: str) -> Optional[dict]:
+    async def get_player_info(self, name: str) -> typing.Optional[dict]:
         """Retrieve all information of a specific player."""
         async with self.lock:
             try:
@@ -202,7 +205,8 @@ class DBManager(DBSettings):
             except aiosqlite.Error as error:
                 self._notify_error(error)
                 return None
-    
+            
+    # ------------------------------- #
     # UPDATE DATA
     async def update_player_appellation(self, name: str, new_appellation: str) -> bool:
         """Update the appellation of a specific player."""
@@ -235,7 +239,10 @@ class DBManager(DBSettings):
                     coins = await result.fetchone()
                     
                     sign = '+' if amount > 0 else ''
-                    message = f"GD: {sign}{amount:,}COINS {formatted_time()}|SD: {coins[0]}COINS"
+                    message = "GD: {}{:,}COINS {}|SD: {}COINS".format(
+                        sign, amount, 
+                        Realtime.formatted_time(), coins[0]
+                    )
 
                     await self.log_transfer(
                         name, 'SERVER', amount,
@@ -271,7 +278,7 @@ class DBManager(DBSettings):
                     result = await self.conn.execute(await self._queries_line(4), (receiver_name,))
                     receiver = await result.fetchone()
 
-                    message = f"GD: {{}}{amount:,}COINS {formatted_time()}|SD: {{}}COINS"
+                    message = f"GD: {{}}{amount:,}COINS {Realtime.formatted_time()}|SD: {{}}COINS"
 
                     # Trừ tiền từ tài khoản người gửi
                     await self.update_player_coin(sender_name, -amount)
@@ -292,6 +299,7 @@ class DBManager(DBSettings):
             except aiosqlite.Error as error:
                 self._notify_error(error)
                 return False
+            
     # ------------------------------- # 
     # HISTORY
     async def log_action(self, id: int, command: str, ip_address: str = '') -> bool:

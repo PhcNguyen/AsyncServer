@@ -3,8 +3,8 @@
 
 import os
 import asyncio
-from src.security.cipher import Cipher
-from src.client.config import ConfigClient
+from sources.model.security.cipher import Cipher
+from client.config import ConfigClient
 
 
 conf = ConfigClient.network_config()

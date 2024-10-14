@@ -5,7 +5,7 @@ import os
 import json
 import typing
 
-from src.security import rsa
+from .. import rsa
 
 
 class Cipher:

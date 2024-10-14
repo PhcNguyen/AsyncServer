@@ -1,19 +1,16 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import os
-import json
 import typing
 
-from src.server.cmd import Cmd
-from src.security.cipher import Cipher
-from src.models.types import DBManager
-from src.models.settings import AlgorithmSettings
-from src.manager import utils
+from sources.application.cmd import Cmd
+from sources.model.types import DBManager
+from sources.model.security.cipher import Cipher
+from sources.application.configs import Configs
 
 
 
-class AlgorithmHandler(AlgorithmSettings):
+class AlgorithmProcessing(Configs.DirPath):
     def __init__(self, sql: DBManager) -> None:
         self.sqlite = sql
 
@@ -57,6 +54,13 @@ class AlgorithmHandler(AlgorithmSettings):
         
         data = self.cipher.decrypt(client_data)
 
+        if data is None:
+            return {
+                "status": False,
+                "message": "Decryption failed: No data returned.",
+                "key_server": self.public_key
+            }
+
         # GET DATA 
         command  = data.get("command",  "")
         username = data.get("username", "")
@@ -65,14 +69,6 @@ class AlgorithmHandler(AlgorithmSettings):
 
         key_client = data.get("key_client", "")
         key_server = data.get("key_server", "")
-
-
-        if data is None:
-            return {
-                "status": False,
-                "message": "Decryption failed: No data returned.",
-                "key_server": self.public_key
-            }
 
         """Xử lý các lệnh từ client."""
 

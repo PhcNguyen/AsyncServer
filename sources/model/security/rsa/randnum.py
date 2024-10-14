@@ -19,7 +19,7 @@
 import os
 import struct
 
-from src.security.rsa import common, transform
+from . import common, transform
 
 
 def read_random_bits(nbits: int) -> bytes:

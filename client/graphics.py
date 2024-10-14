@@ -4,8 +4,10 @@
 import os
 import asyncio
 import customtkinter as ctk
-from src.client.config import ConfigClient
-from src.client.networks import AsyncClient  # Import your AsyncClient class here
+from client.config import ConfigClient
+from client.networks import AsyncClient  # Import your AsyncClient class here
+
+
 
 class AuthMenu:
     root = ctk.CTk()
