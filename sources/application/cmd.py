@@ -14,9 +14,7 @@ class Cmd:
     - PLAYER_INFO: Command to retrieve player information
     - PUBLIC_KEY_INFO: Command to retrieve public key information
 
-    - UPDATE_APPELLARION: Command to update player's appellation
-    - UPDATE_COIN: Command to update player's coin balance
-    - TRANSFER_COINS: Command to transfer coins between players
+    - ...
     """
     
     LOGIN = 0
@@ -25,6 +23,6 @@ class Cmd:
     PLAYER_INFO = 3
     PUBLIC_KEY_INFO = 4
 
-    UPDATE_APPELLARION = 5
+    UPDATE_APPELLATION = 5
     UPDATE_COIN = 6
     TRANSFER_COINS = 7

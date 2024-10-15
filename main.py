@@ -1,7 +1,7 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-from sources.manager.database import DBManager
+from sources.manager.database import DatabaseManager
 from sources.application.graphics import Graphics
 from sources.application.networks import AsyncNetworks
 from sources.manager.handlers import AlgorithmProcessing
@@ -12,7 +12,7 @@ from sources.manager.handlers import AlgorithmProcessing
 async_networks = AsyncNetworks(
     AsyncNetworks.local, 
     AsyncNetworks.port, 
-    AlgorithmProcessing(DBManager())
+    AlgorithmProcessing(DatabaseManager())
 )  
 app = Graphics(Graphics.root, async_networks)
 

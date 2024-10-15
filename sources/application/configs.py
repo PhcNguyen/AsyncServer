@@ -2,11 +2,12 @@
 # Distributed under the terms of the Modified BSD License.
 
 import os
+import typing
 import pathlib
 import tkinter as tk
 import customtkinter as ctk
 
-from sources.application.utils import InternetProtocol
+from sources.application.utils import InternetProtocol, System
 
 
 DIR_DB: str = os.path.join(
@@ -28,7 +29,7 @@ class Configs:
         - public (str): Public IP address of the machine.
         - port (int): Port number for network communication (default is 7272).
         - DIR_DATA (str): Directory path for data storage.
-        - block_file (str): Path to the block file.
+
         """
         DEBUG: bool = False
         local: str = InternetProtocol.local()  # Retrieve local IP address
@@ -36,7 +37,6 @@ class Configs:
         port: int = 7272  # Default port number
 
         DIR_DATA = os.path.join(DIR_DB, 'data')
-        block_file = os.path.join(DIR_DATA, 'block.txt')
 
     class DirPath:
         """
@@ -49,6 +49,7 @@ class Configs:
         - queries_path (str): Path to the SQL queries file.
         - db_path (str): Path to the database file.
         - key_path (dict): Dictionary containing paths to public and private key files.
+        - block_file (str): Path to the block file.
         """
         
         DIR_KEY = os.path.join(DIR_DB, 'key')
@@ -62,6 +63,9 @@ class Configs:
             "public": os.path.join(DIR_KEY, "public_key.pem"),
             "private": os.path.join(DIR_KEY, "private_key.pem")
         }
+
+        cache_file = os.path.join(DIR_DB, 'cache')
+        block_file = os.path.join(DIR_DATA, 'block.txt')
 
 
 
@@ -99,72 +103,17 @@ class UIConfigs:
         self.control_frame = ctk.CTkFrame(root)
         self.control_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
 
-        # Nút Start
-        self.start_button = ctk.CTkButton(
-            self.control_frame,
-            text="START",
-            command=self.start_server,
-            fg_color="#4CAF50",  # Màu nền xanh lá cây
-            hover_color="#45a049",  # Màu xanh đậm hơn khi di chuột lên nút
-            width=150,
-            height=40
-        )
-        self.start_button.pack(side=tk.LEFT, padx=10)
-
-        # Nút Stop
-        self.stop_button = ctk.CTkButton(
-            self.control_frame,
-            text="STOP",
-            command=self.stop_server,
-            fg_color="#f44336",  # Màu nền đỏ
-            hover_color="#c62828",  # Màu đỏ đậm hơn khi di chuột lên nút
-            width=150,
-            height=40,
-            state='disabled'  # Ban đầu bị vô hiệu hóa
-        )
-        self.stop_button.pack(side=tk.LEFT, padx=10)
-
-        # Nút Clear
-        self.clear_button = ctk.CTkButton(
-            self.control_frame,
-            text="CLEAR LOGS",
-            command=self.clear_logs,
-            fg_color="#2196F3",  # Màu nền xanh dương
-            hover_color="#1976D2",  # Màu xanh đậm hơn khi di chuột lên nút
-            width=150,
-            height=40
-        )
-        self.clear_button.pack(side=tk.LEFT, padx=10)
-
         # Tạo khung chứa các bản ghi log
         self.log_frame = ctk.CTkFrame(root)
         self.log_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Tạo các tab cho bản ghi log
         self.tab_control = ctk.CTkTabview(self.log_frame)
-        self.tab_control.add("SERVER")
-        self.tab_control.add("ERROR")  
+        self.tab_control.add("   Server   ")
+        self.tab_control.add("   Error    ")
         self.tab_control.pack(expand=1, fill='both')
 
         # Khu vực văn bản để hiển thị bản ghi kết nối
-        self.server_log = ctk.CTkTextbox(
-            self.tab_control.tab("SERVER"),
-            state='disabled',
-            height=20,
-            width=100,
-            wrap=tk.WORD
-        )
-        self.server_log.pack(fill=tk.BOTH, expand=True)
-
-        # Khu vực văn bản để hiển thị bản ghi lỗi
-        self.error_log = ctk.CTkTextbox(
-            self.tab_control.tab("ERROR"),
-            state='disabled',
-            height=20,
-            width=100,
-            wrap=tk.WORD
-        )
-        self.error_log.pack(fill=tk.BOTH, expand=True)
 
         # Tạo khung cha chứa thông tin server
         self.info_container = ctk.CTkFrame(root)
@@ -217,17 +166,38 @@ class UIConfigs:
 
         self.connections_value = ctk.CTkLabel(self.info_frame2, text="0")
         self.connections_value.grid(row=2, column=1, padx=5, pady=5, sticky='w')
-    
+
+        self._setup_server_tab()
+        self._setup_error_tab()
+        self._setup_buttons()
+
+    def start_server(self): ...
+    def stop_server(self): ...
+    def clear_logs(self): ...
+
     def _clear_textbox(self, textbox: ctk.CTkTextbox):
         """Xóa nội dung của khu vực văn bản."""
-        textbox.configure(state='normal')
-        textbox.delete(1.0, tk.END)
-        textbox.configure(state='disabled')
-    
+        self.server_line = 0
+        self.error_line = 0
+
+        self.clear_button.configure(state='disabled')
+        textbox.configure(state='normal')  # Chuyển trạng thái về 'normal' để xóa nội dung
+        for i in range(100, -1, -5):  # Thay đổi từ 100% đến 0%
+            # Tạo mã màu hex cho độ mờ
+            color = f'#{i:02x}{i:02x}{i:02x}'  # Màu xám với độ mờ
+            textbox.configure(fg_color=color)  # Thay đổi màu văn bản
+            self.root.update()  # Cập nhật giao diện
+            System.sleep(0.005)  # Thay đổi tốc độ tại đây
+
+        textbox.delete("1.0", "end")  # Xóa nội dung sau khi hiệu ứng hoàn thành
+        self.root.update()
+        textbox.configure(state='disabled')  # Đặt lại trạng thái về 'disabled'
+        self.clear_button.configure(state='normal')
+
+    @staticmethod
     def _log_to_textbox(
-        self, 
         textbox: ctk.CTkTextbox, 
-        message: str, 
+        message: str | int | typing.Any,
         text_color: str = "white"
     ):
         """Append a message to the specified textbox with optional text color.""" 
@@ -238,3 +208,67 @@ class UIConfigs:
         
         textbox.configure(state='disabled')  # Vô hiệu hóa chỉnh sửa lại
         textbox.yview('end')  # Cuộn xuống cuối khu vực văn bản
+
+    def _setup_buttons(self):
+        # Nút Start
+        self.start_button = ctk.CTkButton(
+            self.control_frame,
+            text="Start",
+            command=self.start_server,
+            fg_color="#4CAF50",  # Màu nền xanh lá cây
+            hover_color="#45a049",  # Màu xanh đậm hơn khi di chuột lên nút
+            width=150,
+            height=40
+        )
+        self.start_button.pack(side=tk.LEFT, padx=10)
+
+        # Nút Stop
+        self.stop_button = ctk.CTkButton(
+            self.control_frame,
+            text="Stop",
+            command=self.stop_server,
+            fg_color="#f44336",  # Màu nền đỏ
+            hover_color="#c62828",  # Màu đỏ đậm hơn khi di chuột lên nút
+            width=150,
+            height=40,
+            state='disabled'  # Ban đầu bị vô hiệu hóa
+        )
+        self.stop_button.pack(side=tk.LEFT, padx=10)
+
+        # Nút Clear
+        self.clear_button = ctk.CTkButton(
+            self.control_frame,
+            text="Clear logs",
+            command=self.clear_logs,
+            fg_color="#2196F3",  # Màu nền xanh dương
+            hover_color="#1976D2",  # Màu xanh đậm hơn khi di chuột lên nút
+            width=150,
+            height=40
+        )
+        self.clear_button.pack(side=tk.LEFT, padx=10)
+
+    def _setup_server_tab(self):
+        # Khu vực văn bản để hiển thị bản ghi server
+        self.server_log = ctk.CTkTextbox(
+            self.tab_control.tab("   Server   "),
+            state='disabled',  # Đặt ban đầu là disabled
+            height=20,
+            width=100,
+            wrap=tk.WORD,
+            fg_color="#000000",  # Màu chữ (white)
+            bg_color="#000000"  # Màu nền (black)
+        )
+        self.server_log.pack(fill=tk.BOTH, expand=True)
+
+    def _setup_error_tab(self):
+        # Khu vực văn bản để hiển thị bản ghi lỗi
+        self.error_log = ctk.CTkTextbox(
+            self.tab_control.tab("   Error    "),
+            state='disabled',  # Đặt ban đầu là disabled
+            height=20,
+            width=100,
+            wrap=tk.WORD,
+            fg_color="#000000",  # Màu chữ (white)
+            bg_color="#000000",  # Màu nền (light red)
+        )
+        self.error_log.pack(fill=tk.BOTH, expand=True)

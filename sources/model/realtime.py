@@ -29,12 +29,9 @@ class Realtime:
         return time
     
     @staticmethod
-    def now(
-        format: str = "%d/%m/%Y %H:%M:%S", 
-        tz = None
-    ) -> str:
+    def now(tz=None) -> datetime.datetime:
         """Construct a datetime from time.time() and optional time zone info."""
-        return datetime.datetime.now(tz).strftime(format)
+        return datetime.datetime.now(tz)
 
     @staticmethod
     def strptime(

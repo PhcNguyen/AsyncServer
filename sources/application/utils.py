@@ -4,6 +4,7 @@
 import re
 import os
 import sys
+import time
 import socket
 import typing
 import psutil
@@ -15,21 +16,21 @@ import subprocess
 
 class Colors:
     @staticmethod
-    def start(color: str) -> str: 
+    def start(color: str) -> str:
         return f"\033[38;2;{color}m"
 
-    red = start.__func__('255;0;0')
-    green = start.__func__('0;255;0')
-    blue = start.__func__('0;0;255')
-    white = start.__func__('255;255;255')
-    black = start.__func__('0;0;0')
-    gray = start.__func__('150;150;150')
-    yellow = start.__func__('255;255;0')
-    purple = start.__func__('255;0;255')
-    cyan = start.__func__('0;255;255')
-    orange = start.__func__('255;150;0')
-    pink = start.__func__('255;0;150')
-    turquoise = start.__func__('0;150;255')
+    red = start('255;0;0')
+    green = start('0;255;0')
+    blue = start('0;0;255')
+    white = start('255;255;255')
+    black = start('0;0;0')
+    gray = start('150;150;150')
+    yellow = start('255;255;0')
+    purple = start('255;0;255')
+    cyan = start('0;255;255')
+    orange = start('255;150;0')
+    pink = start('255;0;150')
+    turquoise = start('0;150;255')
 
 
 class System:
@@ -78,6 +79,11 @@ class System:
         """Trả về tỷ lệ sử dụng RAM."""
         return psutil.virtual_memory().percent
 
+    @staticmethod
+    def sleep(seconds: float,
+            /) -> None:
+        time.sleep(seconds)
+
 
 class InternetProtocol:
     """
@@ -102,7 +108,8 @@ class InternetProtocol:
                 s.connect(("8.8.8.8", 80))  # Kết nối đến một máy chủ DNS công cộng
                 ip_address = s.getsockname()[0]  # Lấy địa chỉ IP của máy tính
             return ip_address
-        except Exception:
+        except Exception as error:
+            print(f"InternetProtocol: {error}")
             return 'N/A'
 
     @staticmethod
@@ -112,7 +119,8 @@ class InternetProtocol:
             response.raise_for_status()  # Kiểm tra lỗi HTTP
             ip_data = response.json()
             return ip_data.get("ip")
-        except Exception:
+        except Exception as error:
+            print(f"InternetProtocol: {error}")
             return 'N/A'
     
     @staticmethod
@@ -138,4 +146,5 @@ class InternetProtocol:
             
             return 999
         except (subprocess.CalledProcessError, Exception) as error:
+            print(f"InternetProtocol: {error}")
             return 999

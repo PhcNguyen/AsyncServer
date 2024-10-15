@@ -3,15 +3,15 @@
 
 import typing
 
+from sources.model import types
 from sources.application.cmd import Cmd
-from sources.model.types import DBManager
 from sources.model.security.cipher import Cipher
 from sources.application.configs import Configs
 
 
 
 class AlgorithmProcessing(Configs.DirPath):
-    def __init__(self, sql: DBManager) -> None:
+    def __init__(self, sql: types.DatabaseManager) -> None:
         self.sqlite = sql
 
         self.cipher = None
@@ -27,12 +27,12 @@ class AlgorithmProcessing(Configs.DirPath):
         self.public_key = self.cipher.public_key
         self.private_key = self.cipher.private_key
     
-    def _notify(self, message):
+    def _notify(self, message: str | int | typing.Any):
         """Notification method."""
         if self.message_callback:
             self.message_callback(f"Error: {message}")
     
-    def _notify_error(self, message):
+    def _notify_error(self, message: str | int | typing.Any):
         """Error notification method."""
         if self.message_callback:
             self.message_callback(f"Error: {message}")
@@ -47,9 +47,9 @@ class AlgorithmProcessing(Configs.DirPath):
 
     async def handle_data(
         self, 
-        client_address: tuple, 
-        client_data: bytes
-    ) -> bytes:
+        client_address: typing.Tuple[str, int],
+        client_data: dict | bytes
+    ) -> dict[str, str | bool | typing.Any] | str:
         """Xử lý dữ liệu từ client và trả về kết quả."""
         
         data = self.cipher.decrypt(client_data)
@@ -73,14 +73,14 @@ class AlgorithmProcessing(Configs.DirPath):
         """Xử lý các lệnh từ client."""
 
         if command == Cmd.LOGIN:
-            self.sqlite.login(username, password)
+            await self.sqlite.login(username, password)
         
         elif command == Cmd.LOGOUT:
             # Logic cho LOGOUT có thể thêm vào sau này
             return "Logout not implemented"
 
         elif command == Cmd.REGISTER:
-            self.sqlite.insert_account(username, password, ip_address)
+            await self.sqlite.insert_account(username, password, ip_address)
         
-        elif command == Cmd.CLIENT_INFO:
-            self.sqlite.get_player_coin(username)
+        elif command == Cmd.PLAYER_INFO:
+            await self.sqlite.get_player_coin(username)

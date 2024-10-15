@@ -12,23 +12,23 @@ from sources.model.realtime import Realtime
 
 
 
-class DBManager(Configs.DirPath):
+class DatabaseManager:
     def __init__(self) -> None:
         self.conn = None
         self.cur = None
         self.lock = asyncio.Lock()
-        self.db_path = DBManager.db_path
+        self.db_path = Configs.DirPath.db_path
         self.message_callback = None
         asyncio.run(self._initialize_database())
 
     # ------------------------------- #
     # FUNCTION PRIVATE
-    def _notify(self, message: str):
+    def _notify(self, message: str | int | typing.Any):
         """Notification method."""
         if self.message_callback:
             self.message_callback(f'Notify: {message}')
 
-    def _notify_error(self, message: str):
+    def _notify_error(self, message: str | int | typing.Any):
         """Error notification method."""
         if self.message_callback:
             self.message_callback(f'Error: {message}')
@@ -42,7 +42,7 @@ class DBManager(Configs.DirPath):
             ) as file:
                 return await file.read()
         except Exception as error:
-            self._notify_error(error)
+            self._notify_error(str(error))
             return ""
     
     async def _initialize_database(self):
@@ -62,7 +62,7 @@ class DBManager(Configs.DirPath):
 
     async def _create_tables(self) -> bool:
         """Create all necessary tables in the database."""
-        sql_commands = await self._read_sql_file(DBManager.table_path)
+        sql_commands = await self._read_sql_file(Configs.DirPath.table_path)
         if not sql_commands:
             return False  # Exit if no SQL commands are found
 
@@ -292,7 +292,7 @@ class DBManager(Configs.DirPath):
                     await self.update_player_coin(receiver_name, amount)
                     await self.log_transfer(
                         receiver_name, sender_name, amount,
-                        message.format('-', receiver[0]), receiver[1], ''
+                        message.format('-', receiver[0]), receiver[1], 'None'
                     )
                 
                 return True
