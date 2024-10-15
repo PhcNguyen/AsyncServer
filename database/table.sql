@@ -29,11 +29,13 @@ CREATE TABLE IF NOT EXISTS account (
 
 CREATE TABLE IF NOT EXISTS player (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER NOT NULL,  -- Khóa ngoại để liên kết với bảng account
     name TEXT NOT NULL,
     coin INTEGER DEFAULT 0,
     appellation TEXT NOT NULL,
     last_login_time TIMESTAMP DEFAULT '1979-12-31 11:01:01',
-    last_logout_time TIMESTAMP DEFAULT '1979-12-31 11:01:01'
+    last_logout_time TIMESTAMP DEFAULT '1979-12-31 11:01:01',
+    FOREIGN KEY (account_id) REFERENCES account(id)  -- Thiết lập mối quan hệ khóa ngoại
 );
 
 -- --------------------------------------------------------
@@ -44,9 +46,8 @@ CREATE TABLE IF NOT EXISTS player (
 
 CREATE TABLE IF NOT EXISTS history (
     id INTEGER NOT NULL,
-    command TEXT NOT NULL, -- Đổi `action` thành `command` trong câu lệnh chèn
+    command TEXT NOT NULL,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ip_address TEXT,
     PRIMARY KEY (id, timestamp),
     FOREIGN KEY (id) REFERENCES account (id) ON DELETE CASCADE
 );
@@ -64,7 +65,6 @@ CREATE TABLE IF NOT EXISTS history_transfer (
     amount INTEGER NOT NULL,
     message TEXT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ip_address TEXT,
     PRIMARY KEY (id, timestamp),
     FOREIGN KEY (id) REFERENCES account (id) ON DELETE CASCADE
 );
@@ -95,11 +95,11 @@ INSERT INTO `player` (`id`, `name`, `coin`, `appellation`, `last_login_time`, `l
 -- Đang đổ dữ liệu vào bảng `history`
 --
 
-INSERT INTO `history` (`id`, `command`, `timestamp`, `ip_address`) VALUES
-(1, 'login', '2024-10-12 08:00:00', '192.168.1.1'),  -- Người dùng 1 đăng nhập
-(1, 'logout', '2024-10-12 18:00:00', '192.168.1.1'), -- Người dùng 1 đăng xuất
-(2, 'login', '2024-10-12 09:00:00', '192.168.1.2'),  -- Người dùng 2 đăng nhập
-(2, 'logout', '2024-10-12 18:30:00', '192.168.1.2'); -- Người dùng 2 đăng xuất
+INSERT INTO `history` (`id`, `command`, `timestamp`, ) VALUES
+(1, 'login', '2024-10-12 08:00:00'),  -- Người dùng 1 đăng nhập
+(1, 'logout', '2024-10-12 18:00:00'), -- Người dùng 1 đăng xuất
+(2, 'login', '2024-10-12 09:00:00'),  -- Người dùng 2 đăng nhập
+(2, 'logout', '2024-10-12 18:30:00'); -- Người dùng 2 đăng xuất
 
 -- --------------------------------------------------------
 COMMIT;

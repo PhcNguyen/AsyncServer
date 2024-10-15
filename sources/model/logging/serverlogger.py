@@ -5,13 +5,13 @@ from sources.model.logging.cache import Cache
 
 
 
-class ServerLogger:
+class AsyncLogger:
     cache = Cache()
 
     @staticmethod
-    def notify(message: str):
-        ServerLogger.cache.write(f'Notify: {message}')
+    async def notify(message: str | Exception):
+        await AsyncLogger.cache.write(f'Notify: {message}')
 
     @staticmethod
-    def notify_error(message: str):
-        ServerLogger.cache.write(f'Error: {message}')
+    async def notify_error(message: str | Exception):
+        await AsyncLogger.cache.write(f'Error: {message}')

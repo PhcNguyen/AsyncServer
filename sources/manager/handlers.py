@@ -7,7 +7,7 @@ from sources.model import types
 from sources.application.cmd import Cmd
 from sources.model.security.cipher import Cipher
 from sources.application.configs import Configs
-
+from sources.model.logging.serverlogger import AsyncLogger
 
 
 class AlgorithmProcessing(Configs.DirPath):

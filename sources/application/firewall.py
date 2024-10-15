@@ -1,14 +1,13 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import typing
 import asyncio
 import aiofiles
 import collections
 
 from sources.model.realtime import Realtime
 from sources.application.configs import Configs
-from sources.model.logging.serverlogger import ServerLogger
+from sources.model.logging.serverlogger import AsyncLogger
 
 MAX_REQUESTS = 10  # Maximum allowed requests in 5 seconds
 REQUEST_WINDOW = 5  # Time window in 5 seconds
@@ -17,10 +16,6 @@ BLOCK_TIME = Realtime.timedelta(days=1)  # Time duration for auto-unblocking
 
 class FireWall:
     def __init__(self):
-        # Notification lists
-        self.notify: typing.List[str] = []
-        self.notify_error: typing.List[str] = []
-
         self.block_ips: set = set()  # Set to hold blocked IP addresses
         self.block_ips_lock = asyncio.Lock()
         self.auto_unblock_event = asyncio.Event()
@@ -48,11 +43,11 @@ class FireWall:
                         self.block_ips.add(ip)
                         self.ip_requests[ip].append(block_time)
                     except ValueError as e:
-                        self.notify_error.append(f"Error parsing block time for IP: {ip} - {e}")
+                        await AsyncLogger.notify_error(f"Error parsing block time for IP: {ip} - {e}")
         except FileNotFoundError:
-            self.notify_error.append("Blocked IPs file not found. Starting with no blocked IPs.")
+            await AsyncLogger.notify_error("Blocked IPs file not found. Starting with no blocked IPs.")
         except Exception as e:
-            self.notify_error.append(f"Error loading blocked IPs: {e}")
+            await AsyncLogger.notify_error(f"Error loading blocked IPs: {e}")
 
     async def track_requests(self, ip_address: str):
         """Track the number of requests from an IP and block if necessary."""
@@ -71,7 +66,7 @@ class FireWall:
         if len(self.ip_requests[ip_address]) > MAX_REQUESTS:
             self.block_ips.add(ip_address)
             self.ip_requests[ip_address] = [current_time]  # Save the block time for unblock
-            self.notify.append(f"Blocked IP: {ip_address}")
+            await AsyncLogger.notify(f"Blocked IP: {ip_address}")
 
             await self._save_block_ips()  # Ensure it saves immediately
 
@@ -89,18 +84,18 @@ class FireWall:
                             block_time = Realtime.strptime(block_time, "%Y-%m-%d %H:%M:%S")
                             self.ip_requests[ip][0] = block_time  # Ensure it's stored as datetime
                         except ValueError as e:
-                            self.notify_error.append(f"Error converting block time for IP: {ip} - {e}")
+                            await AsyncLogger.notify_error(f"Error converting block time for IP: {ip} - {e}")
                             continue  # Skip this IP if there's an error
 
                     # Unblock IPs that have been blocked for more than BLOCK_TIME
                     if (current_time - block_time).total_seconds() > BLOCK_TIME.total_seconds():
                         self.block_ips.remove(ip)
-                        self.notify.append(f"Unblocked IP: {ip}")
+                        await AsyncLogger.notify(f"Unblocked IP: {ip}")
 
                         await self._save_block_ips()  # Save changes immediately
 
             except Exception as e:
-                self.notify_error.append(f"Error in auto-unblock process: {e}")
+                await AsyncLogger.notify_error(f"Error in auto-unblock process: {e}")
 
             await asyncio.sleep(60 * 5)  # Check every 5 minutes
 

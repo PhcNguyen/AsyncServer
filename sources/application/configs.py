@@ -54,6 +54,7 @@ class Configs:
         
         DIR_KEY = os.path.join(DIR_DB, 'key')
         DIR_DATA = os.path.join(DIR_DB, 'data')
+        DIR_CACHE = os.path.join(DIR_DB, 'cache')
 
         table_path: str = os.path.join(DIR_DB, 'table.sql')
         queries_path: str = os.path.join(DIR_DB, 'queries.sql')
@@ -64,7 +65,7 @@ class Configs:
             "private": os.path.join(DIR_KEY, "private_key.pem")
         }
 
-        cache_file = os.path.join(DIR_DB, 'cache')
+        cache_file = os.path.join(DIR_CACHE, 'temp.cache')
         block_file = os.path.join(DIR_DATA, 'block.txt')
 
 

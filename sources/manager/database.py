@@ -7,8 +7,10 @@ import asyncio
 import aiofiles 
 import aiosqlite
 
-from sources.application.configs import Configs
+from sources.manager import iofiles
 from sources.model.realtime import Realtime
+from sources.application.configs import Configs
+from sources.model.logging.serverlogger import AsyncLogger
 
 
 
@@ -18,33 +20,12 @@ class DatabaseManager:
         self.cur = None
         self.lock = asyncio.Lock()
         self.db_path = Configs.DirPath.db_path
-        self.message_callback = None
+        self.table_path = Configs.DirPath.table_path
+        self.queries_path = Configs.DirPath.queries_path
         asyncio.run(self._initialize_database())
 
     # ------------------------------- #
     # FUNCTION PRIVATE
-    def _notify(self, message: str | int | typing.Any):
-        """Notification method."""
-        if self.message_callback:
-            self.message_callback(f'Notify: {message}')
-
-    def _notify_error(self, message: str | int | typing.Any):
-        """Error notification method."""
-        if self.message_callback:
-            self.message_callback(f'Error: {message}')
-    
-    async def _read_sql_file(self, path: str) -> str:
-        """Read SQL commands from a file asynchronously."""
-        try:
-            async with aiofiles.open(
-                path, mode='r', 
-                encoding='utf-8', errors='ignore'
-            ) as file:
-                return await file.read()
-        except Exception as error:
-            self._notify_error(str(error))
-            return ""
-    
     async def _initialize_database(self):
         """Initialize the database and create tables if they do not exist."""
         if self.conn is None:
@@ -58,11 +39,11 @@ class DatabaseManager:
                 self.conn = await aiosqlite.connect(self.db_path)
                 self.cur = await self.conn.cursor()
             except aiosqlite.OperationalError as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
 
     async def _create_tables(self) -> bool:
         """Create all necessary tables in the database."""
-        sql_commands = await self._read_sql_file(Configs.DirPath.table_path)
+        sql_commands = await iofiles.read_files(self.table_path)
         if not sql_commands:
             return False  # Exit if no SQL commands are found
 
@@ -70,10 +51,10 @@ class DatabaseManager:
             try:
                 # Use the connection directly, ensuring it is initialized
                 await self.conn.executescript(sql_commands)
-                self._notify("Tables created successfully.")
+                await AsyncLogger.notify("Tables created successfully.")
                 return True  
             except aiosqlite.Error as e:
-                self._notify_error(f"An error occurred while creating tables: {e}")
+                await AsyncLogger.notify_error(f"An error occurred while creating tables: {e}")
                 return False
             
     async def _queries_line(self, line_number: int):
@@ -88,15 +69,11 @@ class DatabaseManager:
                     return valid_lines[line_number - 1]  # Trả về dòng yêu cầu
                 return None
         except Exception as error:
-            self._notify_error(error)
+            await AsyncLogger.notify_error(error)
             return None
         
     # ------------------------------- #
     # FUNCTION PUBLIC
-    def set_message_callback(self, callback):
-        """Set a callback for messages."""
-        self.message_callback = callback 
-
     async def close(self):
         """Close the database connection."""
         if self.cur:
@@ -119,7 +96,7 @@ class DatabaseManager:
                     account_exists = await result.fetchone()
 
                     if account_exists:
-                        self._notify_error("Username already exists.")
+                        await AsyncLogger.notify_error("Username already exists.")
                         return False  # Username already exists
 
                     # If the username does not exist, insert the new account
@@ -128,7 +105,7 @@ class DatabaseManager:
 
                     return True
             except aiosqlite.Error as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
                 return False
     
     async def insert_player(self, **kwargs) -> bool:
@@ -149,7 +126,7 @@ class DatabaseManager:
                     await self.conn.commit()  # Commit the transaction
                 return True
             except aiosqlite.Error as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
                 return False
                 
     async def increase_player_coin(self, name: str, amount: int) -> bool:
@@ -162,7 +139,7 @@ class DatabaseManager:
                     await self.conn.commit()  # Commit the transaction
                 return True
             except aiosqlite.Error as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
                 return False
     
     # ------------------------------- #
@@ -179,7 +156,7 @@ class DatabaseManager:
                     return True
                 return False  # Tài khoản không hợp lệ
             except aiosqlite.Error as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
                 return False
 
     async def get_player_info(self, name: str) -> typing.Optional[dict]:
@@ -199,11 +176,10 @@ class DatabaseManager:
                         "appellation": player_info[3],
                         "last_login_time": player_info[4],
                         "last_logout_time": player_info[5],
-                        "ip_address": player_info[6]
                     }
                 return None  # Return None if player not found
             except aiosqlite.Error as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
                 return None
             
     # ------------------------------- #
@@ -218,15 +194,14 @@ class DatabaseManager:
                     await self.conn.commit()  # Commit the transaction
                 return True
             except aiosqlite.Error as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
                 return False
     
     async def update_player_coin(
         self, 
         name: str, 
         amount: int,
-        player_id: int, 
-        ip_address: str
+        account_id: int
     ) -> bool:
         """Increase/decrease the coin amount of a specific player."""
         async with self.lock:
@@ -246,12 +221,12 @@ class DatabaseManager:
 
                     await self.log_transfer(
                         name, 'SERVER', amount,
-                        message, player_id, ip_address
+                        message, account_id
                     )
 
                 return True
             except aiosqlite.Error as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
                 return False
     
     async def transfer_coins(
@@ -259,8 +234,7 @@ class DatabaseManager:
         sender_name: str, 
         receiver_name: str, 
         amount: int, 
-        player_id: int, 
-        ip_address: str
+        account_id: int, 
     ) -> bool:
         """Transfer coins from one player to another using the update_player_coin method."""
         async with self.lock:
@@ -271,7 +245,7 @@ class DatabaseManager:
                     sender_coins = await result.fetchone()
 
                     if not sender_coins or sender_coins[0] < amount:
-                        self._notify_error(f"Insufficient funds in {sender_name}'s account.")
+                        await AsyncLogger.notify_error(f"Insufficient funds in {sender_name}'s account.")
                         return False
                     
                     # Kiểm tra số dư của người nhận
@@ -281,37 +255,36 @@ class DatabaseManager:
                     message = f"GD: {{}}{amount:,}COINS {Realtime.formatted_time()}|SD: {{}}COINS"
 
                     # Trừ tiền từ tài khoản người gửi
-                    await self.update_player_coin(sender_name, -amount)
+                    await self.update_player_coin(sender_name, -amount, account_id)
                     await self.log_transfer(
                         sender_name, receiver_name, amount,
-                        message.format('-', sender_coins[0]), player_id, 
-                        ip_address
+                        message.format('-', sender_coins[0]), account_id, 
                     )   
                     
                     # Thêm tiền vào tài khoản người nhận
-                    await self.update_player_coin(receiver_name, amount)
+                    await self.update_player_coin(receiver_name, amount, receiver[1])
                     await self.log_transfer(
                         receiver_name, sender_name, amount,
-                        message.format('-', receiver[0]), receiver[1], 'None'
+                        message.format('-', receiver[0]), receiver[1], 
                     )
                 
                 return True
             except aiosqlite.Error as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
                 return False
             
     # ------------------------------- # 
     # HISTORY
-    async def log_action(self, id: int, command: str, ip_address: str = '') -> bool:
+    async def log_action(self, account_id: int, command: str) -> bool:
         """Log command to the history table."""
         async with self.lock:
             try:
                 async with self.conn:
-                    await self.conn.execute(await self._queries_line(9), (id, command, ip_address))
+                    await self.conn.execute(await self._queries_line(9), (account_id, command))
                     await self.conn.commit()  # Commit the transaction
                 return True
             except aiosqlite.Error as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
                 return False
         
     async def log_transfer(
@@ -320,8 +293,7 @@ class DatabaseManager:
         receiver_name: str, 
         amount: int, 
         message:str, 
-        player_id: int, 
-        ip_address: str
+        account_id: int, 
     ) -> bool:
         """Log the transfer history for coins."""
         async with self.lock:
@@ -330,12 +302,12 @@ class DatabaseManager:
                     await self.conn.execute(
                         await self._queries_line(10), 
                         (
-                            player_id, sender_name, receiver_name, 
-                            amount, message, ip_address
+                            account_id, sender_name, receiver_name, 
+                            amount, message
                         )
                     )
                     await self.conn.commit()  # Commit the transaction
                 return True
             except aiosqlite.Error as error:
-                self._notify_error(error)
+                await AsyncLogger.notify_error(error)
                 return False

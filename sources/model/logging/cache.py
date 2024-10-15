@@ -5,6 +5,9 @@ import os
 import typing
 import asyncio
 import aiofiles
+from aiosqlite import connect
+
+from sources.manager import iofiles
 from sources.application.configs import Configs
 
 
@@ -38,11 +41,11 @@ class Cache:
     async def write(self, string: str) -> None:
         """Write a line to the file."""
         async with self.lock:  # Ensure thread-safe access
-            async with aiofiles.open(self.file_path, 'a') as file:  # Open file in append mode
-                await file.write(string + '\n')  # Add the new line to the file
+            # Add the new line to the file
+            await iofiles.write_files(self.file_path, (string + '\n'), mode='a')
 
-    async def clear_cache(self) -> None:
+    async def clear(self) -> None:
         """Clear all content from the cache file."""
         async with self.lock:  # Ensure thread-safe access
-            async with aiofiles.open(self.file_path, 'w') as file:
-                await file.write("")  # Write an empty string to clear the content
+             # Write an empty string to clear the content
+            await iofiles.write_files(self.file_path, content="", mode='a')
