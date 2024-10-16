@@ -8,6 +8,7 @@ import time
 import socket
 import typing
 import psutil
+import os.path
 import platform
 import requests
 import subprocess
@@ -83,6 +84,13 @@ class System:
     def sleep(seconds: float,
             /) -> None:
         time.sleep(seconds)
+
+    @staticmethod
+    def dirtory(a: typing.LiteralString | str,
+         /,
+         *path: (typing.LiteralString | str)
+    ) -> (typing.LiteralString | str):
+        return os.path.join(a, *path)
 
 
 class InternetProtocol:

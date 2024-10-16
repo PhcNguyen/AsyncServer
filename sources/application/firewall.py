@@ -19,7 +19,7 @@ class FireWall:
         self.block_ips: set = set()  # Set to hold blocked IP addresses
         self.block_ips_lock = asyncio.Lock()
         self.auto_unblock_event = asyncio.Event()
-        self.block_file = Configs.DirPath.block_file
+        self.block_file = Configs.FILE_PATHS['block.txt']
         self.ip_requests = collections.defaultdict(list)  # Track requests per IP (IP: [timestamps])
 
         # Load blocked IPs at initialization

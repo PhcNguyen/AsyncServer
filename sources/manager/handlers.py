@@ -10,7 +10,7 @@ from sources.application.configs import Configs
 from sources.model.logging.serverlogger import AsyncLogger
 
 
-class AlgorithmProcessing(Configs.DirPath):
+class AlgorithmProcessing:
     def __init__(self, sql: types.DatabaseManager) -> None:
         self.sqlite = sql
 
@@ -18,29 +18,15 @@ class AlgorithmProcessing(Configs.DirPath):
         self.public_key = None
         self.private_key = None
 
-        self.message_callback = None
-
         self._load_keys()
     
     def _load_keys(self):
-        self.cipher = Cipher(self.key_path)
+        self.cipher = Cipher(
+            Configs.FILE_PATHS["public_key.pem"],
+            Configs.FILE_PATHS["private_key.pem"]
+        )
         self.public_key = self.cipher.public_key
         self.private_key = self.cipher.private_key
-    
-    def _notify(self, message: str | int | typing.Any):
-        """Notification method."""
-        if self.message_callback:
-            self.message_callback(f"Error: {message}")
-    
-    def _notify_error(self, message: str | int | typing.Any):
-        """Error notification method."""
-        if self.message_callback:
-            self.message_callback(f"Error: {message}")
-    
-    def set_message_callback(
-        self, callback: 
-        typing.Callable[[str], None]
-    ):  self.message_callback = callback
 
     async def close(self):
         await self.sqlite.close()

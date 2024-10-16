@@ -5,7 +5,6 @@ import os
 import typing
 import asyncio
 import aiofiles
-from aiosqlite import connect
 
 from sources.manager import iofiles
 from sources.application.configs import Configs
@@ -14,7 +13,7 @@ from sources.application.configs import Configs
 
 class Cache:
     def __init__(self):
-        self.file_path = Configs.DirPath.cache_file
+        self.file_path = Configs.FILE_PATHS["temp.cache"]
         self.lock = asyncio.Lock()  # Async lock for thread safety
 
     async def read_lines(self) -> typing.List[str]:
@@ -23,7 +22,7 @@ class Cache:
             if not os.path.exists(self.file_path):
                 return []
 
-            async with aiofiles.open(self.file_path, 'r+') as file:
+            async with aiofiles.open(self.file_path, 'r+', encoding='utf-8') as file:
                 lines = await file.readlines()
                 if not lines:
                     return []

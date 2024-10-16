@@ -10,7 +10,7 @@ from sources.model.logging.serverlogger import AsyncLogger
 
 async def read_files(
     file: int | str | bytes | os.PathLike[str] | os.PathLike[bytes],
-    mode: typing.Literal["r+", "+r", "rt+", "r+t", "+rt", "tr+", "t+r", "+tr"] = "r",
+    mode: typing.Literal["r", "r+", "+r", "rt+", "r+t", "+rt", "tr+", "t+r", "+tr"] = "r",
     buffering: int = -1,
     encoding: str | None = 'utf-8',
     errors: str = 'ignore'

@@ -4,15 +4,17 @@
 import asyncio
 from typing import List, Tuple
 
+from client.networks import AsyncClient
 from sources.model import types
 from sources.application.configs import Configs
 from sources.application.firewall import FireWall
 from sources.model.logging.serverlogger import AsyncLogger
 
-MAX_CONNECTIONS = 1000  # Define your max connections
 
 
 class AsyncNetworks(Configs.Network):
+    MAX_CONNECTIONS = 1000  # Define your max connections
+
     def __init__(
         self, 
         host: str, 
@@ -75,7 +77,7 @@ class AsyncNetworks(Configs.Network):
             await writer.wait_closed()
             return
         
-        if len(self.client_connections) >= MAX_CONNECTIONS:
+        if len(self.client_connections) >= AsyncNetworks.MAX_CONNECTIONS:
             await AsyncLogger.notify_error(f"Connection limit exceeded. Refusing connection from {client_address}")
             writer.close()
             await writer.wait_closed()

@@ -7,18 +7,49 @@ import pathlib
 import tkinter as tk
 import customtkinter as ctk
 
+from PIL import Image
+from customtkinter import CTkImage
+
 from sources.application.utils import InternetProtocol, System
 
-
-DIR_DB: str = os.path.join(
-    pathlib.Path(__file__).resolve().parent.parent.parent, 
-    'database'
-)
+BASE_DIR: str = str(pathlib.Path(__file__).resolve().parent.parent.parent)
 
 
 
 class Configs:
-    
+    # DICTORY
+    DIR_DB = System.dirtory(BASE_DIR, 'database')
+    DIR_RES = System.dirtory(BASE_DIR, 'resource')
+
+    # .../database/...
+    DIR_SQL = System.dirtory(DIR_DB, 'sql')
+    DIR_LOG = System.dirtory(DIR_DB, 'log')
+    DIR_KEY = System.dirtory(DIR_DB, 'key')
+    DIR_DATA = System.dirtory(DIR_DB, 'data')
+    DIR_CACHE = System.dirtory(DIR_DB, 'cache')
+
+    # PATH
+    FILE_PATHS: dict = {
+        "error.log": System.dirtory(DIR_LOG, 'error.log'),
+        "server.log": System.dirtory(DIR_LOG, 'server.log'),
+
+        'server.db': System.dirtory(DIR_SQL, 'server.db'),
+        'table.sql': System.dirtory(DIR_SQL, 'table.sql'),
+        'queries.sql': System.dirtory(DIR_SQL, 'queries.sql'),
+
+        'block.txt': System.dirtory(DIR_DATA, 'block.txt'),
+
+        'temp.cache': System.dirtory(DIR_CACHE, 'temp.cache'),
+
+        "public_key.pem": System.dirtory(DIR_KEY, "public_key.pem"),
+        "private_key.pem": System.dirtory(DIR_KEY, "private_key.pem"),
+    }
+
+    # .../resource/...
+    DIR_ICON = System.dirtory(DIR_RES, 'icon')
+    DIR_FONT = System.dirtory(DIR_RES, 'font')
+
+
     class Network:
         """
         Configuration settings for network communication.
@@ -28,47 +59,13 @@ class Configs:
         - local (str): Local IP address of the machine.
         - public (str): Public IP address of the machine.
         - port (int): Port number for network communication (default is 7272).
-        - DIR_DATA (str): Directory path for data storage.
 
         """
         DEBUG: bool = False
+
         local: str = InternetProtocol.local()  # Retrieve local IP address
         public: str = InternetProtocol.public()  # Retrieve public IP address
         port: int = 7272  # Default port number
-
-        DIR_DATA = os.path.join(DIR_DB, 'data')
-
-    class DirPath:
-        """
-        Configuration settings for cryptographic algorithms and database paths.
-
-        Attributes:
-        - DIR_KEY (str): Directory path for key storage.
-        - DIR_DATA (str): Directory path for data storage.
-        - table_path (str): Path to the SQL table file.
-        - queries_path (str): Path to the SQL queries file.
-        - db_path (str): Path to the database file.
-        - key_path (dict): Dictionary containing paths to public and private key files.
-        - block_file (str): Path to the block file.
-        """
-        
-        DIR_KEY = os.path.join(DIR_DB, 'key')
-        DIR_DATA = os.path.join(DIR_DB, 'data')
-        DIR_CACHE = os.path.join(DIR_DB, 'cache')
-
-        table_path: str = os.path.join(DIR_DB, 'table.sql')
-        queries_path: str = os.path.join(DIR_DB, 'queries.sql')
-        db_path: str = os.path.join(DIR_DB, 'server.db')  # Database file path
-
-        key_path = {
-            "public": os.path.join(DIR_KEY, "public_key.pem"),
-            "private": os.path.join(DIR_KEY, "private_key.pem")
-        }
-
-        cache_file = os.path.join(DIR_CACHE, 'temp.cache')
-        block_file = os.path.join(DIR_DATA, 'block.txt')
-
-
 
 class UIConfigs:
     """
@@ -93,13 +90,31 @@ class UIConfigs:
     root = ctk.CTk()
 
     def __init__(self, root: ctk.CTk):
+
+        UIConfigs.load_font(
+            font_path=System.dirtory(Configs.DIR_FONT, 'JetBrainsMono-Italic-VariableFont_wght.ttf'),
+            font_name='JetBrainsMono-Italic-VariableFont'
+        )
+        UIConfigs.load_font(
+            font_path=System.dirtory(Configs.DIR_FONT, 'JetBrainsMono-VariableFont_wght.ttf'),
+            font_name='JetBrainsMono-VariableFont'
+        )
+
         self.root = root
 
         self.server_line = 0
         self.error_line = 0
 
         self.log_format = "[ {:05d} | {:<12} ]> {}"
-        
+
+        self.root.title("Server Control")
+        self.root.geometry("1200x620")
+        self.root.resizable(width=False, height=False)
+        self.root.iconbitmap(System.dirtory(Configs.DIR_ICON, '0.ico'))
+
+        ctk.set_appearance_mode("dark")  # Đặt chế độ giao diện tối
+        ctk.set_default_color_theme("dark-blue")  # Đặt chủ đề màu sắc tối
+
         # Khởi tạo khung chứa các nút điều khiển
         self.control_frame = ctk.CTkFrame(root)
         self.control_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
@@ -114,89 +129,22 @@ class UIConfigs:
         self.tab_control.add("   Error    ")
         self.tab_control.pack(expand=1, fill='both')
 
-        # Khu vực văn bản để hiển thị bản ghi kết nối
-
-        # Tạo khung cha chứa thông tin server
-        self.info_container = ctk.CTkFrame(root)
-        self.info_container.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
-
-        # Tạo khung chứa thông tin server
-        self.info_frame = ctk.CTkFrame(self.info_container)
-        self.info_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
-
-        # Tạo khung chứa thông tin bổ sung
-        self.info_frame2 = ctk.CTkFrame(self.info_container)
-        self.info_frame2.pack(side=tk.LEFT, fill=tk.Y, expand=True, padx=10, pady=10)
-
-        # Label và trường hiển thị IP
-        self.local_ip = ctk.CTkLabel(self.info_frame, text="Local IP:")
-        self.local_ip.grid(row=0, column=0, padx=5, pady=5, sticky='w')  
-
-        self.local_value = ctk.CTkLabel(self.info_frame, text="N/A")
-        self.local_value.grid(row=0, column=1, padx=5, pady=5, sticky='w')
-
-        # Label và trường hiển thị Port
-        self.public_ip = ctk.CTkLabel(self.info_frame, text="Public IP:")
-        self.public_ip.grid(row=1, column=0, padx=5, pady=5, sticky='w') 
-
-        self.public_value = ctk.CTkLabel(self.info_frame, text="N/A")
-        self.public_value.grid(row=1, column=1, padx=5, pady=5, sticky='w')
-
-        # Label và trường hiển thị Trạng thái Server
-        self.ping_label = ctk.CTkLabel(self.info_frame, text="Ping:")
-        self.ping_label.grid(row=2, column=0, padx=5, pady=5, sticky='w')
-
-        self.ping_value = ctk.CTkLabel(self.info_frame, text="N/A")
-        self.ping_value.grid(row=2, column=1, padx=5, pady=5, sticky='w')
-
-        # Add new labels for CPU, RAM, and Connections
-        self.cpu_label = ctk.CTkLabel(self.info_frame2, text="CPU:")
-        self.cpu_label.grid(row=0, column=0, padx=5, pady=5, sticky='w')
-
-        self.cpu_value = ctk.CTkLabel(self.info_frame2, text="N/A")
-        self.cpu_value.grid(row=0, column=1, padx=5, pady=5, sticky='w')
-
-        self.ram_label = ctk.CTkLabel(self.info_frame2, text="RAM:")
-        self.ram_label.grid(row=1, column=0, padx=5, pady=5, sticky='w')
-
-        self.ram_value = ctk.CTkLabel(self.info_frame2, text="N/A")
-        self.ram_value.grid(row=1, column=1, padx=5, pady=5, sticky='w')
-
-        self.connections_label = ctk.CTkLabel(self.info_frame2, text="Connections:")
-        self.connections_label.grid(row=2, column=0, padx=5, pady=5, sticky='w')
-
-        self.connections_value = ctk.CTkLabel(self.info_frame2, text="0")
-        self.connections_value.grid(row=2, column=1, padx=5, pady=5, sticky='w')
-
         self._setup_server_tab()
         self._setup_error_tab()
         self._setup_buttons()
+        self._setup_labels()
 
     def start_server(self): ...
     def stop_server(self): ...
     def clear_logs(self): ...
 
-    def _clear_textbox(self, textbox: ctk.CTkTextbox):
-        """Xóa nội dung của khu vực văn bản."""
-        self.server_line = 0
-        self.error_line = 0
-
-        self.clear_button.configure(state='disabled')
-        textbox.configure(state='normal')  # Chuyển trạng thái về 'normal' để xóa nội dung
-        for i in range(100, -1, -5):  # Thay đổi từ 100% đến 0%
-            # Tạo mã màu hex cho độ mờ
-            color = f'#{i:02x}{i:02x}{i:02x}'  # Màu xám với độ mờ
-            textbox.configure(fg_color=color)  # Thay đổi màu văn bản
-            self.root.update()  # Cập nhật giao diện
-            System.sleep(0.005)  # Thay đổi tốc độ tại đây
-
-        textbox.delete("1.0", "end")  # Xóa nội dung sau khi hiệu ứng hoàn thành
-        self.root.update()
-        textbox.configure(state='disabled')  # Đặt lại trạng thái về 'disabled'
-        self.clear_button.configure(state='normal')
+    @staticmethod
+    def load_font(font_path,font_name) -> None:
+        # Load the font and return a CTkFont object
+        tk.font.Font(family=font_path, name=font_name)
 
     @staticmethod
-    def _log_to_textbox(
+    def log_to_textbox(
         textbox: ctk.CTkTextbox, 
         message: str | int | typing.Any,
         text_color: str = "white"
@@ -210,7 +158,70 @@ class UIConfigs:
         textbox.configure(state='disabled')  # Vô hiệu hóa chỉnh sửa lại
         textbox.yview('end')  # Cuộn xuống cuối khu vực văn bản
 
+    @staticmethod
+    def parse_message(message: str | int | typing.Any):
+        """Phân tích thông điệp để xác định loại và nội dung."""
+        if isinstance(message, (str, int)):
+            message = str(message)  # Đảm bảo là chuỗi
+
+        if "Notify:" in message:
+            return "Notify", message.split('Notify:')[-1].strip()
+        elif "Error:" in message:
+            return "Error", message.split('Error:')[-1].strip()
+
+        return None, message  # Nếu không phải Notify hoặc Error
+
+    @staticmethod
+    def create_label(frame, text, font, row, column, icon_path=None, sticky='w'):
+        image = None
+        if icon_path:
+            # Tải icon từ file
+            icon = Image.open(icon_path)
+            icon = icon.resize((17, 17), Image.Resampling.LANCZOS)  # Điều chỉnh kích thước icon nếu cần
+            image = CTkImage(icon)  # Sử dụng CTkImage thay vì ImageTk.PhotoImage
+
+        label = ctk.CTkLabel(frame, text=text, font=font, image=image, compound="left")
+        label.grid(row=row, column=column, padx=5, pady=5, sticky=sticky)
+
+        label.image = image  # Giữ tham chiếu đến hình ảnh
+        return label
+
+    def _clear_textbox(self, textbox: ctk.CTkTextbox):
+        """Xóa nội dung của khu vực văn bản với hiệu ứng xóa nhanh dần."""
+        self.server_line = 0
+        self.error_line = 0
+
+        self.clear_button.configure(state='disabled')
+        textbox.configure(state='normal')  # Chuyển trạng thái về 'normal' để xóa nội dung
+
+        textbox_content = textbox.get("1.0", "end")  # Lấy toàn bộ nội dung của textbox
+        lines = textbox_content.splitlines()  # Chia nội dung thành từng dòng
+
+        # Hiệu ứng xóa nhanh dần từ dưới lên
+        delay = 0.05  # Bắt đầu với độ trễ lớn hơn
+        for i in range(len(lines)):
+            textbox.delete(f"{len(lines) - i}.0", f"{len(lines) - i}.end")  # Xóa từng dòng từ dưới lên
+            self.root.update()  # Cập nhật giao diện để hiển thị hiệu ứng xóa
+            System.sleep(delay)  # Điều chỉnh tốc độ tại đây
+            delay = max(0.001, delay * 0.7)  # Giảm dần độ trễ để xóa nhanh hơn
+
+        textbox.delete("1.0", "end")  # Đảm bảo xóa hết nội dung sau hiệu ứng
+        self.root.update()
+
+        textbox.configure(state='disabled')  # Đặt lại trạng thái về 'disabled'
+        self.clear_button.configure(state='normal')
+
     def _setup_buttons(self):
+        # Tải ảnh PNG sử dụng Pillow (PIL)
+        start_image = ctk.CTkImage(
+            Image.open(System.dirtory(Configs.DIR_ICON, '1.png')), size=(20, 20)
+        )
+        stop_image = ctk.CTkImage(
+            Image.open(System.dirtory(Configs.DIR_ICON, '2.png')), size=(20, 20)
+        )
+        clear_image = ctk.CTkImage(
+            Image.open(System.dirtory(Configs.DIR_ICON, '3.png')), size=(20, 20)
+        )
         # Nút Start
         self.start_button = ctk.CTkButton(
             self.control_frame,
@@ -219,7 +230,9 @@ class UIConfigs:
             fg_color="#4CAF50",  # Màu nền xanh lá cây
             hover_color="#45a049",  # Màu xanh đậm hơn khi di chuột lên nút
             width=150,
-            height=40
+            height=40,
+            image=start_image,
+            font=('JetBrainsMono-VariableFont', 13)
         )
         self.start_button.pack(side=tk.LEFT, padx=10)
 
@@ -232,7 +245,9 @@ class UIConfigs:
             hover_color="#c62828",  # Màu đỏ đậm hơn khi di chuột lên nút
             width=150,
             height=40,
-            state='disabled'  # Ban đầu bị vô hiệu hóa
+            state='disabled',  # Ban đầu bị vô hiệu hóa
+            image=stop_image,
+            font=('JetBrainsMono-VariableFont', 13)
         )
         self.stop_button.pack(side=tk.LEFT, padx=10)
 
@@ -244,7 +259,9 @@ class UIConfigs:
             fg_color="#2196F3",  # Màu nền xanh dương
             hover_color="#1976D2",  # Màu xanh đậm hơn khi di chuột lên nút
             width=150,
-            height=40
+            height=40,
+            image=clear_image,
+            font=('JetBrainsMono-VariableFont', 13)
         )
         self.clear_button.pack(side=tk.LEFT, padx=10)
 
@@ -257,7 +274,8 @@ class UIConfigs:
             width=100,
             wrap=tk.WORD,
             fg_color="#000000",  # Màu chữ (white)
-            bg_color="#000000"  # Màu nền (black)
+            bg_color="#000000",  # Màu nền (black)
+            font=('JetBrainsMono-VariableFont', 16)
         )
         self.server_log.pack(fill=tk.BOTH, expand=True)
 
@@ -271,5 +289,87 @@ class UIConfigs:
             wrap=tk.WORD,
             fg_color="#000000",  # Màu chữ (white)
             bg_color="#000000",  # Màu nền (light red)
+            font=('JetBrainsMono-VariableFont', 16)
         )
         self.error_log.pack(fill=tk.BOTH, expand=True)
+
+    def _setup_labels(self):
+        # Define font sizes
+        variable_font_size = 14
+        italic_font_size = 14
+
+        # Tạo khung cha chứa thông tin server
+        self.info_container = ctk.CTkFrame(self.root)
+        self.info_container.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=8)
+
+        # Tạo khung chứa thông tin server
+        self.info_frame = ctk.CTkFrame(self.info_container)
+        self.info_frame.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=8, expand=True)
+
+        # Tạo khung chứa thông tin bổ sung
+        self.info_frame2 = ctk.CTkFrame(self.info_container)
+        self.info_frame2.pack(side=tk.LEFT, fill=tk.Y, expand=True, padx=8, pady=8)
+
+        # Label và trường hiển thị IP với font tuỳ chỉnh
+        self.local_ip = self.create_label(
+            self.info_frame, " Local IP:",
+            ('JetBrainsMono-VariableFont', variable_font_size), 0, 0,
+            System.dirtory(Configs.DIR_ICON, '4.png')
+        )
+        self.local_value = self.create_label(
+            self.info_frame, "N/A",
+            ('JetBrainsMono-VariableFont', italic_font_size), 0, 1
+        )
+
+        self.public_ip = self.create_label(
+            self.info_frame, " Public IP:",
+            ('JetBrainsMono-VariableFont', variable_font_size), 1, 0,
+            System.dirtory(Configs.DIR_ICON, '4.png')
+        )
+        self.public_value = self.create_label(
+            self.info_frame, "N/A",
+            ('JetBrainsMono-VariableFont', italic_font_size),
+            1, 1, sticky='e'
+        )
+
+        self.ping_label = self.create_label(
+            self.info_frame, " Ping:",
+            ('JetBrainsMono-VariableFont', variable_font_size), 2, 0,
+            System.dirtory(Configs.DIR_ICON, '5.png')
+        )
+        self.ping_value = self.create_label(
+            self.info_frame, "N/A",
+            ('JetBrainsMono-VariableFont', italic_font_size),
+            2, 1, sticky='e'
+        )
+
+        # Add new labels for CPU, RAM, and Connections with font tuỳ chỉnh
+        self.cpu_label = self.create_label(
+            self.info_frame2, " CPU:",
+            ('JetBrainsMono-VariableFont', variable_font_size), 0, 0,
+            System.dirtory(Configs.DIR_ICON, '6.png')
+        )
+        self.cpu_value = self.create_label(
+            self.info_frame2, "N/A",
+            ('JetBrainsMono-VariableFont', italic_font_size), 0, 1
+        )
+
+        self.ram_label = self.create_label(
+            self.info_frame2, " RAM:",
+            ('JetBrainsMono-VariableFont', variable_font_size), 1, 0,
+            System.dirtory(Configs.DIR_ICON, '7.png')
+        )
+        self.ram_value = self.create_label(
+            self.info_frame2, "N/A",
+            ('JetBrainsMono-VariableFont', italic_font_size), 1, 1
+        )
+
+        self.connections_label = self.create_label(
+            self.info_frame2, " Connections:",
+            ('JetBrainsMono-VariableFont', variable_font_size), 2, 0,
+            System.dirtory(Configs.DIR_ICON, '8.png')
+        )
+        self.connections_value = self.create_label(
+            self.info_frame2, "0",
+            ('JetBrainsMono-VariableFont', italic_font_size), 2, 1
+        )

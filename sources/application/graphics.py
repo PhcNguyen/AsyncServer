@@ -8,8 +8,8 @@ import threading
 import customtkinter as ctk
 
 from sources.model import types
+from sources.manager.cache import Cache
 from sources.model.realtime import Realtime
-from sources.model.logging.cache import Cache
 from sources.application.configs import UIConfigs
 from sources.application.utils import InternetProtocol, System
 
@@ -19,17 +19,10 @@ class Graphics(UIConfigs):
     def __init__(self, root: ctk.CTk, server: types.AsyncNetworks):
         super().__init__(root)  # Gọi khởi tạo của lớp cha
 
+        self.current_log = None  # Biến để theo dõi khu vực văn bản hiện tại
         self.cache: Cache = Cache()
         self.server: typing.Optional[types.AsyncNetworks] = None
         self.network: types.AsyncNetworks = server
-
-        self.current_log = None  # Biến để theo dõi khu vực văn bản hiện tại
-
-        self.root.title("Server Control")
-        self.root.geometry("1200x620")
-        self.root.resizable(False, False)
-        ctk.set_appearance_mode("dark")  # Đặt chế độ giao diện tối
-        ctk.set_default_color_theme("dark-blue")  # Đặt chủ đề màu sắc tối
 
         # Đăng ký sự kiện đóng cửa sổ
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -43,7 +36,7 @@ class Graphics(UIConfigs):
           
     async def _start_server(self):
         if self.server:
-            self._log_to_textbox(self.server_log, "Server is already running.")
+            self.log_to_textbox(self.server_log, "Server is already running.")
             return
         try:
             self.server = self.network
@@ -62,7 +55,7 @@ class Graphics(UIConfigs):
             self.stop_button.configure(state='normal')
 
         except Exception as e:
-            self._log_to_textbox(self.error_log, f"Error starting server: {e}")
+            self.log_to_textbox(self.error_log, f"Error starting server: {e}")
             self.start_button.configure(state='normal')
             self.stop_button.configure(state='disabled')
     
@@ -74,7 +67,7 @@ class Graphics(UIConfigs):
                 await self.server.stop()  # Chạy lệnh dừng server
                 # self._log_to_textbox(self.server_log, "Server stopped successfully.")
             except Exception as e:
-                self._log_to_textbox(self.error_log, f"Error while stopping the server: {e}")
+                self.log_to_textbox(self.error_log, f"Error while stopping the server: {e}")
             finally:
                 self.server = None
                 await self._update_server_infor()
@@ -134,7 +127,7 @@ class Graphics(UIConfigs):
 
     def start_server(self):
         if self.server:
-            self._log_to_textbox(self.server_log, "Server is already running.")
+            self.log_to_textbox(self.server_log, "Server is already running.")
             return
 
         """Bắt đầu server với coroutine."""
@@ -142,32 +135,32 @@ class Graphics(UIConfigs):
 
     def stop_server(self) -> None:
         if not self.server:
-            self._log_to_textbox(self.server_log, "Server is not running.")
+            self.log_to_textbox(self.server_log, "Server is not running.")
             return
 
         try:
             asyncio.run_coroutine_threadsafe(self._stop_server(), self.loop)
         except Exception as e:
-            self._log_to_textbox(self.error_log, f"Error while trying to stop the server: {e}")
+            self.log_to_textbox(self.error_log, f"Error while trying to stop the server: {e}")
 
     async def log_message(self, message: str | int | typing.Any):
         """Nhận thông báo từ Networks, ... và phân loại nó để hiển thị đúng tab."""
-        if "Notify:" in message:
-            self.server_line += 1  
-            
-            self._log_to_textbox(self.server_log, self.log_format.format(
-                self.server_line,                     # Adjusted to have a fixed width
-                Realtime.now().strftime("%d/%m %H:%M:%S"),       # Adjusted to have a fixed width for time
-                message.split('Notify:')[-1].strip()  # The actual message
-            ))
-        elif "Error:" in message:
-            self.error_line += 1  
-            
-            self._log_to_textbox(self.error_log, self.log_format.format(
-                self.server_line,
-                Realtime.now().strftime("%d/%m %H:%M:%S"),
-                message.split('Error:')[-1].strip()
-            ))
+        message_type, actual_message = self.parse_message(message)
+
+        if message_type == "Notify":
+            self.server_line += 1
+            log_target = self.server_log
+        elif message_type == "Error":
+            self.error_line += 1
+            log_target = self.error_log
+        else:
+            return  # Không xử lý nếu không phải Notify hoặc Error
+
+        self.log_to_textbox(log_target, self.log_format.format(
+            self.server_line,
+            Realtime.now().strftime("%d/%m %H:%M:%S"),
+            actual_message
+        ))
 
         self.root.update()
     
@@ -175,7 +168,6 @@ class Graphics(UIConfigs):
         """Xóa nội dung của tất cả các khu vực văn bản."""
         self._clear_textbox(self.server_log)
         self._clear_textbox(self.error_log)
-
 
     def on_closing(self):
         """Xử lý khi người dùng nhấn nút X để đóng cửa sổ."""

@@ -74,3 +74,5 @@ DELETE FROM history_transfer
 WHERE id = ? AND timestamp = ?;                        -- 19
 
 -- --------------------------------------------------------
+
+SELECT name FROM sqlite_master WHERE type = 'table';     -- 20
