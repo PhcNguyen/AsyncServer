@@ -2,9 +2,12 @@
 
 Dự án này là một ứng dụng mạng bất đồng bộ, cho phép người dùng thực hiện các thao tác như đăng nhập, đăng ký và lấy thông tin người chơi. Ứng dụng sử dụng mã hóa RSA để bảo vệ dữ liệu người dùng và kết nối đến cơ sở dữ liệu để lưu trữ thông tin.
 
+## Graphics Server
+
 ![Graphics Preview](/docs/images/graphics.png)
 
-## Cấu trúc dự án
+### Cấu trúc dự án
+
 ```structure
 [PROJECT - 1.0.5]
   ├─── database                   # Thư mục chứa các tệp và thư mục liên quan đến cơ sở dữ liệu.
@@ -34,6 +37,8 @@ Dự án này là một ứng dụng mạng bất đồng bộ, cho phép ngư�
 
 ---
 
+### Các Class của dự án
+
 1. `AsyncNetworks`
 
 - **Mô tả**: Class này quản lý các kết nối mạng và xử lý dữ liệu một cách không đồng bộ.
@@ -50,24 +55,28 @@ Dự án này là một ứng dụng mạng bất đồng bộ, cho phép ngư�
 | **Độ phức tạp**                       | Phức tạp hơn, yêu cầu xử lý các cuộc gọi không đồng bộ |
 
 2. `AlgorithmProcessing`
+
 - **Mô tả**: Xử lý dữ liệu từ client và thực hiện các thao tác liên quan đến tài khoản (đăng nhập, đăng ký).
 - **Phương thức**:
   - `handle_data`: Xử lý dữ liệu từ client và trả về kết quả.
   - `close`: Đóng kết nối với cơ sở dữ liệu.
 
 3. `AsyncLogger`
+
 - **Mô tả**: Ghi lại thông báo và lỗi một cách bất đồng bộ.
 - **Phương thức**:
   - `notify`: Ghi thông báo.
   - `notify_error`: Ghi lỗi.
 
 4. `Cipher`
+
 - **Mô tả**: Cung cấp chức năng mã hóa và giải mã dữ liệu bằng RSA.
 - **Phương thức**:
   - `encrypt`: Mã hóa dữ liệu bằng khóa công khai.
   - `decrypt`: Giải mã dữ liệu bằng khóa riêng.
 
 5. `DatabaseManager`
+
 - **Mô tả**: Quản lý các thao tác với cơ sở dữ liệu.
 - **Phương thức**:
   - `insert_account`: Thêm tài khoản mới vào cơ sở dữ liệu.
@@ -75,6 +84,7 @@ Dự án này là một ứng dụng mạng bất đồng bộ, cho phép ngư�
   - `get_player_coin`: Lấy số dư tiền ảo của người chơi.
 
 6. `Realtime`
+
 - **Mô tả**: Cung cấp các phương thức liên quan đến thời gian.
 - **Phương thức**:
   - `formatted_time`: Trả về thời gian hiện tại dưới định dạng `dd/mm/yy HH:MM`.
@@ -85,20 +95,22 @@ Dự án này là một ứng dụng mạng bất đồng bộ, cho phép ngư�
 ### Cách cài đặt
 
 - Tạo môi trường ảo
-  ```bash
-      git clone https://github.com/PhcNguyen/Craps
-      
-      chmod +x venv.sh
-      ./venv.sh
-      ./venv.sh
-      
-      python main.py
-  ```
+
+```bash
+    git clone https://github.com/PhcNguyen/Craps
+    
+    chmod +x venv.sh
+    ./venv.sh
+    ./venv.sh
+    
+    python main.py
+```
 
 - Cài đặt trực tiếp
-  ```bash
-      git clone https://github.com/PhcNguyen/Craps
-      
-      pip install -r requirements.txt
-      python main.py
-  ```
+
+```bash
+    git clone https://github.com/PhcNguyen/Craps
+    
+    pip install -r requirements.txt
+    python main.py
+```
