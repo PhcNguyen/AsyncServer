@@ -4,7 +4,6 @@
 import asyncio
 from typing import List, Tuple
 
-from client.networks import AsyncClient
 from sources.model import types
 from sources.application.configs import Configs
 from sources.application.firewall import FireWall

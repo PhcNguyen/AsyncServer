@@ -8,7 +8,7 @@ from sources.manager.handlers import AlgorithmProcessing
 
 
 
-# Initialize DatabaseManager, Graphics2, AsyncNetworks
+# Initialize DatabaseManager, Graphics, AsyncNetworks
 async_networks = AsyncNetworks(
     AsyncNetworks.local, 
     AsyncNetworks.port, 

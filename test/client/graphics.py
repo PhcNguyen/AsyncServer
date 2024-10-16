@@ -1,11 +1,10 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import os
 import asyncio
 import customtkinter as ctk
-from client.config import ConfigClient
-from client.networks import AsyncClient  # Import your AsyncClient class here
+from test.client.config import ConfigClient
+from test.client.networks import AsyncClient  # Import your AsyncClient class here
 
 
 

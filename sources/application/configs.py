@@ -1,7 +1,6 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import os
 import typing
 import pathlib
 import tkinter as tk

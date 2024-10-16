@@ -16,15 +16,13 @@ def create_file_conf(
             conf_file.write(f"Port={port}\n")
 
 def get_data_dir():
-    try:
-        if platform.system() == "Windows":
-            DIR = os.path.join(os.getenv('LOCALAPPDATA'))
-        elif platform.system() == "Darwin":
-            DIR = os.path.join(os.path.expanduser('~'), 'Library', 'Application Support')
-        else:
-            DIR = os.path.join(os.path.expanduser('~'), '.config')
-    finally:
-        return DIR
+    if platform.system() == "Windows":
+        return os.path.join(os.getenv('LOCALAPPDATA'))
+    elif platform.system() == "Darwin":
+        return os.path.join(os.path.expanduser('~'), 'Library', 'Application Support')
+    else:
+        return os.path.join(os.path.expanduser('~'), '.config')
+
 
 DIR = get_data_dir()
 CRAPS = os.path.join(DIR, "CRAPS")

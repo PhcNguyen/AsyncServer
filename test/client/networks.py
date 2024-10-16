@@ -1,10 +1,9 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import os
 import asyncio
 from sources.model.security.cipher import Cipher
-from client.config import ConfigClient
+from test.client.config import ConfigClient
 
 
 conf = ConfigClient.network_config()
