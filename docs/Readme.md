@@ -1,12 +1,12 @@
-# <img alt="ICON"  src="https://github.com/PhcNguyen/AsyncServer/blob/main/docs/images/vi.png" height="100px" width="auto"> PhcNguyen Developers 
+## <img alt="ICON"  src="https://github.com/PhcNguyen/AsyncServer/blob/main/docs/images/vi.png" height="100px" width="auto"> PhcNguyen Developers 
 
 Dự án này là một ứng dụng mạng bất đồng bộ, cho phép người dùng thực hiện các thao tác như đăng nhập, đăng ký và lấy thông tin người chơi. Ứng dụng sử dụng mã hóa RSA để bảo vệ dữ liệu người dùng và kết nối đến cơ sở dữ liệu để lưu trữ thông tin.
 
-## Graphics Server
+### <img alt="ICON"  src="https://github.com/PhcNguyen/AsyncServer/blob/main/docs/images/graphic-card.png" height="64px" width="64px"> Graphics Server
 
 ![Graphics Preview](https://github.com/PhcNguyen/AsyncServer/blob/main/docs/images/graphics.png)
 
-### Cấu trúc dự án
+#### <img alt="ICON"  src="https://github.com/PhcNguyen/AsyncServer/blob/main/docs/images/hierarchy-structure.png" height="64px" width="64px"> `Cấu trúc dự án
 
 ```structure
 [PROJECT - 1.0.5]
@@ -37,7 +37,7 @@ Dự án này là một ứng dụng mạng bất đồng bộ, cho phép ngư�
 
 ---
 
-### Các Class của dự án
+#### Các Class của dự án
 
 1. `AsyncNetworks`
 
@@ -92,7 +92,7 @@ Dự án này là một ứng dụng mạng bất đồng bộ, cho phép ngư�
 
 --- 
 
-### Cách cài đặt
+#### <img alt="ICON"  src="https://github.com/PhcNguyen/AsyncServer/blob/main/docs/images/setting.png" height="64px" width="64px"> Cài đặt
 
 - Tạo môi trường ảo
 
