@@ -1,66 +1,102 @@
-# Craps Game
+## PhcNguyen Developers
 
-## Giới thiệu
+Dự án này là một ứng dụng mạng bất đồng bộ, cho phép người dùng thực hiện các thao tác như đăng nhập, đăng ký và lấy thông tin người chơi. Ứng dụng sử dụng mã hóa RSA để bảo vệ dữ liệu người dùng và kết nối đến cơ sở dữ liệu để lưu trữ thông tin.
 
-- Chào mừng bạn đến với dự án **Craps**! Đây là một trò chơi xúc xắc thú vị và hấp dẫn, nơi người chơi có thể trải nghiệm cảm giác hồi hộp của việc ném xúc xắc mà không cần phải tham gia vào việc đánh cược thật. Craps là một trong những trò chơi sòng bài phổ biến nhất, nhưng phiên bản này tập trung vào giải trí và niềm vui.
-
----
-
-## Mục tiêu của trò chơi
-
-- Mục tiêu chính của trò chơi Craps là dự đoán kết quả của các lần ném xúc xắc. Người chơi có thể chơi một mình hoặc cùng bạn bè mà không cần đặt cược tiền thật, tạo ra một trải nghiệm thư giãn và vui vẻ.
-
----
-
-### Đặc điểm nổi bật
-
-- **Không có nạp tiền**: Trò chơi hoàn toàn miễn phí. Không yêu cầu người chơi nạp tiền hay đặt cược thật, vì vậy bạn có thể thoải mái tham gia mà không lo lắng về mặt tài chính.
-  
-- **Tuân thủ pháp luật**: Craps được thiết kế để mang lại niềm vui mà không vi phạm bất kỳ quy định pháp luật nào liên quan đến cờ bạc. Đây là trò chơi giải trí thuần túy dành cho tất cả mọi người.
-
----
-
-## Tính năng
-
-- **Chế độ giải trí**: Tham gia trò chơi mà không cần đặt cược, chỉ cần vui vẻ và thư giãn.
-- **Chế độ chơi một mình**: Luyện tập kỹ năng ném xúc xắc mà không cần cạnh tranh.
-- **Chia sẻ thành tích**: Lưu lại điểm số và chia sẻ với bạn bè để so tài.
-- **Hệ thống điểm thưởng**: Tích lũy điểm từ các lượt chơi để mở khóa giao diện mới hoặc tính năng đặc biệt.
-- **Luật chơi rõ ràng**: Cung cấp hướng dẫn chi tiết về cách chơi và đặt cược.
-
----
-
-## Cách chơi
-
-1. **Bắt đầu trò chơi**: Người chơi bắt đầu bằng cách ném hai viên xúc xắc.
-2. **Đặt cược (giả định)**: Người chơi có thể "đặt cược" bằng điểm số ảo mà không cần đặt tiền thật.
-3. **Ném xúc xắc**: Sau khi đặt cược, người chơi sẽ ném xúc xắc để xem kết quả.
-4. **Tính điểm và thưởng**: Dựa vào kết quả ném xúc xắc, điểm số sẽ được tính và người chơi sẽ nhận được điểm thưởng.
-
----
-
-## Cài đặt
-
-1.Clone dự án:
-
-```bash
-    git clone https://github.com/yourusername/craps.git & cd craps
-```
-
-2.Chạy trò chơi
-
-```bash
-    python main.py
+### Cấu trúc dự án
+```structure
+[PROJECT - 1.0.5]
+  ├─── database                   # Thư mục chứa các tệp và thư mục liên quan đến cơ sở dữ liệu.
+  │    ├───cache                  # Thư mục cho các tệp lưu trữ bộ nhớ đệm (cache).
+  │    ├───data                   # Thư mục chứa dữ liệu chính của ứng dụng.
+  │    ├───key                    # Thư mục chứa các tệp khóa, có thể là khóa mã hóa hoặc khóa RSA.
+  │    ├───log                    # Thư mục lưu trữ các tệp log ghi lại thông tin hoạt động của ứng dụng.
+  │    └───sql                    # Thư mục chứa các tệp SQL, có thể là các tệp để tạo hoặc cập nhật cơ sở dữ liệu.
+  │
+  ├─── docs                       # Thư mục chứa tài liệu hướng dẫn sử dụng hoặc tài liệu liên quan đến dự án.
+  ├─── resource                   # Thư mục chứa các tài nguyên (resources) như phông chữ và biểu tượng.
+  │    ├───font                   # Thư mục chứa các tệp phông chữ được sử dụng trong ứng dụng.
+  │    └───icon                   # Thư mục chứa các biểu tượng (icon) cho ứng dụng.
+  │
+  ├─── sources                    # Thư mục chứa mã nguồn của ứng dụng.
+  │    ├─── application           # Thư mục chứa các tệp liên quan đến ứng dụng, bao gồm các lệnh và cấu hình.
+  │    ├─── manager               # Thư mục chứa các tệp quản lý, có thể là quản lý kết nối, quản lý cache, v.v.
+  │    └─── model                 # Thư mục chứa các mô hình dữ liệu và logic xử lý.
+  │        ├─── logging           # Thư mục chứa các tệp liên quan đến việc ghi log.
+  │        └─── security          # Thư mục chứa các tệp liên quan đến bảo mật, mã hóa và giải mã dữ liệu.
+  │             ├─── cipher       # Thư mục chứa các tệp xử lý mã hóa (cipher).
+  │             └─── rsa          # Thư mục chứa các tệp xử lý liên quan đến RSA (mã hóa bất đối xứng).
+  │
+  ├─── env.sh                     # Tệp tạo môi trường ảo.
+  └─── main.py                    # Tệp chính để khởi động ứng dụng.
 ```
 
 ---
 
-## Liên hệ
+#### 1. `AsyncNetworks`
 
-- Nếu bạn có bất kỳ câu hỏi hoặc ý kiến nào về trò chơi, hãy liên hệ với tôi qua [phcnguyenz@proton.me].
+- **Mô tả**: Class này quản lý các kết nối mạng và xử lý dữ liệu một cách không đồng bộ.
+- **Phương thức**:
+  - `start()`: Khởi động máy chủ và bắt đầu chấp nhận các kết nối.
+  - `stop()`: Dừng máy chủ và đóng tất cả các kết nối.
+  - `accept_connections()`: Chấp nhận các kết nối đến từ khách hàng.
+  - `handle_client()`: Xử lý giao tiếp với khách hàng.
 
----
+| Tính năng                             | V2                                                     |
+|---------------------------------------|--------------------------------------------------------|
+| **Loại mạng**                         | Không đồng bộ                                          |
+| **Độ nhạy**                           | Độ đồng thời cao, ứng dụng thời gian thực              |
+| **Độ phức tạp**                       | Phức tạp hơn, yêu cầu xử lý các cuộc gọi không đồng bộ |
 
-## Lưu ý
+#### 2. `AlgorithmProcessing`
+- **Mô tả**: Xử lý dữ liệu từ client và thực hiện các thao tác liên quan đến tài khoản (đăng nhập, đăng ký).
+- **Phương thức**:
+  - `handle_data`: Xử lý dữ liệu từ client và trả về kết quả.
+  - `close`: Đóng kết nối với cơ sở dữ liệu.
 
-- Trò chơi này hoàn toàn hợp pháp và không vi phạm bất kỳ quy định nào liên quan đến cờ bạc.
+#### 3. `AsyncLogger`
+- **Mô tả**: Ghi lại thông báo và lỗi một cách bất đồng bộ.
+- **Phương thức**:
+  - `notify`: Ghi thông báo.
+  - `notify_error`: Ghi lỗi.
+
+#### 4. `Cipher`
+- **Mô tả**: Cung cấp chức năng mã hóa và giải mã dữ liệu bằng RSA.
+- **Phương thức**:
+  - `encrypt`: Mã hóa dữ liệu bằng khóa công khai.
+  - `decrypt`: Giải mã dữ liệu bằng khóa riêng.
+
+#### 5. `DatabaseManager`
+- **Mô tả**: Quản lý các thao tác với cơ sở dữ liệu.
+- **Phương thức**:
+  - `insert_account`: Thêm tài khoản mới vào cơ sở dữ liệu.
+  - `login`: Xác thực thông tin người dùng.
+  - `get_player_coin`: Lấy số dư tiền ảo của người chơi.
+
+#### 6. `Realtime`
+- **Mô tả**: Cung cấp các phương thức liên quan đến thời gian.
+- **Phương thức**:
+  - `formatted_time`: Trả về thời gian hiện tại dưới định dạng `dd/mm/yy HH:MM`.
+  - `timedelta`: Tạo đối tượng `timedelta` từ các tham số thời gian.
+
+--- 
+
+### Cách cài đặt
+
+- Tạo môi trường ảo
+  ```bash
+      git clone https://github.com/PhcNguyen/Craps
+      
+      chmod +x venv.sh
+      ./venv.sh
+      ./venv.sh
+      
+      python main.py
+  ```
+
+- Cài đặt trực tiếp
+  ```bash
+      git clone https://github.com/PhcNguyen/Craps
+      
+      pip install -r requirements.txt
+      python main.py
+  ```
