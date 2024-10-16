@@ -1,21 +1,23 @@
-## PhcNguyen Developers
+# <img alt="ICON"  src="docs/images/vi.png" height="100px" width="auto"> PhcNguyen Developers 
 
 Dự án này là một ứng dụng mạng bất đồng bộ, cho phép người dùng thực hiện các thao tác như đăng nhập, đăng ký và lấy thông tin người chơi. Ứng dụng sử dụng mã hóa RSA để bảo vệ dữ liệu người dùng và kết nối đến cơ sở dữ liệu để lưu trữ thông tin.
 
-### Cấu trúc dự án
+![Graphics Preview](/docs/images/graphics.png)
+
+## Cấu trúc dự án
 ```structure
 [PROJECT - 1.0.5]
   ├─── database                   # Thư mục chứa các tệp và thư mục liên quan đến cơ sở dữ liệu.
-  │    ├───cache                  # Thư mục cho các tệp lưu trữ bộ nhớ đệm (cache).
-  │    ├───data                   # Thư mục chứa dữ liệu chính của ứng dụng.
-  │    ├───key                    # Thư mục chứa các tệp khóa, có thể là khóa mã hóa hoặc khóa RSA.
-  │    ├───log                    # Thư mục lưu trữ các tệp log ghi lại thông tin hoạt động của ứng dụng.
-  │    └───sql                    # Thư mục chứa các tệp SQL, có thể là các tệp để tạo hoặc cập nhật cơ sở dữ liệu.
+  │    ├─── cache                 # Thư mục cho các tệp lưu trữ bộ nhớ đệm (cache).
+  │    ├─── data                  # Thư mục chứa dữ liệu chính của ứng dụng.
+  │    ├─── key                   # Thư mục chứa các tệp khóa, có thể là khóa mã hóa hoặc khóa RSA.
+  │    ├─── log                   # Thư mục lưu trữ các tệp log ghi lại thông tin hoạt động của ứng dụng.
+  │    └─── sql                   # Thư mục chứa các tệp SQL, có thể là các tệp để tạo hoặc cập nhật cơ sở dữ liệu.
   │
   ├─── docs                       # Thư mục chứa tài liệu hướng dẫn sử dụng hoặc tài liệu liên quan đến dự án.
   ├─── resource                   # Thư mục chứa các tài nguyên (resources) như phông chữ và biểu tượng.
-  │    ├───font                   # Thư mục chứa các tệp phông chữ được sử dụng trong ứng dụng.
-  │    └───icon                   # Thư mục chứa các biểu tượng (icon) cho ứng dụng.
+  │    ├─── font                  # Thư mục chứa các tệp phông chữ được sử dụng trong ứng dụng.
+  │    └─── icon                  # Thư mục chứa các biểu tượng (icon) cho ứng dụng.
   │
   ├─── sources                    # Thư mục chứa mã nguồn của ứng dụng.
   │    ├─── application           # Thư mục chứa các tệp liên quan đến ứng dụng, bao gồm các lệnh và cấu hình.
@@ -32,7 +34,7 @@ Dự án này là một ứng dụng mạng bất đồng bộ, cho phép ngư�
 
 ---
 
-#### 1. `AsyncNetworks`
+1. `AsyncNetworks`
 
 - **Mô tả**: Class này quản lý các kết nối mạng và xử lý dữ liệu một cách không đồng bộ.
 - **Phương thức**:
@@ -47,32 +49,32 @@ Dự án này là một ứng dụng mạng bất đồng bộ, cho phép ngư�
 | **Độ nhạy**                           | Độ đồng thời cao, ứng dụng thời gian thực              |
 | **Độ phức tạp**                       | Phức tạp hơn, yêu cầu xử lý các cuộc gọi không đồng bộ |
 
-#### 2. `AlgorithmProcessing`
+2. `AlgorithmProcessing`
 - **Mô tả**: Xử lý dữ liệu từ client và thực hiện các thao tác liên quan đến tài khoản (đăng nhập, đăng ký).
 - **Phương thức**:
   - `handle_data`: Xử lý dữ liệu từ client và trả về kết quả.
   - `close`: Đóng kết nối với cơ sở dữ liệu.
 
-#### 3. `AsyncLogger`
+3. `AsyncLogger`
 - **Mô tả**: Ghi lại thông báo và lỗi một cách bất đồng bộ.
 - **Phương thức**:
   - `notify`: Ghi thông báo.
   - `notify_error`: Ghi lỗi.
 
-#### 4. `Cipher`
+4. `Cipher`
 - **Mô tả**: Cung cấp chức năng mã hóa và giải mã dữ liệu bằng RSA.
 - **Phương thức**:
   - `encrypt`: Mã hóa dữ liệu bằng khóa công khai.
   - `decrypt`: Giải mã dữ liệu bằng khóa riêng.
 
-#### 5. `DatabaseManager`
+5. `DatabaseManager`
 - **Mô tả**: Quản lý các thao tác với cơ sở dữ liệu.
 - **Phương thức**:
   - `insert_account`: Thêm tài khoản mới vào cơ sở dữ liệu.
   - `login`: Xác thực thông tin người dùng.
   - `get_player_coin`: Lấy số dư tiền ảo của người chơi.
 
-#### 6. `Realtime`
+6. `Realtime`
 - **Mô tả**: Cung cấp các phương thức liên quan đến thời gian.
 - **Phương thức**:
   - `formatted_time`: Trả về thời gian hiện tại dưới định dạng `dd/mm/yy HH:MM`.
