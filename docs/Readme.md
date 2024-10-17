@@ -95,7 +95,6 @@ Dự án này là một ứng dụng mạng bất đồng bộ, cho phép ngư�
     
     chmod +x venv.sh
     ./venv.sh
-    ./venv.sh
     
     python main.py
 ```

@@ -1,138 +1,120 @@
-# Copyright (C) PhcNguyen Developers
-# Distributed under the terms of the Modified BSD License.
+# Bản quyền (C) của PhcNguyen Developers
+# Phân phối theo các điều khoản của Giấy phép BSD đã sửa đổi.
 
 import typing
 import asyncio
-import collections
 
 
-
-class AlgorithmProcessing:
+class FireWall:
     """
-    AlgorithmTypes class to define various algorithm-related functionalities.
+    Lớp FireWall dùng để theo dõi và quản lý các địa chỉ IP bị chặn.
 
-    Methods:
-    - generate_id: Generates a unique identifier based on the provided string.
-    - handle_data: Processes incoming data from a client and returns a response.
+    Phương thức:
+    - _save_block_ips: Lưu các IP bị chặn.
+    - _load_block_ips: Tải các IP bị chặn.
+    - track_requests: Theo dõi các yêu cầu từ một địa chỉ IP cụ thể.
+    - auto_unblock_ips: Tự động mở chặn IP sau thời gian nhất định.
+    - close: Đóng firewall.
     """
-
-    async def handle_data(
-        self,
-        client_address: typing.Tuple[str, int],
-        data: dict | bytes
-    ) -> bytes:
-        """Handle incoming data from a client and return a response as bytes."""
-        ...
-
-    async def close(self):
-        ...
-
-    def set_message_callback(
-        self, callback:
-        typing.Callable[[str], None]
-    ):
-        ...
+    def __init__(self): ...
+    async def _save_block_ips(self): ...
+    async def _load_block_ips(self): ...
+    async def track_requests(self, ip_address: str): ...
+    async def auto_unblock_ips(self): ...
+    async def close(self): ...
 
 
-class AsyncNetworks:
-    """
-    NetworksTypes class for managing network connections and data handling.
+class AccountManager:
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
+    async def insert_account(self, username: str, password: str) -> bool: ...
 
-    Attributes:
-    - host: Host address for the network connection.
-    - port: Port number for the network connection.
-    - handle_data: A callable function to process incoming data.
 
-    Methods:
-    - start: Initializes the network and starts accepting connections.
-    - stop: Stops the network server.
-    """
+class PlayerManager:
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
+    async def get_player_info(self, name: str) -> typing.Optional[dict]: ...
+    async def insert_player(self, **kwargs) -> bool: ...
 
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        algorithm: AlgorithmProcessing
-    ):
-        """Initialize network settings and the data handling callback."""
-        self.server_address: typing.Tuple[str, int] = (host, port)
-        self.algorithm: AlgorithmProcessing = algorithm
-        self.message_callback: typing.Optional[typing.Callable[[str], None]] = None
-        self.running: bool = False  # Initialize with False
-        self.client_connections: typing.List[typing.Tuple[asyncio.StreamReader, asyncio.StreamWriter]] = []
 
-        self.block_ips: set = set()  # Set to hold blocked IP addresses
-        self.block_ips_lock = asyncio.Lock()
-        self.ip_requests = collections.defaultdict(list)  # Track requests per IP (IP: [timestamps])
-
-    def set_message_callback(self, callback: typing.Callable[[str], None]):
-        """Set a callback function for message handling."""
-        ...
-
-    def active_client(self):
-        """Return the number of active connections."""
-        ...
-
-    async def auto_unblock_ips(self):
-        """Auto unblock IPs after BLOCK_TIME."""
-        ...
-
-    def start(self):
-        """Start the network server and begin accepting connections."""
-        ...
-
-    def accept_connections(self):
-        """Accept incoming client connections."""
-        ...
-
-    async def handle_client(
-        self,
-        reader: asyncio.StreamReader,
-        writer: asyncio.StreamWriter
-    ):
-        """Handle communication with a connected client."""
-        ...
-
-    def stop(self):
-        """Stop the network server and close all connections."""
-        ...
-
+class TableManager:
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
+    async def create_tables(self) -> bool: ...
 
 
 class DatabaseManager:
     """
-    DBManager class for managing database interactions.
+    Lớp DBManager dùng để quản lý các thao tác với cơ sở dữ liệu.
 
-    Attributes:
-    - db_path: Path to the database file.
+    Thuộc tính:
+    - db_path: Đường dẫn tới tệp cơ sở dữ liệu.
 
-    Methods:
-    - insert_account: Inserts a new account into the database.
-    - login: Validates user credentials against the database.
-    - get_player_coin: Retrieves the coin balance for a specific player.
+    Phương thức:
+    - insert_account: Thêm tài khoản mới vào cơ sở dữ liệu.
+    - login: Xác thực thông tin đăng nhập của người dùng.
+    - get_player_coin: Lấy số dư coin của một người chơi cụ thể.
     """
 
-    def __init__(self, db_path: str) -> None:
-        """Initialize the database manager with the database path."""
-        self.db_path = db_path
-        ...
+    def __init__(self) -> None:
+        self.conn = None
+        self.lock = asyncio.Lock()
+        self.db_path = None
+        self.table_manager: TableManager = TableManager(None)
+        self.player_manager: PlayerManager = PlayerManager(None)
+        self.account_manager: AccountManager = AccountManager(None)
 
-    def set_message_callback(self, callback):
-        """Set a callback function for handling messages."""
-        ...
+    async def start(self): ...
+    async def close(self): ...
 
-    async def close(self):
-        """Close the connection to the database."""
-        ...
 
-    async def insert_account(self, username: str, password: str, ip_address: str) -> bool:
-        """Insert a new user account into the database and return success status."""
-        ...
+class TcpSession:
+    """
+    Lớp TcpSession để quản lý kết nối TCP cho mỗi phiên làm việc.
 
-    async def login(self, username: str, password: str) -> bool:
-        """Validate user credentials against the database."""
-        ...
+    Phương thức:
+    - connect: Thiết lập kết nối TCP giữa client và server.
+    - receive_data: Nhận dữ liệu từ client.
+    - disconnect: Ngắt kết nối từ client.
+    - close: Đóng phiên làm việc.
+    """
+    def __init__(self, server, sql: DatabaseManager): ...
+    async def connect(self, reader, writer): ...
+    async def receive_data(self): ...
+    async def disconnect(self): ...
+    async def close(self): ...
 
-    async def get_player_coin(self, name: str) -> typing.Optional[int]:
-        """Retrieve the coin balance for a specified player."""
+
+class ClientHandler:
+    """
+    Lớp ClientHandler quản lý và xử lý các kết nối client.
+
+    Phương thức:
+    - handle_client: Xử lý kết nối từ một client cụ thể.
+    - close_connection: Đóng kết nối với một phiên client.
+    - close_all_connections: Đóng tất cả các kết nối hiện có.
+    """
+    def __init__(self, firewall: FireWall, sql: DatabaseManager): ...
+    async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter): ...
+    async def close_connection(self, session: TcpSession): ...
+    async def close_all_connections(self): ...
+
+
+class TcpServer:
+    """
+    Lớp TcpServer để quản lý kết nối mạng và xử lý dữ liệu.
+
+    Thuộc tính:
+    - host: Địa chỉ host cho kết nối mạng.
+    - port: Số port cho kết nối mạng.
+    - handle_data: Hàm xử lý dữ liệu đến.
+
+    Phương thức:
+    - start: Khởi tạo mạng và bắt đầu chấp nhận kết nối.
+    - stop: Dừng máy chủ mạng.
+    """
+    def __init__(self, host: str, port: int, sql: DatabaseManager):
+        """Khởi tạo cài đặt mạng và hàm xử lý dữ liệu."""
         ...
+    async def start(self): ...
+    async def stop(self): ...

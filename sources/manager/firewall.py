@@ -5,21 +5,22 @@ import asyncio
 import aiofiles
 import collections
 
+from sources import configs
 from sources.model.realtime import Realtime
-from sources.application.configs import Configs
-from sources.model.logging.serverlogger import AsyncLogger
+from sources.model.logging import AsyncLogger
 
-MAX_REQUESTS = 10  # Maximum allowed requests in 5 seconds
-REQUEST_WINDOW = 5  # Time window in 5 seconds
-BLOCK_TIME = Realtime.timedelta(days=1)  # Time duration for auto-unblocking
 
 
 class FireWall:
+    MAX_REQUESTS = 100  # Maximum allowed requests in 5 seconds
+    REQUEST_WINDOW = 5  # Time window in 5 seconds
+    BLOCK_TIME = Realtime.timedelta(days=1)  # Time duration for auto-unblocking
+
     def __init__(self):
         self.block_ips: set = set()  # Set to hold blocked IP addresses
         self.block_ips_lock = asyncio.Lock()
         self.auto_unblock_event = asyncio.Event()
-        self.block_file = Configs.FILE_PATHS['block.txt']
+        self.block_file = configs.file_paths('block.txt')
         self.ip_requests = collections.defaultdict(list)  # Track requests per IP (IP: [timestamps])
 
         # Load blocked IPs at initialization
@@ -56,14 +57,14 @@ class FireWall:
         # Filter requests within the REQUEST_WINDOW
         self.ip_requests[ip_address] = [
             req_time for req_time in self.ip_requests[ip_address]
-            if (current_time - req_time).total_seconds() < REQUEST_WINDOW
+            if (current_time - req_time).total_seconds() < FireWall.REQUEST_WINDOW
         ]
 
         # Add the current request time to the list
         self.ip_requests[ip_address].append(current_time)
 
         # If more than MAX_REQUESTS are made within REQUEST_WINDOW, block the IP
-        if len(self.ip_requests[ip_address]) > MAX_REQUESTS:
+        if len(self.ip_requests[ip_address]) > FireWall.MAX_REQUESTS:
             self.block_ips.add(ip_address)
             self.ip_requests[ip_address] = [current_time]  # Save the block time for unblock
             await AsyncLogger.notify(f"Blocked IP: {ip_address}")
@@ -88,7 +89,7 @@ class FireWall:
                             continue  # Skip this IP if there's an error
 
                     # Unblock IPs that have been blocked for more than BLOCK_TIME
-                    if (current_time - block_time).total_seconds() > BLOCK_TIME.total_seconds():
+                    if (current_time - block_time).total_seconds() > FireWall.BLOCK_TIME.total_seconds():
                         self.block_ips.remove(ip)
                         await AsyncLogger.notify(f"Unblocked IP: {ip}")
 

@@ -1,6 +1,5 @@
-# Copyright (C) PhcNguyen Developers
-# Distributed under the terms of the Modified BSD License.
 
+import os
 import typing
 import pathlib
 import tkinter as tk
@@ -8,63 +7,13 @@ import customtkinter as ctk
 
 from PIL import Image
 from customtkinter import CTkImage
-
-from sources.application.utils import InternetProtocol, System
+from sources.application.utils import System
 
 BASE_DIR: str = str(pathlib.Path(__file__).resolve().parent.parent.parent)
+DIR_FONT = os.path.join(BASE_DIR, "resource", "font")
+DIR_ICON = os.path.join(BASE_DIR, "resource", "icon")
 
 
-
-class Configs:
-    # DICTORY
-    DIR_DB = System.dirtory(BASE_DIR, 'database')
-    DIR_RES = System.dirtory(BASE_DIR, 'resource')
-
-    # .../database/...
-    DIR_SQL = System.dirtory(DIR_DB, 'sql')
-    DIR_LOG = System.dirtory(DIR_DB, 'log')
-    DIR_KEY = System.dirtory(DIR_DB, 'key')
-    DIR_DATA = System.dirtory(DIR_DB, 'data')
-    DIR_CACHE = System.dirtory(DIR_DB, 'cache')
-
-    # PATH
-    FILE_PATHS: dict = {
-        "error.log": System.dirtory(DIR_LOG, 'error.log'),
-        "server.log": System.dirtory(DIR_LOG, 'server.log'),
-
-        'server.db': System.dirtory(DIR_SQL, 'server.db'),
-        'table.sql': System.dirtory(DIR_SQL, 'table.sql'),
-        'queries.sql': System.dirtory(DIR_SQL, 'queries.sql'),
-
-        'block.txt': System.dirtory(DIR_DATA, 'block.txt'),
-
-        'temp.cache': System.dirtory(DIR_CACHE, 'temp.cache'),
-
-        "public_key.pem": System.dirtory(DIR_KEY, "public_key.pem"),
-        "private_key.pem": System.dirtory(DIR_KEY, "private_key.pem"),
-    }
-
-    # .../resource/...
-    DIR_ICON = System.dirtory(DIR_RES, 'icon')
-    DIR_FONT = System.dirtory(DIR_RES, 'font')
-
-
-    class Network:
-        """
-        Configuration settings for network communication.
-
-        Attributes:
-        - DEBUG (bool): Indicates if debug mode is enabled.
-        - local (str): Local IP address of the machine.
-        - public (str): Public IP address of the machine.
-        - port (int): Port number for network communication (default is 7272).
-
-        """
-        DEBUG: bool = False
-
-        local: str = InternetProtocol.local()  # Retrieve local IP address
-        public: str = InternetProtocol.public()  # Retrieve public IP address
-        port: int = 7272  # Default port number
 
 class UIConfigs:
     """
@@ -85,17 +34,17 @@ class UIConfigs:
     - ram_value (ctk.CTkLabel): Label showing the RAM usage.
     - connections_value (ctk.CTkLabel): Label showing the number of connections.
     """
-    
+
     root = ctk.CTk()
 
     def __init__(self, root: ctk.CTk):
 
         UIConfigs.load_font(
-            font_path=System.dirtory(Configs.DIR_FONT, 'JetBrainsMono-Italic-VariableFont_wght.ttf'),
+            font_path=System.dirtory(DIR_FONT, 'JetBrainsMono-Italic-VariableFont_wght.ttf'),
             font_name='JetBrainsMono-Italic-VariableFont'
         )
         UIConfigs.load_font(
-            font_path=System.dirtory(Configs.DIR_FONT, 'JetBrainsMono-VariableFont_wght.ttf'),
+            font_path=System.dirtory(DIR_FONT, 'JetBrainsMono-VariableFont_wght.ttf'),
             font_name='JetBrainsMono-VariableFont'
         )
 
@@ -109,7 +58,7 @@ class UIConfigs:
         self.root.title("Server Control")
         self.root.geometry("1200x620")
         self.root.resizable(width=False, height=False)
-        self.root.iconbitmap(System.dirtory(Configs.DIR_ICON, '0.ico'))
+        self.root.iconbitmap(System.dirtory(DIR_ICON, '0.ico'))
 
         ctk.set_appearance_mode("dark")  # Đặt chế độ giao diện tối
         ctk.set_default_color_theme("dark-blue")  # Đặt chủ đề màu sắc tối
@@ -133,27 +82,32 @@ class UIConfigs:
         self._setup_buttons()
         self._setup_labels()
 
-    def start_server(self): ...
-    def stop_server(self): ...
-    def clear_logs(self): ...
+    def start_server(self):
+        ...
+
+    def stop_server(self):
+        ...
+
+    def clear_logs(self):
+        ...
 
     @staticmethod
-    def load_font(font_path,font_name) -> None:
+    def load_font(font_path, font_name) -> None:
         # Load the font and return a CTkFont object
         tk.font.Font(family=font_path, name=font_name)
 
     @staticmethod
     def log_to_textbox(
-        textbox: ctk.CTkTextbox, 
-        message: str | int | typing.Any,
-        text_color: str = "white"
+            textbox: ctk.CTkTextbox,
+            message: str | int | typing.Any,
+            text_color: str = "white"
     ):
-        """Append a message to the specified textbox with optional text color.""" 
+        """Append a message to the specified textbox with optional text color."""
         textbox.configure(state='normal')  # Cho phép chỉnh sửa
         textbox.insert('end', message + "\n")  # Chèn thông điệp vào cuối khu vực văn bản
         textbox.tag_add('color_tag', 'end-1c linestart', 'end-1c lineend')  # Đánh dấu dòng cuối cùng để thay đổi màu
         textbox.tag_config('color_tag', foreground=text_color)  # Thiết lập màu sắc cho văn bản
-        
+
         textbox.configure(state='disabled')  # Vô hiệu hóa chỉnh sửa lại
         textbox.yview('end')  # Cuộn xuống cuối khu vực văn bản
 
@@ -213,13 +167,13 @@ class UIConfigs:
     def _setup_buttons(self):
         # Tải ảnh PNG sử dụng Pillow (PIL)
         start_image = ctk.CTkImage(
-            Image.open(System.dirtory(Configs.DIR_ICON, '1.png')), size=(20, 20)
+            Image.open(System.dirtory(DIR_ICON, '1.png')), size=(20, 20)
         )
         stop_image = ctk.CTkImage(
-            Image.open(System.dirtory(Configs.DIR_ICON, '2.png')), size=(20, 20)
+            Image.open(System.dirtory(DIR_ICON, '2.png')), size=(20, 20)
         )
         clear_image = ctk.CTkImage(
-            Image.open(System.dirtory(Configs.DIR_ICON, '3.png')), size=(20, 20)
+            Image.open(System.dirtory(DIR_ICON, '3.png')), size=(20, 20)
         )
         # Nút Start
         self.start_button = ctk.CTkButton(
@@ -313,7 +267,7 @@ class UIConfigs:
         self.local_ip = self.create_label(
             self.info_frame, " Local IP:",
             ('JetBrainsMono-VariableFont', variable_font_size), 0, 0,
-            System.dirtory(Configs.DIR_ICON, '4.png')
+            System.dirtory(DIR_ICON, '4.png')
         )
         self.local_value = self.create_label(
             self.info_frame, "N/A",
@@ -323,7 +277,7 @@ class UIConfigs:
         self.public_ip = self.create_label(
             self.info_frame, " Public IP:",
             ('JetBrainsMono-VariableFont', variable_font_size), 1, 0,
-            System.dirtory(Configs.DIR_ICON, '4.png')
+            System.dirtory(DIR_ICON, '4.png')
         )
         self.public_value = self.create_label(
             self.info_frame, "N/A",
@@ -334,7 +288,7 @@ class UIConfigs:
         self.ping_label = self.create_label(
             self.info_frame, " Ping:",
             ('JetBrainsMono-VariableFont', variable_font_size), 2, 0,
-            System.dirtory(Configs.DIR_ICON, '5.png')
+            System.dirtory(DIR_ICON, '5.png')
         )
         self.ping_value = self.create_label(
             self.info_frame, "N/A",
@@ -346,7 +300,7 @@ class UIConfigs:
         self.cpu_label = self.create_label(
             self.info_frame2, " CPU:",
             ('JetBrainsMono-VariableFont', variable_font_size), 0, 0,
-            System.dirtory(Configs.DIR_ICON, '6.png')
+            System.dirtory(DIR_ICON, '6.png')
         )
         self.cpu_value = self.create_label(
             self.info_frame2, "N/A",
@@ -356,7 +310,7 @@ class UIConfigs:
         self.ram_label = self.create_label(
             self.info_frame2, " RAM:",
             ('JetBrainsMono-VariableFont', variable_font_size), 1, 0,
-            System.dirtory(Configs.DIR_ICON, '7.png')
+            System.dirtory(DIR_ICON, '7.png')
         )
         self.ram_value = self.create_label(
             self.info_frame2, "N/A",
@@ -366,7 +320,7 @@ class UIConfigs:
         self.connections_label = self.create_label(
             self.info_frame2, " Connections:",
             ('JetBrainsMono-VariableFont', variable_font_size), 2, 0,
-            System.dirtory(Configs.DIR_ICON, '8.png')
+            System.dirtory(DIR_ICON, '8.png')
         )
         self.connections_value = self.create_label(
             self.info_frame2, "0",

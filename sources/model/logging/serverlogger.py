@@ -1,12 +1,12 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-from sources.manager.cache import Cache
+from sources.manager.files.filecache import FileCache
 
 
 
 class AsyncLogger:
-    cache = Cache()
+    cache = FileCache()
 
     @staticmethod
     async def notify(message: str | Exception):

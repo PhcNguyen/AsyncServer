@@ -4,7 +4,7 @@
 import os
 import typing
 import aiofiles
-from sources.model.logging.serverlogger import AsyncLogger
+from sources.model.logging import AsyncLogger
 
 
 
