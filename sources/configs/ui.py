@@ -7,7 +7,7 @@ import customtkinter as ctk
 
 from PIL import Image
 from customtkinter import CTkImage
-from sources.application.utils import System
+from sources.model.utils import System
 
 BASE_DIR: str = str(pathlib.Path(__file__).resolve().parent.parent.parent)
 DIR_FONT = os.path.join(BASE_DIR, "resource", "font")
@@ -91,6 +91,9 @@ class UIConfigs:
     def clear_logs(self):
         ...
 
+    def reload_server(self):
+        ...
+
     @staticmethod
     def load_font(font_path, font_name) -> None:
         # Load the font and return a CTkFont object
@@ -110,19 +113,6 @@ class UIConfigs:
 
         textbox.configure(state='disabled')  # Vô hiệu hóa chỉnh sửa lại
         textbox.yview('end')  # Cuộn xuống cuối khu vực văn bản
-
-    @staticmethod
-    def parse_message(message: str | int | typing.Any):
-        """Phân tích thông điệp để xác định loại và nội dung."""
-        if isinstance(message, (str, int)):
-            message = str(message)  # Đảm bảo là chuỗi
-
-        if "Notify:" in message:
-            return "Notify", message.split('Notify:')[-1].strip()
-        elif "Error:" in message:
-            return "Error", message.split('Error:')[-1].strip()
-
-        return None, message  # Nếu không phải Notify hoặc Error
 
     @staticmethod
     def create_label(frame, text, font, row, column, icon_path=None, sticky='w'):
@@ -175,6 +165,10 @@ class UIConfigs:
         clear_image = ctk.CTkImage(
             Image.open(System.dirtory(DIR_ICON, '3.png')), size=(20, 20)
         )
+        reload_image = ctk.CTkImage(
+            Image.open(System.dirtory(DIR_ICON, '9.png')), size=(20, 20)
+        )
+
         # Nút Start
         self.start_button = ctk.CTkButton(
             self.control_frame,
@@ -217,6 +211,20 @@ class UIConfigs:
             font=('JetBrainsMono-VariableFont', 13)
         )
         self.clear_button.pack(side=tk.LEFT, padx=10)
+
+        # Nút Reload
+        self.reload_button = ctk.CTkButton(
+            self.control_frame,
+            text="Reload",
+            command=self.reload_server,
+            fg_color="#FFC107",  # Màu vàng
+            hover_color="#ffca28",  # Màu vàng đậm hơn khi di chuột
+            width=150,
+            height=40,
+            image=reload_image,
+            font=('JetBrainsMono-VariableFont', 13)
+        )
+        self.reload_button.pack(side=tk.LEFT, padx=10)
 
     def _setup_server_tab(self):
         # Khu vực văn bản để hiển thị bản ghi server

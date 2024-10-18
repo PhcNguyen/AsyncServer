@@ -24,13 +24,14 @@ DIR_FONT = os.path.join(DIR_RES, "font")
 def file_paths(file_name: str, dir_type: str = "database") -> str:
     directory = file_name.split(".")[-1].lower()
     base_dir = DIR_DB if dir_type == "database" else DIR_RES
+
     dir_map = {
         "pem": "key", "db": "sql", "txt": "data", "json": "data",
         "yaml": "data", "csv": "data", "log": "logs", "ini": "config",
         "xml": "config", "md": "docs"
     }
 
-    directory = dir_map.get(directory, directory)
+    directory = dir_map.get(base_dir, directory)
 
     if not os.path.exists(os.path.join(base_dir, directory)):
         os.makedirs(os.path.join(base_dir, directory))

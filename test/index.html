@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Socket TCP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #output {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 200px;
+            overflow-y: scroll;
+        }
+        table {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Kiểm Tra Socket TCP</h1>
+    <button id="connectButton">Kết Nối</button>
+    <button id="disconnectButton" disabled>Ngắt Kết Nối</button>
+    <div>
+        <input type="text" id="messageInput" placeholder="Nhập tin nhắn...">
+        <button id="sendButton" disabled>Gửi</button>
+    </div>
+    <div id="output"></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Thời gian</th>
+                <th>Nội dung</th>
+            </tr>
+        </thead>
+        <tbody id="messageTableBody">
+            <!-- Tin nhắn nhận sẽ được thêm vào đây -->
+        </tbody>
+    </table>
+
+    <script>
+        let socket;
+
+        document.getElementById('connectButton').addEventListener('click', function() {
+            // Thay thế 'ws://localhost:8080' bằng địa chỉ WebSocket của bạn
+            socket = new WebSocket('ws://192.168.1.2:7272');
+
+            socket.onopen = function() {
+                document.getElementById('output').innerHTML += '<p>Kết nối thành công!</p>';
+                document.getElementById('connectButton').disabled = true;
+                document.getElementById('disconnectButton').disabled = false;
+                document.getElementById('sendButton').disabled = false;
+            };
+
+            socket.onmessage = function(event) {
+                const currentTime = new Date().toLocaleTimeString();
+                const message = event.data;
+
+                // Hiển thị tin nhắn trong output
+                document.getElementById('output').innerHTML += '<p>Nhận: ' + message + '</p>';
+
+                // Thêm tin nhắn vào bảng
+                const tableBody = document.getElementById('messageTableBody');
+                const newRow = tableBody.insertRow();
+                const timeCell = newRow.insertCell(0);
+                const messageCell = newRow.insertCell(1);
+                timeCell.textContent = currentTime;
+                messageCell.textContent = message;
+            };
+
+            socket.onclose = function() {
+                document.getElementById('output').innerHTML += '<p>Kết nối đã ngắt!</p>';
+                document.getElementById('connectButton').disabled = false;
+                document.getElementById('disconnectButton').disabled = true;
+                document.getElementById('sendButton').disabled = true;
+            };
+        });
+
+        document.getElementById('disconnectButton').addEventListener('click', function() {
+            if (socket) {
+                socket.close();
+            }
+        });
+
+        document.getElementById('sendButton').addEventListener('click', function() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value;
+
+            // Kiểm tra trạng thái kết nối trước khi gửi
+            console.log('Trạng thái kết nối:', socket.readyState);
+
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(message);
+                document.getElementById('output').innerHTML += '<p>Gửi: ' + message + '</p>';
+                messageInput.value = ''; // Xóa ô nhập sau khi gửi
+            } else {
+                alert('Kết nối chưa mở!');
+            }
+        });
+    </script>
+</body>
+</html>

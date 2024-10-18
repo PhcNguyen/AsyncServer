@@ -6,38 +6,19 @@ import datetime
 
 
 class Realtime:
-    @staticmethod
-    def formatted_time() -> str:
-        """Return: 13/10/24 14:30"""
-        now = datetime.datetime.now()
-        return f"{now.day}/{now.month}/{now.year % 100:02d} {now.hour:02d}:{now.minute:02d}"
-    
-    @staticmethod
-    def timedelta(
-        days: float = 0,
-        seconds: float = 0,
-        microseconds: float = 0,
-        milliseconds: float = 0,
-        minutes: float = 0,
-        hours: float = 0,
-        weeks: float = 0
-    ) -> datetime.timedelta:
-        time = datetime.timedelta(
-            days, seconds, microseconds, 
-            milliseconds, minutes, hours, weeks
-        )
-        return time
-    
-    @staticmethod
-    def now(tz=None) -> datetime.datetime:
-        """Construct a datetime from time.time() and optional time zone info."""
-        return datetime.datetime.now(tz)
+    """Class để quản lý các chức năng liên quan đến thời gian."""
 
     @staticmethod
-    def strptime(
-        date_string: str,
-        format: str,
-        /
-    ) -> datetime.datetime:
-        """string, format -> new datetime parsed from a string (like time.strptime())."""
-        return datetime.datetime.strptime(date_string, format)
+    def now_vietnam() -> datetime.datetime:
+        """Lấy thời gian hiện tại theo giờ Việt Nam (UTC+7)."""
+        return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7)))
+
+    @staticmethod
+    def to_vietnam(utc_time: datetime.datetime) -> datetime.datetime:
+        """Chuyển đổi thời gian UTC sang giờ Việt Nam."""
+        return utc_time.astimezone(datetime.timezone(datetime.timedelta(hours=7)))
+
+    @staticmethod
+    def since(last_time: datetime.datetime) -> float:
+        """Tính khoảng thời gian đã trôi qua tính bằng giây."""
+        return (Realtime.now_vietnam() - last_time).total_seconds()

@@ -22,3 +22,6 @@ frozenlist==1.4.1
 multidict==6.1.0 
 propcache==0.2.0 
 yarl==1.15.4
+
+PyJWT==2.9.0
+rsa==4.9

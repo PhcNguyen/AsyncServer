@@ -1,35 +1,29 @@
-# Copyright (C) PhcNguyen Developers
-# Distributed under the terms of the Modified BSD License.
+import asyncio
 
-import socket
-import threading
 
-# Target server details
-TARGET_IP = "192.168.1.2"  # Change to your server IP
-TARGET_PORT = 7272          # Change to your server port
-FAKE_MESSAGE = "GET / HTTP/1.1\r\nHost: {}\r\n\r\n".format(TARGET_IP)
+async def send_requests(ip: str, port: int, message: str, num_requests: int):
+    for _ in range(num_requests):
+        reader, writer = await asyncio.open_connection(ip, port)
 
-# Function to send data in a loop
-def attack():
-    i = 0
-    while True:
         try:
-            # Create a new socket for each connection
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect((TARGET_IP, TARGET_PORT))
-            client_socket.sendall(FAKE_MESSAGE.encode())
-            i += 1
-            print(f"[{i}]ATTACK SUCCECSS")
-            client_socket.close()
+            writer.write(message.encode())
+            await writer.drain()  # Đảm bảo rằng dữ liệu đã được gửi
+            print(f"Sent message: {message}")
         except Exception as e:
-            break
+            print(f"Error sending message: {e}")
+        finally:
+            writer.close()
+            await writer.wait_closed()
 
-# Start multiple threads to simulate multiple clients
-def start_attack(threads=100):
-    for i in range(threads):
-        thread = threading.Thread(target=attack)
-        thread.start()
 
-# Start the DDoS attack with 100 threads
+async def main():
+    ip = '192.168.1.2'  # Địa chỉ IP của server
+    port = 7272  # Cổng của server
+    message = 'Hello, Server!'  # Tin nhắn gửi đến server
+    num_requests = 1000  # Số lượng yêu cầu gửi đến server
+
+    await send_requests(ip, port, message, num_requests)
+
+
 if __name__ == "__main__":
-    start_attack(1)
+    asyncio.run(main())

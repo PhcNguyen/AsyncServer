@@ -3,76 +3,143 @@
 -- --------------------------------------------------------
 -- SELECT
 
-SELECT * FROM account WHERE username = ?;              -- 1
+SELECT * FROM account
+WHERE (id = ? OR email = ?)
+AND (? IS NOT NULL OR ? IS NOT NULL);                  -- 1
 
-SELECT password FROM account WHERE username = ?;       -- 2
+SELECT name FROM sqlite_master WHERE type = 'table';   -- 2
 
-SELECT * FROM player WHERE name = ?;                   -- 3
+SELECT * FROM player WHERE account_id = ?;             -- 3
 
-SELECT coin, account_id FROM player WHERE name = ?;    -- 4
+SELECT * FROM player WHERE account_id = ?;             -- 4
 
 SELECT * FROM history WHERE account_id = ?;            -- 5
 
 SELECT * FROM history_transfer WHERE account_id = ?;   -- 6
 
+;   -- 7
+;   -- 8
+;   -- 9
+;   -- 10
+
+;   -- 11
+;   -- 12
+;   -- 13
+;   -- 14
+;   -- 15
+;   -- 16
+;   -- 17
+;   -- 18
+;   -- 19
+;   -- 20
+
 -- --------------------------------------------------------
 -- INSERT
 
+
 INSERT INTO account (
-    username,password
-) VALUES (?, ?);                                       -- 7
+    username, password
+) VALUES (?, ?);                                       -- 21
 
 INSERT INTO player (
-    name, coin, appellation,
-    last_login_time, last_logout_time
-) VALUES (?, ?, ?, ?, ?);                              -- 8
+    name
+) VALUES (?);                                         -- 22
 
 INSERT INTO history (
-    id, command, timestamp
-) VALUES (?, ?, CURRENT_TIMESTAMP);          -- 9
+    id, command,
+) VALUES (?, ?);                                       -- 23
 
 INSERT INTO history_transfer (
     id, sender_name, receiver_name, amount, message
-) VALUES (?, ?, ?, ?, ?);                             -- 10
+) VALUES (?, ?, ?, ?, ?);                              -- 24
+
+;   -- 25
+;   -- 26
+;   -- 27
+;   -- 28
+;   -- 29
+;   -- 30
+;   -- 31
+;   -- 32
+;   -- 33
+;   -- 34
+;   -- 35
+;   -- 36
+;   -- 37
+;   -- 38
+;   -- 39
+;   -- 40
 
 -- --------------------------------------------------------
 -- UPDATE
 
 UPDATE account
-SET password = ?, update_time = CURRENT_TIMESTAMP
-WHERE username = ?;                                    -- 11
+SET password = ?
+WHERE id = ?;                                          -- 41
 
-UPDATE player
-SET coin = ?, last_login_time = CURRENT_TIMESTAMP
-WHERE name = ?;                                        -- 12
+UPDATE account
+SET is_online = 1, is_login = 1
+WHERE id = ?;                                          -- 42
 
-UPDATE player
-SET last_login_time = CURRENT_TIMESTAMP
-WHERE name = ?;                                        -- 13
+UPDATE account
+SET is_online = 0, is_login = 0
+WHERE id = ?;                                          -- 43
+
+UPDATE account
+SET is_lock = 1
+WHERE id = ? LIMIT 1;                                  -- 44
 
 UPDATE player
 SET coin = coin + ?
-WHERE name = ?;                                        -- 14
+WHERE account_id = ?;                                  -- 45
 
-UPDATE player 
-SET appellation = ? 
-WHERE name = ?;                                        -- 15
+UPDATE player
+SET coin = ?
+WHERE account_id = ?;                                  -- 46
+
+UPDATE player
+SET coin = coin + ?
+WHERE account_id = ?;                                  -- 47
+
+UPDATE player
+SET {fields}
+WHERE account_id = ?;                                  -- 48
+
+UPDATE account
+SET last_login = CURRENT_TIMESTAMP
+WHERE email = ?;                                       -- 49
+;   -- 50
+;   -- 51
+;   -- 52
+;   -- 53
+;   -- 54
+;   -- 55
+;   -- 56
+;   -- 57
+;   -- 58
+;   -- 59
+;   -- 60
 
 -- --------------------------------------------------------
 -- DELETE
 
-DELETE FROM account 
-WHERE id = ?;                                          -- 16
+DELETE FROM account
+WHERE id = ?;                                         -- 61
 
-DELETE FROM player 
-WHERE id = ?;                                          -- 17
+DELETE FROM player
+WHERE id = ?;                                         -- 62
 
-DELETE FROM history 
-WHERE id = ? AND timestamp = ?;                        -- 18
+DELETE FROM history
+WHERE id = ?;                                         -- 63
 
-DELETE FROM history_transfer 
-WHERE id = ? AND timestamp = ?;                        -- 19
+DELETE FROM history_transfer
+WHERE id = ?;                                         -- 64
+
+;   -- 65
+;   -- 66
+;   -- 67
+;   -- 68
+;   -- 69
+;   -- 70
 
 -- --------------------------------------------------------
-
-SELECT name FROM sqlite_master WHERE type = 'table';     -- 20

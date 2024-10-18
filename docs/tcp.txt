@@ -1,0 +1,38 @@
+1. Mã trạng thái TCP cơ bản
+SYN (Synchronize): Được sử dụng để bắt đầu một kết nối TCP. Nó cho biết rằng một máy chủ muốn thiết lập một kết nối với một máy khách.
+
+SYN-ACK (Synchronize-Acknowledge): Phản hồi từ máy chủ cho yêu cầu SYN từ máy khách. Nó cho biết rằng máy chủ đã nhận được yêu cầu kết nối và đồng ý thiết lập kết nối.
+
+ACK (Acknowledge): Xác nhận rằng một gói dữ liệu đã được nhận. Mỗi gói TCP đều có một trường ACK để chỉ ra gói tiếp theo mà máy khách mong đợi nhận.
+
+FIN (Finish): Được sử dụng để đóng một kết nối TCP. Khi một bên gửi gói FIN, nó thông báo rằng nó đã hoàn tất gửi dữ liệu.
+
+RST (Reset): Được sử dụng để thiết lập lại một kết nối TCP. Nó thường được gửi khi có lỗi xảy ra hoặc khi một trong hai bên muốn kết thúc kết nối mà không hoàn thành quá trình đóng.
+
+2. Các trạng thái kết nối TCP
+LISTEN: Trạng thái của một máy chủ đang chờ kết nối đến từ một máy khách.
+
+SYN_SENT: Trạng thái của máy khách khi nó đã gửi một yêu cầu SYN để thiết lập kết nối nhưng chưa nhận được phản hồi.
+
+SYN_RECEIVED: Trạng thái của máy chủ khi nó đã nhận được yêu cầu SYN từ máy khách và đã gửi phản hồi SYN-ACK nhưng chưa nhận được ACK từ máy khách.
+
+ESTABLISHED: Trạng thái khi kết nối TCP đã được thiết lập thành công và có thể truyền dữ liệu.
+
+FIN_WAIT_1: Trạng thái của máy chủ sau khi gửi gói FIN để bắt đầu quá trình đóng kết nối.
+
+FIN_WAIT_2: Trạng thái của máy chủ sau khi đã nhận được gói ACK cho gói FIN đã gửi, đang chờ gói FIN từ máy khách.
+
+CLOSE_WAIT: Trạng thái của máy chủ khi nó đã nhận được gói FIN từ máy khách và đang chờ gói FIN để hoàn tất quá trình đóng kết nối.
+
+LAST_ACK: Trạng thái của máy chủ khi nó đã gửi gói FIN và đang chờ gói ACK từ máy khách.
+
+TIME_WAIT: Trạng thái của máy chủ sau khi gửi gói FIN và đã nhận gói ACK, đang chờ một khoảng thời gian để đảm bảo rằng máy khách nhận được gói FIN.
+
+CLOSED: Trạng thái khi kết nối TCP đã hoàn toàn đóng lại và không còn hoạt động.
+
+3. Các mã trạng thái khác
+CLOSE: Trạng thái kết nối đã bị đóng, không có dữ liệu nào có thể được gửi hoặc nhận.
+
+CONNECTING: Trạng thái khi đang thiết lập kết nối nhưng chưa hoàn thành.
+
+DISCONNECTING: Trạng thái khi đang trong quá trình ngắt kết nối.

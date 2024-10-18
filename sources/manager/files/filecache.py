@@ -19,7 +19,7 @@ class FileCache:
         self._cache = OrderedDict()
         self._timeouts = {}  # Thời gian timeout cho mỗi file
         self._file_mtimes = {}  # Thời gian sửa đổi cuối cùng của các file
-        self.file_path = configs.file_paths("serverlog.cache")  # Đường dẫn đến file cache
+        self.file_path = configs.file_paths("log.cache")  # Đường dẫn đến file cache
         self.lock = asyncio.Lock()  # Khóa bất đồng bộ cho an toàn khi truy cập
 
     def add(self, key, value, timeout=0):
@@ -92,13 +92,17 @@ class FileCache:
         loop = asyncio.get_event_loop()  # Lấy vòng lặp sự kiện
         loop.run_until_complete(self.watch_files(path, interval))  # Chạy hàm theo dõi
 
-    async def read_lines(self) -> typing.List[str]:
+    async def read_lines(self, file_path: None | str = None) -> typing.List[str]:
         """Đọc tất cả các dòng từ file và trả về dưới dạng danh sách."""
+        if file_path:
+            path = configs.file_paths(file_path)
+        else:
+            path = self.file_path
         async with self.lock:  # Đảm bảo truy cập an toàn
-            if not os.path.exists(self.file_path):
+            if not os.path.exists(path):
                 return []  # Trả về danh sách rỗng nếu file không tồn tại
 
-            async with aiofiles.open(self.file_path, 'r+', encoding='utf-8') as file:
+            async with aiofiles.open(path, 'r+', encoding='utf-8') as file:
                 lines = await file.readlines()  # Đọc tất cả các dòng
                 if not lines:
                     return []  # Trả về danh sách rỗng nếu không có dòng nào
@@ -113,14 +117,22 @@ class FileCache:
 
             return lines  # Trả về danh sách các dòng đã đọc
 
-    async def write(self, string: str) -> None:
+    async def write(self, string: str, file_path: None | str = None) -> None:
         """Ghi một dòng vào file."""
+        if file_path:
+            path = configs.file_paths(file_path)
+        else:
+            path = self.file_path
         async with self.lock:  # Đảm bảo truy cập an toàn
             # Thêm dòng mới vào file
-            await iofiles.write_files(self.file_path, (string + '\n'), mode='a')
+            await iofiles.write_files(path, (string + '\n'), mode='a')
 
-    async def clear_file(self) -> None:
+    async def clear_file(self, file_path: None | str = None) -> None:
         """Xóa toàn bộ nội dung từ file cache."""
+        if file_path:
+            path = configs.file_paths(file_path)
+        else:
+            path = self.file_path
         async with self.lock:  # Đảm bảo truy cập an toàn
              # Ghi một chuỗi rỗng để xóa nội dung
-             await iofiles.write_files(self.file_path, content="", mode='a')
+             await iofiles.write_files(path, content="", mode='a')
