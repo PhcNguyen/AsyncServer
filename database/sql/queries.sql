@@ -46,13 +46,10 @@ INSERT INTO player (
 ) VALUES (?);                                         -- 22
 
 INSERT INTO history (
-    id, command,
+    id, action
 ) VALUES (?, ?);                                       -- 23
 
-INSERT INTO history_transfer (
-    id, sender_name, receiver_name, amount, message
-) VALUES (?, ?, ?, ?, ?);                              -- 24
-
+;   -- 24
 ;   -- 25
 ;   -- 26
 ;   -- 27
@@ -78,20 +75,20 @@ SET password = ?
 WHERE id = ?;                                          -- 41
 
 UPDATE account
-SET is_online = 1, is_login = 1
+SET active = 1
 WHERE id = ?;                                          -- 42
 
 UPDATE account
-SET is_online = 0, is_login = 0
+SET active = 0
 WHERE id = ?;                                          -- 43
 
 UPDATE account
-SET is_lock = 1
+SET ban = 1
 WHERE id = ? LIMIT 1;                                  -- 44
 
-UPDATE player
-SET coin = coin + ?
-WHERE account_id = ?;                                  -- 45
+UPDATE account
+SET ban = 0
+WHERE id = ? LIMIT 1;                                  -- 45
 
 UPDATE player
 SET coin = ?
@@ -133,7 +130,7 @@ DELETE FROM history
 WHERE id = ?;                                         -- 63
 
 DELETE FROM history_transfer
-WHERE id = ?;                                         -- 64
+WHERE id = ? LIMIT 1;                                 -- 64
 
 ;   -- 65
 ;   -- 66
@@ -143,3 +140,5 @@ WHERE id = ?;                                         -- 64
 ;   -- 70
 
 -- --------------------------------------------------------
+
+SHOW TABLES; -- 71

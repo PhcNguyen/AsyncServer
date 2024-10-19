@@ -4,35 +4,51 @@
 import asyncio
 from typing import List, Tuple
 
-from sources import configs
-from sources.utils import types
+from sources.utils import types, system
 from sources.utils.logger import AsyncLogger
 from sources.manager.firewall import IPFirewall
 from sources.server.tcpsession import TcpSession
 
 
 
+class TcpServer:
+    """
+        Configuration settings for network communication.
 
-class TcpServer(configs.NetworkConfigs):
+        Attributes:
+        - LOCAL (str): Local IP address of the machine.
+        - PUBLIC (str): Public IP address of the machine.
+        - PORT (int): Port number for network communication (default is 7272).
+
+    """
+    DEBUG: bool = False
+    PORT: int = 7272  # Default port number
+    LOCAL: str = system.InternetProtocol.local()  # Retrieve local IP address
+    PUBLIC: str = system.InternetProtocol.public()  # Retrieve public IP address
     MAX_CONNECTIONS = 1000000  # Giới hạn số lượng kết nối tối đa
 
-    def __init__(self, host: str, port: int, sql: types.DatabaseManager):
+
+    def __init__(self, host: str, port: int, sql: types.SQLite | types.MySQL):
+        self.sql = sql
+
         self.stop_event = asyncio.Event()
         self.firewall = IPFirewall()
         self.server_address: Tuple[str, int] = (host, port)
         self.running: bool = False
-        self.client_handler = ClientHandler(self, self.firewall, sql)
+        self.client_handler = ClientHandler(self, self.firewall, self.sql)
         self.current_connections = 0  # Số lượng kết nối hiện tại
 
     async def start(self):
         """Start the server and listen for incoming connections asynchronously."""
         if self.running:
-            await AsyncLogger.notify("Server is already running.")
+            await AsyncLogger.notify("Server is already running")
             return
 
         try:
             await AsyncLogger.notify(f'Server processing Commands run at {self.server_address}')
             self.running = True
+
+            await self.sql.start()
 
             server = await asyncio.start_server(
                 self.client_handler.handle_client, *self.server_address,
@@ -47,7 +63,7 @@ class TcpServer(configs.NetworkConfigs):
             await AsyncLogger.notify_error(f"OSError: {str(error)} - {self.server_address}")
             await asyncio.sleep(5)  # Retry after 5 seconds
         except Exception as error:
-            await AsyncLogger.notify_error(str(error))
+            await AsyncLogger.notify_error(f"Server: {error}")
 
     async def stop(self):
         """Stop the server asynchronously."""
@@ -55,8 +71,10 @@ class TcpServer(configs.NetworkConfigs):
             return
 
         self.running = False
+
+        await self.sql.close()
         await self.client_handler.close_all_connections()
-        await AsyncLogger.notify('Server stopped.')
+        await AsyncLogger.notify('Máy chủ đã dừng lại')
 
     def increment_connection(self):
         self.current_connections += 1
@@ -70,7 +88,7 @@ class TcpServer(configs.NetworkConfigs):
 
 
 class ClientHandler:
-    def __init__(self, tcp_server: TcpServer, firewall: IPFirewall, sql: types.DatabaseManager):
+    def __init__(self, tcp_server: TcpServer, firewall: IPFirewall, sql: types.SQLite | types.MySQL):
         self.sql = sql
         self.firewall = firewall
         self.tcp_server = tcp_server
@@ -79,14 +97,17 @@ class ClientHandler:
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Handle data from a client asynchronously with timeout."""
         client_address = writer.get_extra_info('peername')
+        ip_address: str = client_address[0]
 
-        if client_address[0] in self.firewall.block_ips:
-            writer.write(self.firewall.remaining_time(client_address[0]))
+        if ip_address in self.firewall.block_ips:
+            writer.write(self.firewall.remaining_time(ip_address))
             await writer.drain()  # Đảm bảo dữ liệu được gửi đi
 
             writer.close()
             await writer.wait_closed()
             return
+
+        await self.firewall.track_requests(ip_address)
 
         # Create TcpSession for the connected client
         session = TcpSession(self.tcp_server, self.sql)

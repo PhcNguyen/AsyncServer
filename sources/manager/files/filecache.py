@@ -9,7 +9,7 @@ import aiofiles
 
 from sources import configs
 from collections import OrderedDict
-from sources.manager.files.iofiles import AsyncFileIO
+
 
 
 class FileCache:
@@ -124,7 +124,8 @@ class FileCache:
             path = self.file_path
         async with self.lock:  # Đảm bảo truy cập an toàn
             # Thêm dòng mới vào file
-            await AsyncFileIO.write_file(path, (string + '\n'), mode='a')
+            async with aiofiles.open(path, mode='a', encoding='utf-8') as file:
+                await file.write((string + '\n'))
 
     async def clear_file(self, file_path: None | str = None) -> None:
         """Xóa toàn bộ nội dung từ file cache."""
@@ -134,4 +135,5 @@ class FileCache:
             path = self.file_path
         async with self.lock:  # Đảm bảo truy cập an toàn
              # Ghi một chuỗi rỗng để xóa nội dung
-             await AsyncFileIO.write_file(path, content="", mode='a')
+             async with aiofiles.open(path, mode='a', encoding='utf-8') as file:
+                 await file.write("")

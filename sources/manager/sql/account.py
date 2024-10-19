@@ -1,12 +1,13 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
+from datetime import datetime
 
 import bcrypt
 import aiosqlite
 
 from sources.utils import types
 from sources.utils.system import Response
-from sources.manager.sqlite.utils import (
+from sources.utils.sqlite import (
     queries_line,
     is_valid_email,
     is_valid_password
@@ -15,13 +16,13 @@ from sources.manager.sqlite.utils import (
 
 
 class AccountManager:
-    def __init__(self, db_manager: types.DatabaseManager):
-        self.db_manager = db_manager
+    def __init__(self, db: types.SQLite | types.MySQL):
+        self.db = db
 
     async def _account_exists(self, email: str) -> bool:
         """Check if an account with the given email exists."""
-        async with self.db_manager.lock:
-            result = await self.db_manager.conn.execute(await queries_line(1), (email,))
+        async with self.db.lock:
+            result = await self.db.conn.execute(await queries_line(1), (email,))
             account_exists = await result.fetchone()
         return account_exists is not None
 
@@ -32,25 +33,25 @@ class AccountManager:
         if not is_valid_password(password):
             return Response.error("Mật khẩu không đủ tiêu chuẩn.")
 
-        async with self.db_manager.lock:
+        async with self.db.lock:
             try:
                 hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-                async with self.db_manager.conn:
+                async with self.db.conn:
                     if await self._account_exists(email):
                         return Response.error("Tài khoản đã tồn tại.")
 
-                    await self.db_manager.conn.execute(await queries_line(21), (email, hashed_password))
-                    await self.db_manager.conn.commit()
+                    await self.db.conn.execute(await queries_line(21), (email, hashed_password))
+                    await self.db.conn.commit()
                 return Response.success("Tạo tài khoản thành công.")
             except aiosqlite.Error:
                 return Response.error("Lỗi khi tạo tài khoản.")
 
     async def login(self, email: str, password: str) -> dict:
         """Login with the given email and password."""
-        async with self.db_manager.lock:
+        async with self.db.lock:
             try:
-                async with self.db_manager.conn:
-                    result = await self.db_manager.conn.execute(await queries_line(1), (email,))
+                async with self.db.conn:
+                    result = await self.db.conn.execute(await queries_line(1), (email,))
                     account = await result.fetchone()
 
                 if account is None:
@@ -70,10 +71,10 @@ class AccountManager:
                     if is_login or is_online:
                         return Response.error("Người dùng đã đăng nhập từ trước.")
 
-                    async with self.db_manager.conn:
+                    async with self.db.conn:
                         # Cập nhật trạng thái trực tuyến và đăng nhập
-                        await self.db_manager.conn.execute(await queries_line(42), (user_id,))
-                        await self.db_manager.conn.commit()
+                        await self.db.conn.execute(await queries_line(42), (user_id,))
+                        await self.db.conn.commit()
 
                     return Response.success("Người dùng đã đăng nhập thành công.", id=user_id, role=role)
                 else:
@@ -82,8 +83,8 @@ class AccountManager:
                 return Response.error(f"Lỗi khi đăng nhập cho '{email}': {error}")
 
     async def info(self, email):
-        async with self.db_manager.conn:
-            result = await self.db_manager.conn.execute(await queries_line(1), (email,))
+        async with self.db.conn:
+            result = await self.db.conn.execute(await queries_line(1), (email,))
             account = await result.fetchone()
 
         account_info = {
@@ -105,10 +106,10 @@ class AccountManager:
         if not is_valid_password(new_password):
             return Response.error("Mật khẩu mới không đủ tiêu chuẩn.")
 
-        async with self.db_manager.lock:
+        async with self.db.lock:
             try:
-                async with self.db_manager.conn:
-                    result = await self.db_manager.conn.execute(await queries_line(1), (user_id,))
+                async with self.db.conn:
+                    result = await self.db.conn.execute(await queries_line(1), (user_id,))
                     account = await result.fetchone()
 
                     if account is None:
@@ -121,48 +122,54 @@ class AccountManager:
 
                     hashed_new_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
 
-                    await self.db_manager.conn.execute(
+                    await self.db.conn.execute(
                         await queries_line(41), (hashed_new_password, user_id)
                     )
-                    await self.db_manager.conn.commit()
+                    await self.db.conn.commit()
 
                     return Response.success("Mật khẩu đã được thay đổi thành công.")
             except aiosqlite.Error as error:
                 return Response.error(f"Lỗi khi thay đổi mật khẩu: {error}")
 
     async def lock(self, user_id: int) -> dict:
-        async with self.db_manager.lock:
+        async with self.db.lock:
             try:
-                async with self.db_manager.conn:
-                    await self.db_manager.conn.execute(await queries_line(44), (user_id,))
-                    await self.db_manager.conn.commit()
+                async with self.db.conn:
+                    await self.db.conn.execute(await queries_line(44), (user_id,))
+                    await self.db.conn.commit()
 
                     return Response.success("Tài khoản đã bị khóa thành công.")
             except Exception as error:
                 return Response.error(f"Lỗi khi khóa tài khoản: {str(error)}")
 
     async def delete(self, user_id: int) -> dict:
-        async with self.db_manager.lock:
+        async with self.db.lock:
             try:
-                async with self.db_manager.conn:
-                    await self.db_manager.conn.execute(await queries_line(51), (user_id,))
-                    await self.db_manager.conn.commit()
+                async with self.db.conn:
+                    await self.db.conn.execute(await queries_line(51), (user_id,))
+                    await self.db.conn.commit()
                     return Response.success("Tài khoản đã được xóa thành công.")
             except Exception as error:
                 return Response.error(f"Lỗi khi xóa tài khoản: {str(error)}")
 
     async def logout(self, user_id: int) -> dict:
         """Logout the user and update their status."""
-        async with self.db_manager.lock:
+        async with self.db.lock:
             try:
-                async with self.db_manager.conn:
-                    await self.db_manager.conn.execute(await queries_line(43), (user_id,))
-                    await self.db_manager.conn.commit()
+                async with self.db.conn:
+                    await self.db.conn.execute(await queries_line(43), (user_id,))
+                    await self.db.conn.commit()
 
                 return Response.success("Người dùng đã đăng xuất thành công.")
             except Exception as error:
                 return Response.error(f"Lỗi khi đăng xuất: {str(error)}")
 
-    async def update_last_login(self, email):
-        async with self.db_manager.conn:
-            await self.db_manager.conn.execute(await queries_line(43), (email,))
+    async def update_last_login(self, email = None, user_id: int = None) -> bool:
+        if user_id is not None: data = user_id
+        elif email is not None: data = email
+        else: return False
+
+        async with self.db.conn:
+            await self.db.conn.execute(await queries_line(43), (data,))
+            await self.db.conn.commit()
+            return True

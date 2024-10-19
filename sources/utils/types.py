@@ -51,7 +51,7 @@ class TableManager:
     async def create_tables(self) -> bool: ...
 
 
-class DatabaseManager:
+class SQLite:
     """
     Lớp DBManager dùng để quản lý các thao tác với cơ sở dữ liệu.
 
@@ -68,6 +68,32 @@ class DatabaseManager:
         self.conn = None
         self.lock = asyncio.Lock()
         self.db_path = None
+        self.db_type = None
+        self.table: TableManager = TableManager(None)
+        self.player: PlayerManager = PlayerManager(None)
+        self.account: AccountManager = AccountManager(None)
+
+    async def start(self): ...
+    async def close(self): ...
+
+class MySQL:
+    """
+    Lớp DBManager dùng để quản lý các thao tác với cơ sở dữ liệu.
+
+    Thuộc tính:
+    - db_path: Đường dẫn tới tệp cơ sở dữ liệu.
+
+    Phương thức:
+    - insert_account: Thêm tài khoản mới vào cơ sở dữ liệu.
+    - login: Xác thực thông tin đăng nhập của người dùng.
+    - get_player_coin: Lấy số dư coin của một người chơi cụ thể.
+    """
+
+    def __init__(self) -> None:
+        self.conn = None
+        self.lock = asyncio.Lock()
+        self.db_path = None
+        self.db_type = None
         self.table: TableManager = TableManager(None)
         self.player: PlayerManager = PlayerManager(None)
         self.account: AccountManager = AccountManager(None)
@@ -86,7 +112,7 @@ class TcpSession:
     - disconnect: Ngắt kết nối từ client.
     - close: Đóng phiên làm việc.
     """
-    def __init__(self, server, sql: DatabaseManager): ...
+    def __init__(self, server, sql: SQLite | MySQL): ...
     async def connect(self, reader, writer): ...
     async def receive_data(self): ...
     async def disconnect(self): ...
@@ -102,7 +128,7 @@ class ClientHandler:
     - close_connection: Đóng kết nối với một phiên client.
     - close_all_connections: Đóng tất cả các kết nối hiện có.
     """
-    def __init__(self, firewall: FireWall, sql: DatabaseManager): ...
+    def __init__(self, firewall: FireWall, sql: SQLite | MySQL): ...
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter): ...
     async def close_connection(self, session: TcpSession): ...
     async def close_all_connections(self): ...
@@ -121,7 +147,7 @@ class TcpServer:
     - start: Khởi tạo mạng và bắt đầu chấp nhận kết nối.
     - stop: Dừng máy chủ mạng.
     """
-    def __init__(self, host: str, port: int, sql: DatabaseManager):
+    def __init__(self, host: str, port: int, sql: SQLite | MySQL):
         """Khởi tạo cài đặt mạng và hàm xử lý dữ liệu."""
         ...
     async def start(self): ...

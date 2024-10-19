@@ -56,26 +56,31 @@ class IPFirewall:
         except Exception as e:
             await AsyncLogger.notify_error(f"Error loading blocked IPs: {e}")
 
+
     async def track_requests(self, ip_address: str):
-        """Track the number of requests from an IP and block if necessary."""
+        """Track the number of requests from an IP and log if necessary."""
         current_time = datetime.datetime.now()  # Lấy thời gian hiện tại
 
-        # Filter requests within the REQUEST_WINDOW
+        # Khởi tạo danh sách nếu IP chưa có trong `ip_requests`
+        if ip_address not in self.ip_requests:
+            self.ip_requests[ip_address] = []
+
+        # Lọc các yêu cầu trong REQUEST_WINDOW
         self.ip_requests[ip_address] = [
             req_time for req_time in self.ip_requests[ip_address]
             if (current_time - req_time).total_seconds() < IPFirewall.REQUEST_WINDOW
         ]
 
-        # Add the current request time to the list
+        # Thêm thời gian yêu cầu hiện tại vào danh sách
         self.ip_requests[ip_address].append(current_time)
 
-        # If more than MAX_REQUESTS are made within REQUEST_WINDOW, block the IP
+        # Nếu quá nhiều yêu cầu trong REQUEST_WINDOW, chỉ log và không chặn ngay
         if len(self.ip_requests[ip_address]) > IPFirewall.MAX_REQUESTS:
-            self.block_ips.add(ip_address)
-            self.ip_requests[ip_address] = [current_time]  # Save the block time for unblock
-            await AsyncLogger.notify(f"Blocked IP: {ip_address}")
+            # Thay vì chặn ngay, ghi log hoặc gửi cảnh báo
+            await AsyncLogger.notify(f"Warning: {ip_address} has exceeded request limits.")
+            self.ip_requests[ip_address] = [current_time]  # Lưu thời gian quá tải
 
-            await self._save_block_ips()  # Ensure it saves immediately
+            await self._save_block_ips()  # Lưu lại trạng thái
 
     async def auto_unblock_ips(self):
         """Automatically unblock IPs after the BLOCK_TIME has passed."""

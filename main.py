@@ -2,7 +2,7 @@
 # Distributed under the terms of the Modified BSD License.
 
 import sys
-from sources.manager.sqlite import DatabaseManager
+from sources.manager.sql import DatabaseManager
 from sources.server.tcpserver import TcpServer
 
 # Initialize DatabaseManager and TcpServer

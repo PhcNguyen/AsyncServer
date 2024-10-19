@@ -4,7 +4,7 @@
 import re
 
 from sources import configs
-from sources.manager.files.iofiles import AsyncFileIO
+from sources.manager.files.iofiles import FileIO
 from sources.utils.logger import AsyncLogger
 
 
@@ -12,7 +12,7 @@ from sources.utils.logger import AsyncLogger
 async def queries_line(line_number: int) -> str:
     """Read specific line from queries file."""
     try:
-        content = await AsyncFileIO.read_file(configs.file_paths('queries.sql'), mode='r')
+        content = await FileIO.read_file(configs.file_paths('queries.sql'), mode='r')
         valid_lines = [line.strip() for line in content.split(';') if line.strip()]
 
         if valid_lines and 1 <= line_number <= len(valid_lines):

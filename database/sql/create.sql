@@ -1,6 +1,6 @@
--- Python version 3.12.5
 
 -- Cơ sở dữ liệu: `server`
+
 -- --------------------------------------------------------
 
 -- Cấu trúc bảng cho bảng `account`
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS account (
 
 -- Cấu trúc bảng cho bảng `player`
 CREATE TABLE IF NOT EXISTS player (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,           -- Khóa chính, tự động tăng
+    id INTEGER PRIMARY KEY AUTOINCREMENT,            -- Khóa chính, tự động tăng
     account_id INTEGER NOT NULL,                     -- Khóa ngoại để liên kết với bảng account
     name TEXT NOT NULL UNIQUE,                       -- Tên nhân vật, duy nhất cho mỗi người chơi
     coin INTEGER DEFAULT 0,                          -- Số lượng tiền tệ của nhân vật
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS player (
     crit INTEGER NOT NULL DEFAULT 0,                 -- Tỷ lệ chí mạng của nhân vật
     power INTEGER NOT NULL DEFAULT 100,              -- Sức mạnh của nhân vật
     exp INTEGER NOT NULL DEFAULT 0,                  -- Điểm kinh nghiệm của nhân vật
-    position TEXT NOT NULL DEFAULT '0,0,0',         -- ID và tọa độ (id,x,y)
+    position TEXT NOT NULL DEFAULT '0,0,0',          -- ID và tọa độ (id,x,y)
     item_body TEXT NOT NULL DEFAULT '[]',            -- Danh sách đồ trang bị
     item_bag TEXT NOT NULL DEFAULT '[]',             -- Danh sách đồ trong túi
     item_box TEXT NOT NULL DEFAULT '[]',             -- Danh sách đồ trong hộp
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS item (
 CREATE TABLE IF NOT EXISTS itemsell (
     id INTEGER PRIMARY KEY AUTOINCREMENT,           -- Khóa chính, tự động tăng
     item TEXT NOT NULL,                             -- Tên vật phẩm được bán
-    type INTEGER NOT NULL                           -- Loại hình thanh toán
+    type INTEGER NOT NULL,                          -- Loại hình thanh toán
     coin INTEGER NOT NULL,                          -- Số tiền xu cần để mua vật phẩm
     gem INTEGER NOT NULL,                           -- Số gem cần để mua vật phẩm
 
@@ -160,42 +160,3 @@ CREATE TABLE IF NOT EXISTS history (
 );
 
 -- --------------------------------------------------------
-
--- 
--- Đang đổ dữ liệu cho bảng `account`
---
-
-INSERT INTO `account` (`username`, `password`, `is_lock`, `role`, `is_online`, `create_time`, `update_time`) VALUES
-('admin', '1', 0, 1, 0, '2022-02-19 10:44:33', '0000-00-00 00:00:00'),
-('nguyen', '1', 0, 1, 0,  '2022-02-19 10:46:22', '1979-12-31 11:01:01');
-
--- --------------------------------------------------------
-
--- 
--- Đang đổ dữ liệu cho bảng `player`
---
-
-INSERT INTO `player` (`account_id`, `name`, `coin`, `character`, `last_login_time`, `last_logout_time`) VALUES
-(1, 'admin', 1000, 0, '2024-10-12 08:00:00', '2024-10-12 18:53:52'),
-(2, 'nguyen', 1200,0 , '2024-10-12 09:00:00', '2024-10-12 18:53:52');
-
--- --------------------------------------------------------
-
--- 
--- Đang đổ dữ liệu vào bảng `history`
---
-
-INSERT INTO `history` (`account_id`, `command`, `timestamp`) VALUES
-(1, 'login', '2024-10-12 08:00:00'),  -- Người dùng 1 đăng nhập
-(1, 'logout', '2024-10-12 18:00:00'), -- Người dùng 1 đăng xuất
-(2, 'login', '2024-10-12 09:00:00'),  -- Người dùng 2 đăng nhập
-(2, 'logout', '2024-10-12 18:30:00'); -- Người dùng 2 đăng xuất
-
-INSERT INTO history (account_id, sender_name, receiver_name, amount, message) VALUES
-(1, 'admin', 'nguyen', 500, 'Transfer for game purchase'),
-(2, 'nguyen', 'admin', 300, 'Thanks for the gift!'),
-(1, 'admin', 'nguyen', 200, 'Transfer for lunch'),
-(2, 'nguyen', 'admin', 150, 'Payment for the bet');
-
--- --------------------------------------------------------
-COMMIT;

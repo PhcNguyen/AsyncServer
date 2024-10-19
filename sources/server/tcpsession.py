@@ -13,7 +13,7 @@ from sources.handlers.client.command import CommandHandler
 
 
 class TcpSession:
-    def __init__(self, server: types.TcpServer, sql: types.DatabaseManager):
+    def __init__(self, server: types.TcpServer, sql: types.SQLite | types.MySQL):
         self.sqlite = sql
         self.server = server
         self.client_ip = None
@@ -42,14 +42,14 @@ class TcpSession:
                     await self.data_handler.send(response)
                 else:
                     # Nếu không nhận được dữ liệu, coi như kết nối đã bị ngắt
-                    await AsyncLogger.notify("No data received, disconnecting...")
+
                     await self.disconnect()  # Ngắt kết nối
                     break  # Thoát khỏi vòng lặp
             except asyncio.CancelledError:
-                await AsyncLogger.notify("Receive task was cancelled.")  # Log khi task bị hủy
+                await AsyncLogger.notify("Nhận nhiệm vụ đã bị hủy")  # Log khi task bị hủy
                 break  # Dừng vòng lặp nếu task bị hủy
             except Exception as e:
-                await AsyncLogger.notify_error(f"Error during receive_data: {e}")  # Log lỗi khi có ngoại lệ
+                await AsyncLogger.notify_error(f"Lỗi trong quá trình receive_data: {e}")  # Log lỗi khi có ngoại lệ
                 error_message = {
                     "status": False,
                     "message": f"Error during receive: {str(e)}"

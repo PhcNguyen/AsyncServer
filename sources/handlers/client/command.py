@@ -2,7 +2,7 @@
 # Distributed under the terms of the Modified BSD License.
 
 from sources.utils import types
-from sources.utils.time import TimeUtil
+from sources.utils.realtime import TimeUtil
 from sources.utils.system import Response
 from sources.handlers.client.cmd import Cmd
 from sources.manager.security import JwtManager
@@ -10,8 +10,8 @@ from sources.manager.security import JwtManager
 
 
 class CommandHandler:
-    def __init__(self, sqlite: types.DatabaseManager):
-        self.sqlite = sqlite
+    def __init__(self, sql: types.SQLite | types.MySQL):
+        self.sqlite = sql
 
         # Ánh xạ các lệnh đến các phương thức xử lý tương ứng
         self.command_list = [

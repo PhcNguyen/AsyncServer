@@ -15,6 +15,7 @@ from sources.manager.files.filecache import FileCache
 from sources.utils.system import InternetProtocol, System
 
 
+
 class Graphics(UIConfigs):
     def __init__(self, root: ctk.CTk, server: types.TcpServer, second_server: typing.Optional[types.TcpServer] = None):
         super().__init__(root)  # Gọi khởi tạo của lớp cha
@@ -39,10 +40,6 @@ class Graphics(UIConfigs):
         threading.Thread(target=self.loop.run_forever, daemon=True).start()
 
     async def _start_server(self):
-        if self.srv1_running or self.srv2_running:
-            self.log_to_textbox(self.server_log, "Server is already running.")
-            return
-
         try:
             self.start_button.configure(state='disabled')
 
@@ -66,15 +63,11 @@ class Graphics(UIConfigs):
             self.stop_button.configure(state='normal')
 
         except Exception as e:
-            self.log_to_textbox(self.error_log, f"Error starting server: {e}")
+            self.log_to_textbox(self.error_log, f"Lỗi khởi động máy chủ: {e}")
             self.start_button.configure(state='normal')
             self.stop_button.configure(state='disabled')
 
     async def _stop_server(self):
-        if not self.srv1_running and not self.srv2_running :
-            self.log_to_textbox(self.server_log, "Server is not running.")
-            return
-
         try:
             self.stop_button.configure(state='disabled')
 
@@ -87,7 +80,7 @@ class Graphics(UIConfigs):
                 self.srv2_running = False        # Đánh dấu server2 đã dừng
 
         except Exception as e:
-            self.log_to_textbox(self.error_log, f"Error while stopping the server: {e}")
+            self.log_to_textbox(self.error_log, f"Lỗi khi dừng máy chủ: {e}")
         finally:
             await self.update_server_infor()
             self.start_button.configure(state='normal')
@@ -112,7 +105,7 @@ class Graphics(UIConfigs):
 
     async def _update_log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
         while True:
-            if not self.srv1_running  and not self.srv2_running :
+            if not self.srv1_running and not self.srv2_running:
                 break
 
             await self._log(cache_file, log_target, is_error_log)
@@ -134,7 +127,7 @@ class Graphics(UIConfigs):
         """Cập nhật trạng thái CPU, RAM, Ping và số lượng kết nối định kỳ."""
         while True:
             # Kiểm tra xem server có còn hoạt động hay không
-            if not self.srv1_running  and not self.srv2_running :
+            if not self.srv1_running and not self.srv2_running :
                 self.ping_value.configure(text="N/A")
                 self.cpu_value.configure(text="0.0 %")
                 self.ram_value.configure(text="0 MB")
@@ -157,7 +150,7 @@ class Graphics(UIConfigs):
 
     def start_server(self):
         if self.srv1_running  or self.srv2_running :
-            self.log_to_textbox(self.server_log, "Server is already running.")
+            self.log_to_textbox(self.server_log, "Máy chủ đang hoạt động")
             return
 
         """Bắt đầu server với coroutine."""
@@ -165,13 +158,13 @@ class Graphics(UIConfigs):
 
     def stop_server(self) -> None:
         if not self.srv1_running  and not self.srv2_running :
-            self.log_to_textbox(self.server_log, "Server is not running.")
+            self.log_to_textbox(self.server_log, "Máy chủ không hoạt động")
             return
 
         try:
             asyncio.run_coroutine_threadsafe(self._stop_server(), self.loop)
         except Exception as e:
-            self.log_to_textbox(self.error_log, f"Error while trying to stop the server: {e}")
+            self.log_to_textbox(self.error_log, f"Lỗi khi cố gắng dừng máy chủ: {e}")
 
     def clear_logs(self):
         """Xóa nội dung của tất cả các khu vực văn bản."""
@@ -194,13 +187,13 @@ class Graphics(UIConfigs):
         if self.srv1_running  or self.srv2_running :
             try:
                 # Chạy coroutine stop_server và chờ nó hoàn thành
-                self.loop.run_until_complete(self.stop_server())
+                self.stop_server()
             except Exception as e:
-                print(f"Error stopping server: {e}")
+                print(f"Lỗi dừng máy chủ: {e}")
 
         # Dừng vòng lặp asyncio một cách an toàn
         if self.loop.is_running():
-            self.loop.call_soon_threadsafe(self.loop.stop)
+            self.loop.stop()
 
         self.root.destroy()  # Đóng cửa sổ giao diện
         self.root.quit()

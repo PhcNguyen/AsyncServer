@@ -4,37 +4,38 @@
 import aiosqlite
 
 from sources.utils import types
-from sources.manager.sqlite.utils import queries_line
+from sources.utils.system import Response
+from sources.utils.sqlite import queries_line
 from sources.utils.logger import AsyncLogger
 
 
 
 class PlayerManager:
-    def __init__(self, db_manager: types.DatabaseManager):
-        self.db_manager = db_manager
+    def __init__(self, db: types.SQLite | types.MySQL):
+        self.db = db
 
     async def dump_data(self, **kwargs) -> bool:
         """Insert a new player into the player table using keyword arguments."""
-        async with self.db_manager.lock:
+        async with self.db.lock:
             try:
-                async with self.db_manager.conn:
-                    await self.db_manager.conn.execute(await queries_line(22), (kwargs['name'],))
-                    await self.db_manager.conn.commit()
+                async with self.db.conn:
+                    await self.db.conn.execute(await queries_line(22), (kwargs['name'],))
+                    await self.db.conn.commit()
                 return True
             except aiosqlite.Error as error:
-                await AsyncLogger.notify_error(error)
+                await AsyncLogger.notify_error(f"SQLITE: {error}")
                 return False
 
     async def get(self, user_id: int) -> dict:
         """Retrieve all information of a specific player."""
-        async with self.db_manager.lock:
+        async with self.db.lock:
             try:
-                async with self.db_manager.conn:
-                    result = await self.db_manager.conn.execute(await queries_line(3), (user_id,))
+                async with self.db.conn:
+                    result = await self.db.conn.execute(await queries_line(3), (user_id,))
                     player = await result.fetchone()
 
                 if player:
-                    return utils.Response.success(
+                    return Response.success(
                         message="Thông tin người chơi đã được lấy thành công",
                         id=player[0],
                         name=player[1],
@@ -51,16 +52,16 @@ class PlayerManager:
                         description=player[12]
                     )
 
-                return utils.Response.error(f"Người chơi với ID '{user_id}' không tồn tại.")
+                return Response.error(f"Người chơi với ID '{user_id}' không tồn tại.")
             except aiosqlite.Error as error:
-                await AsyncLogger.notify_error(error)
-                return utils.Response.error(f"Lỗi khi lấy thông tin người chơi với ID '{user_id}': {error}")
+                await AsyncLogger.notify_error(f"SQLITE: {error}")
+                return Response.error(f"Lỗi khi lấy thông tin người chơi với ID '{user_id}': {error}")
 
     async def update(self, user_id: int, **kwargs) -> dict:
         """Cập nhật thông tin của người chơi với ID đã cho."""
-        async with self.db_manager.lock:
+        async with self.db.lock:
             try:
-                async with self.db_manager.conn:
+                async with self.db.conn:
                     # Tạo danh sách các trường cần cập nhật và giá trị của chúng
                     fields = []
                     values = []
@@ -76,10 +77,10 @@ class PlayerManager:
                     query: str = await queries_line(3)
                     query.replace('{fields}', ', '.join(fields))
 
-                    await self.db_manager.conn.execute(query, values)
-                    await self.db_manager.conn.commit()
+                    await self.db.conn.execute(query, values)
+                    await self.db.conn.commit()
 
-                return utils.Response.success("Thông tin người chơi đã được cập nhật thành công.")
+                return Response.success("Thông tin người chơi đã được cập nhật thành công.")
             except aiosqlite.Error as error:
-                await AsyncLogger.notify_error(error)
-                return utils.Response.error(f"Lỗi khi cập nhật thông tin người chơi với ID '{user_id}': {error}")
+                await AsyncLogger.notify_error(f"SQLITE: {error}")
+                return Response.error(f"Lỗi khi cập nhật thông tin người chơi với ID '{user_id}': {error}")
