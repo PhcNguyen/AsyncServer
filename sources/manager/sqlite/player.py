@@ -3,9 +3,9 @@
 
 import aiosqlite
 
-from sources.model import types, utils
+from sources.utils import types
 from sources.manager.sqlite.utils import queries_line
-from sources.model.logging import AsyncLogger
+from sources.utils.logger import AsyncLogger
 
 
 

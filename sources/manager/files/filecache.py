@@ -9,8 +9,7 @@ import aiofiles
 
 from sources import configs
 from collections import OrderedDict
-from sources.manager.files import iofiles
-
+from sources.manager.files.iofiles import AsyncFileIO
 
 
 class FileCache:
@@ -92,7 +91,7 @@ class FileCache:
         loop = asyncio.get_event_loop()  # Lấy vòng lặp sự kiện
         loop.run_until_complete(self.watch_files(path, interval))  # Chạy hàm theo dõi
 
-    async def read_lines(self, file_path: None | str = None) -> typing.List[str]:
+    async def readlines(self, file_path: None | str = None) -> typing.List[str]:
         """Đọc tất cả các dòng từ file và trả về dưới dạng danh sách."""
         if file_path:
             path = configs.file_paths(file_path)
@@ -125,7 +124,7 @@ class FileCache:
             path = self.file_path
         async with self.lock:  # Đảm bảo truy cập an toàn
             # Thêm dòng mới vào file
-            await iofiles.write_files(path, (string + '\n'), mode='a')
+            await AsyncFileIO.write_file(path, (string + '\n'), mode='a')
 
     async def clear_file(self, file_path: None | str = None) -> None:
         """Xóa toàn bộ nội dung từ file cache."""
@@ -135,4 +134,4 @@ class FileCache:
             path = self.file_path
         async with self.lock:  # Đảm bảo truy cập an toàn
              # Ghi một chuỗi rỗng để xóa nội dung
-             await iofiles.write_files(path, content="", mode='a')
+             await AsyncFileIO.write_file(path, content="", mode='a')

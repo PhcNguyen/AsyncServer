@@ -4,11 +4,11 @@
 import uuid
 import asyncio
 
-from sources.model import types
-from sources.handler.data import DataHandler
-from sources.model.logging import AsyncLogger
+from sources.utils import types
+from sources.handlers.client.data import DataHandler
+from sources.utils.logger import AsyncLogger
 from sources.manager.firewall import RateLimiter
-from sources.handler.command import CommandHandler
+from sources.handlers.client.command import CommandHandler
 
 
 

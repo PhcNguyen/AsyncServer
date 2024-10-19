@@ -4,9 +4,9 @@
 import aiosqlite
 
 from sources import configs
-from sources.model import types
-from sources.manager.files import iofiles
-from sources.model.logging import AsyncLogger
+from sources.utils import types
+from sources.manager.files.iofiles import AsyncFileIO
+from sources.utils.logger import AsyncLogger
 from sources.manager.sqlite.utils import queries_line
 
 
@@ -25,7 +25,7 @@ class TableManager:
             for table in required_tables:
                 if table not in existing_tables or await self._is_table_empty(table):
                     await AsyncLogger.notify(f"Creating missing table: {table}.")
-                    sql_commands = await iofiles.read_files(configs.file_paths('table.sql'))
+                    sql_commands = await AsyncFileIO.read_file(configs.file_paths('table.sql'))
                     if sql_commands:
                         await self._execute_sql_commands(sql_commands)
                         return True

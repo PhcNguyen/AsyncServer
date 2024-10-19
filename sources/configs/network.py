@@ -1,5 +1,5 @@
 
-from sources.model.utils import InternetProtocol
+from sources.utils.system import InternetProtocol
 
 
 

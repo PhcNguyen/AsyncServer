@@ -7,7 +7,7 @@ import customtkinter as ctk
 
 from PIL import Image
 from customtkinter import CTkImage
-from sources.model.utils import System
+from sources.utils.system import System
 
 BASE_DIR: str = str(pathlib.Path(__file__).resolve().parent.parent.parent)
 DIR_FONT = os.path.join(BASE_DIR, "resource", "font")
@@ -55,10 +55,10 @@ class UIConfigs:
 
         self.log_format = "[ {:05d} | {:<12} ]> {}"
 
-        self.root.title("Server Control")
-        self.root.geometry("1200x620")
+        self.root.title("Server Management")
+        self.root.geometry("1180x620")
         self.root.resizable(width=False, height=False)
-        self.root.iconbitmap(System.dirtory(DIR_ICON, '0.ico'))
+        self.root.iconbitmap(System.dirtory(DIR_ICON, 'graphics',  '0.ico'))
 
         ctk.set_appearance_mode("dark")  # Đặt chế độ giao diện tối
         ctk.set_default_color_theme("dark-blue")  # Đặt chủ đề màu sắc tối
@@ -157,16 +157,16 @@ class UIConfigs:
     def _setup_buttons(self):
         # Tải ảnh PNG sử dụng Pillow (PIL)
         start_image = ctk.CTkImage(
-            Image.open(System.dirtory(DIR_ICON, '1.png')), size=(20, 20)
+            Image.open(System.dirtory(DIR_ICON, 'graphics', '1.png')), size=(20, 20)
         )
         stop_image = ctk.CTkImage(
-            Image.open(System.dirtory(DIR_ICON, '2.png')), size=(20, 20)
+            Image.open(System.dirtory(DIR_ICON, 'graphics', '2.png')), size=(20, 20)
         )
         clear_image = ctk.CTkImage(
-            Image.open(System.dirtory(DIR_ICON, '3.png')), size=(20, 20)
+            Image.open(System.dirtory(DIR_ICON, 'graphics', '3.png')), size=(20, 20)
         )
         reload_image = ctk.CTkImage(
-            Image.open(System.dirtory(DIR_ICON, '9.png')), size=(20, 20)
+            Image.open(System.dirtory(DIR_ICON, 'graphics', '9.png')), size=(20, 20)
         )
 
         # Nút Start
@@ -275,7 +275,7 @@ class UIConfigs:
         self.local_ip = self.create_label(
             self.info_frame, " Local IP:",
             ('JetBrainsMono-VariableFont', variable_font_size), 0, 0,
-            System.dirtory(DIR_ICON, '4.png')
+            System.dirtory(DIR_ICON, 'graphics', '4.png')
         )
         self.local_value = self.create_label(
             self.info_frame, "N/A",
@@ -285,7 +285,7 @@ class UIConfigs:
         self.public_ip = self.create_label(
             self.info_frame, " Public IP:",
             ('JetBrainsMono-VariableFont', variable_font_size), 1, 0,
-            System.dirtory(DIR_ICON, '4.png')
+            System.dirtory(DIR_ICON, 'graphics', '4.png')
         )
         self.public_value = self.create_label(
             self.info_frame, "N/A",
@@ -296,7 +296,7 @@ class UIConfigs:
         self.ping_label = self.create_label(
             self.info_frame, " Ping:",
             ('JetBrainsMono-VariableFont', variable_font_size), 2, 0,
-            System.dirtory(DIR_ICON, '5.png')
+            System.dirtory(DIR_ICON, 'graphics', '5.png')
         )
         self.ping_value = self.create_label(
             self.info_frame, "N/A",
@@ -308,7 +308,7 @@ class UIConfigs:
         self.cpu_label = self.create_label(
             self.info_frame2, " CPU:",
             ('JetBrainsMono-VariableFont', variable_font_size), 0, 0,
-            System.dirtory(DIR_ICON, '6.png')
+            System.dirtory(DIR_ICON, 'graphics', '6.png')
         )
         self.cpu_value = self.create_label(
             self.info_frame2, "N/A",
@@ -318,7 +318,7 @@ class UIConfigs:
         self.ram_label = self.create_label(
             self.info_frame2, " RAM:",
             ('JetBrainsMono-VariableFont', variable_font_size), 1, 0,
-            System.dirtory(DIR_ICON, '7.png')
+            System.dirtory(DIR_ICON, 'graphics', '7.png')
         )
         self.ram_value = self.create_label(
             self.info_frame2, "N/A",
@@ -328,7 +328,7 @@ class UIConfigs:
         self.connections_label = self.create_label(
             self.info_frame2, " Connections:",
             ('JetBrainsMono-VariableFont', variable_font_size), 2, 0,
-            System.dirtory(DIR_ICON, '8.png')
+            System.dirtory(DIR_ICON, 'graphics', '8.png')
         )
         self.connections_value = self.create_label(
             self.info_frame2, "0",

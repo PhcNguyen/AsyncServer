@@ -5,8 +5,8 @@ import asyncio
 from typing import List, Tuple
 
 from sources import configs
-from sources.model import types
-from sources.model.logging import AsyncLogger
+from sources.utils import types
+from sources.utils.logger import AsyncLogger
 from sources.manager.firewall import IPFirewall
 from sources.server.tcpsession import TcpSession
 

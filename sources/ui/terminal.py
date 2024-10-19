@@ -6,9 +6,9 @@ import typing
 import asyncio
 import threading
 
-from sources.model import types
+from sources.utils import types
 from sources.manager.files.filecache import FileCache
-from sources.model.utils import InternetProtocol, System, Colors
+from sources.utils.system import InternetProtocol, System, Colors
 
 
 

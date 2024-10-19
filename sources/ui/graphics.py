@@ -9,10 +9,10 @@ import threading
 import customtkinter as ctk
 import tkinter.messagebox as messagebox
 
-from sources.model import types
+from sources.utils import types
 from sources.configs import UIConfigs
 from sources.manager.files.filecache import FileCache
-from sources.model.utils import InternetProtocol, System
+from sources.utils.system import InternetProtocol, System
 
 
 class Graphics(UIConfigs):
@@ -93,7 +93,7 @@ class Graphics(UIConfigs):
             self.start_button.configure(state='normal')
 
     async def _log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
-        lines = await self.cache.read_lines(cache_file)
+        lines = await self.cache.readlines(cache_file)
         if lines:
             for message in lines:
                 if is_error_log:

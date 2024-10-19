@@ -4,7 +4,7 @@
 import json
 import asyncio
 
-from sources.model.logging import AsyncLogger
+from sources.utils.logger import AsyncLogger
 
 
 

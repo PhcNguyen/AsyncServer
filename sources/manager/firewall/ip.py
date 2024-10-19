@@ -8,7 +8,7 @@ import aiofiles
 import collections
 
 from sources import configs
-from sources.model.logging import AsyncLogger
+from sources.utils.logger import AsyncLogger
 
 
 
