@@ -25,7 +25,7 @@ class TableManager:
     async def create_tables(self) -> bool:
         """Create necessary tables in the sqlite if they don't exist or are empty."""
         async with self.db.lock:
-            await AsyncLogger.notify("Kiểm tra các bảng hiện có trong sqlite")
+            await AsyncLogger.notify(f"Kiểm tra các bảng hiện có trong {self.db.type}")
             existing_tables = await self._fetch_existing_tables()
 
             tables_to_create = []
@@ -55,14 +55,7 @@ class TableManager:
     async def _is_table_empty(self, table: str) -> bool:
         """Kiểm tra xem bảng có trống hay không."""
         try:
-            if self.db.type == 'sqlite':  # Kiểm tra nếu là SQLite
-                sql_query = await queries_line(2)  # SQLite query
-            elif self.db.type == 'mysql':  # Nếu là MySQL
-                sql_query = await queries_line(71)  # MySQL query
-            else:
-                raise ValueError("Loại cơ sở dữ liệu không được hỗ trợ")
-
-            async with self.db.conn.execute(sql_query) as cursor:
+            async with self.db.conn.execute(queries_line(2)) as cursor:
                 row = await cursor.fetchone()
                 return row[0] == 0  # Trả về True nếu bảng trống
         except (aiosqlite.Error, aiomysql.Error) as e:

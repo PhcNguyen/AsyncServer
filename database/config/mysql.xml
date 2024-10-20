@@ -3,8 +3,8 @@
     <connection>
         <host>localhost</host>
         <port>3306</port>
-        <user>admin</user>
-        <password>123</password>
+        <user>root</user>
+        <password>0937127172</password>
         <db>server</db>
     </connection>
 </database_config>

@@ -17,17 +17,15 @@ from sources.utils.system import InternetProtocol, System
 
 
 class Graphics(UIConfigs):
-    def __init__(self, root: ctk.CTk, server: types.TcpServer, second_server: typing.Optional[types.TcpServer] = None):
+    def __init__(self, root: ctk.CTk, server: types.TcpServer, subserver: typing.Optional[types.TcpServer] = None):
         super().__init__(root)  # Gọi khởi tạo của lớp cha
 
         self.current_log = None  # Biến để theo dõi khu vực văn bản hiện tại
         self.cache: FileCache = FileCache()
         self.server: typing.Optional[types.TcpServer] = server                # Máy chủ đầu tiên
-        self.second_server: typing.Optional[types.TcpServer | None] = second_server  # Máy chủ thứ hai
-
+        self.subserver: typing.Optional[types.TcpServer | None] = subserver  # Máy chủ thứ hai
+        self.running: list = [False, False]
         # Biến để theo dõi trạng thái của server
-        self.srv1_running  = False
-        self.srv2_running  = False
 
         # Đăng ký sự kiện đóng cửa sổ
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -52,13 +50,13 @@ class Graphics(UIConfigs):
 
             # Chạy máy chủ chính
             if self.server:
-                self.srv1_running = True  # Đánh dấu server1 đang chạy
-                asyncio.create_task(self.server.start())  # Khởi động server chính
+                asyncio.create_task(self.server.start())  
+                self.running[0] = True  
 
             # Chạy máy chủ thứ hai nếu có
-            if self.second_server:
-                self.srv2_running = True  # Đánh dấu server2 đang chạy
-                asyncio.create_task(self.second_server.start())  # Khởi động server thứ hai
+            if self.subserver:
+                asyncio.create_task(self.subserver.start())  
+                self.running[-1] = True  
 
             self.stop_button.configure(state='normal')
 
@@ -71,13 +69,13 @@ class Graphics(UIConfigs):
         try:
             self.stop_button.configure(state='disabled')
 
-            if self.srv1_running:
+            if self.running[0]:
                 await self.server.stop()         # Chạy lệnh dừng server chính
-                self.srv1_running = False        # Đánh dấu server1 đã dừng
+                self.running[0] = False        # Đánh dấu server1 đã dừng
 
-            if self.srv2_running:
-                await self.second_server.stop()  # Dừng máy chủ thứ hai nếu có
-                self.srv2_running = False        # Đánh dấu server2 đã dừng
+            if self.running[-1]:
+                await self.subserver.stop()  # Dừng máy chủ thứ hai nếu có
+                self.running[-1] = False        # Đánh dấu server2 đã dừng
 
         except Exception as e:
             self.log_to_textbox(self.error_log, f"Lỗi khi dừng máy chủ: {e}")
@@ -105,7 +103,7 @@ class Graphics(UIConfigs):
 
     async def _update_log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
         while True:
-            if not self.srv1_running and not self.srv2_running:
+            if not self.running[0]:
                 break
 
             await self._log(cache_file, log_target, is_error_log)
@@ -127,7 +125,7 @@ class Graphics(UIConfigs):
         """Cập nhật trạng thái CPU, RAM, Ping và số lượng kết nối định kỳ."""
         while True:
             # Kiểm tra xem server có còn hoạt động hay không
-            if not self.srv1_running and not self.srv2_running :
+            if not self.running[0]:
                 self.ping_value.configure(text="N/A")
                 self.cpu_value.configure(text="0.0 %")
                 self.ram_value.configure(text="0 MB")
@@ -149,7 +147,7 @@ class Graphics(UIConfigs):
         await self._update_log("log-error.cache", self.error_log, is_error_log=True)
 
     def start_server(self):
-        if self.srv1_running  or self.srv2_running :
+        if self.running[0]:
             self.log_to_textbox(self.server_log, "Máy chủ đang hoạt động")
             return
 
@@ -157,7 +155,7 @@ class Graphics(UIConfigs):
         asyncio.run_coroutine_threadsafe(self._start_server(), self.loop)
 
     def stop_server(self) -> None:
-        if not self.srv1_running  and not self.srv2_running :
+        if not self.running[0]:
             self.log_to_textbox(self.server_log, "Máy chủ không hoạt động")
             return
 
@@ -176,7 +174,7 @@ class Graphics(UIConfigs):
         confirm = messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn tải lại server không?")
 
         if confirm:
-            if self.srv1_running  or self.srv2_running :
+            if self.running[0]:
                 self.stop_server()  # Dừng server nếu đang chạy
                 self.root.quit()
 
@@ -184,7 +182,7 @@ class Graphics(UIConfigs):
 
     def on_closing(self):
         """Xử lý khi người dùng nhấn nút X để đóng cửa sổ."""
-        if self.srv1_running  or self.srv2_running :
+        if self.running[0]:
             try:
                 # Chạy coroutine stop_server và chờ nó hoàn thành
                 self.stop_server()

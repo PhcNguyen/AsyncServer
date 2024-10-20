@@ -1,6 +1,5 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
-from datetime import datetime
 
 import bcrypt
 import aiosqlite

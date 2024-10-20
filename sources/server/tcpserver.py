@@ -68,11 +68,12 @@ class TcpServer:
     async def stop(self):
         """Stop the server asynchronously."""
         if not self.running:
+            await AsyncLogger.notify("The server has stopped")
             return
 
         self.running = False
 
-        await self.sql.close()
+        asyncio.create_task(self.sql.close())
         await self.client_handler.close_all_connections()
         await AsyncLogger.notify('Máy chủ đã dừng lại')
 

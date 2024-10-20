@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS itemsell (
 -- --------------------------------------------------------
 
 -- Cấu trúc bảng cho bảng `event`
-CREATE TABLE IF NOT EXISTS event (
+CREATE TABLE IF NOT EXISTS task (
     id INTEGER PRIMARY KEY AUTOINCREMENT,            -- Khóa chính, tự động tăng
     title TEXT NOT NULL,                             -- Tiêu đề sự kiện
     description TEXT NOT NULL,                       -- Mô tả sự kiện

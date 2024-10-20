@@ -17,7 +17,6 @@ class MySQL:
         self.type = 'mysql'
         self.config = configs.load_database("mysql.xml")
 
-        self.table = TableManager(self)
         self.player = PlayerManager(self)
         self.account = AccountManager(self)
 
@@ -26,9 +25,13 @@ class MySQL:
         if self.conn is None:
             try:
                 self.conn = await aiomysql.connect(**self.config)
-                await self.table.create_tables()
+                await AsyncLogger.notify(
+                    f"Connection MySQL established at ('{self.config['host']}', {self.config['port']})")
             except aiomysql.Error as e:
                 await AsyncLogger.notify_error(f"Lỗi kết nối đến cơ sở dữ liệu: {e}")
+                self.conn = None  # Đảm bảo rằng self.conn là None khi kết nối không thành công
+        else:
+            await AsyncLogger.notify("Kết nối MySQL đã được thiết lập.")
 
     async def close(self):
         """Close the MySQL connection."""
@@ -36,3 +39,5 @@ class MySQL:
             await self.conn.close()
             await AsyncLogger.notify("Kết nối đã được đóng.")
             self.conn = None
+        else:
+            await AsyncLogger.notify("Kết nối MySQL đã được đóng trước đó hoặc chưa được thiết lập.")
