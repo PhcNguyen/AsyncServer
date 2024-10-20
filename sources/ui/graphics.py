@@ -4,7 +4,6 @@
 
 import typing
 import asyncio
-import datetime
 import threading
 import customtkinter as ctk
 import tkinter.messagebox as messagebox
@@ -22,9 +21,9 @@ class Graphics(UIConfigs):
 
         self.current_log = None  # Biến để theo dõi khu vực văn bản hiện tại
         self.cache: FileCache = FileCache()
-        self.server: typing.Optional[types.TcpServer] = server                # Máy chủ đầu tiên
+        self.server: types.TcpServer = server                # Máy chủ đầu tiên
         self.subserver: typing.Optional[types.TcpServer | None] = subserver  # Máy chủ thứ hai
-        self.running: list = [False, False]
+        self.running: list = [False, False, True]
         # Biến để theo dõi trạng thái của server
 
         # Đăng ký sự kiện đóng cửa sổ
@@ -41,24 +40,26 @@ class Graphics(UIConfigs):
         try:
             self.start_button.configure(state='disabled')
 
-            await self.update_server_infor()
-
             # Tạo các tác vụ tự động cập nhật thông tin
             asyncio.create_task(self.auto_log_error())
             asyncio.create_task(self.auto_log_server())
-            asyncio.create_task(self.auto_updater_infor())
+            asyncio.create_task(self.auto_updater_info())
+            asyncio.create_task(self.update_server_info())
 
-            # Chạy máy chủ chính
-            if self.server:
-                asyncio.create_task(self.server.start())  
-                self.running[0] = True  
+            if not self.server.running:
+                asyncio.create_task(self.server.start())
 
-            # Chạy máy chủ thứ hai nếu có
             if self.subserver:
                 asyncio.create_task(self.subserver.start())  
-                self.running[-1] = True  
+                self.running[1] = True
 
-            self.stop_button.configure(state='normal')
+            await asyncio.sleep(2.5)
+
+            if self.server.running:
+                self.stop_button.configure(state='normal')
+            else:
+                self.start_button.configure(state='normal')
+                self.stop_button.configure(state='disabled')
 
         except Exception as e:
             self.log_to_textbox(self.error_log, f"Lỗi khởi động máy chủ: {e}")
@@ -69,41 +70,31 @@ class Graphics(UIConfigs):
         try:
             self.stop_button.configure(state='disabled')
 
-            if self.running[0]:
+            if self.server.running:
                 await self.server.stop()         # Chạy lệnh dừng server chính
-                self.running[0] = False        # Đánh dấu server1 đã dừng
 
-            if self.running[-1]:
+            if self.running[1]:
                 await self.subserver.stop()  # Dừng máy chủ thứ hai nếu có
-                self.running[-1] = False        # Đánh dấu server2 đã dừng
+                self.running[1] = False        # Đánh dấu server2 đã dừng
 
         except Exception as e:
             self.log_to_textbox(self.error_log, f"Lỗi khi dừng máy chủ: {e}")
         finally:
-            await self.update_server_infor()
+            await self.update_server_info()
             self.start_button.configure(state='normal')
 
     async def _log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
+        """Ghi log ra giao diện."""
         lines = await self.cache.readlines(cache_file)
         if lines:
             for message in lines:
-                if is_error_log:
-                    self.error_line += 1
-                    target_line = self.error_line
-                else:
-                    self.server_line += 1
-                    target_line = self.server_line
-
-                self.log_to_textbox(log_target, self.log_format.format(
-                    target_line,
-                    datetime.datetime.now().strftime("%d/%m %H:%M:%S"),
-                    message
-                ))
+                line_number = self.get_line_number(is_error_log)
+                self.log_to_textbox(log_target, self.format_log_message(line_number, message))
                 self.root.update()
 
     async def _update_log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
         while True:
-            if not self.running[0]:
+            if not self.running[2]:
                 break
 
             await self._log(cache_file, log_target, is_error_log)
@@ -112,20 +103,20 @@ class Graphics(UIConfigs):
         await self._log(cache_file, log_target, is_error_log)
         await self.cache.clear_file(cache_file)
 
-    async def update_server_infor(self):
+    async def update_server_info(self):
         """Cập nhật thông tin server trong giao diện."""
-        if self.server:
+        if self.server.running:
             self.local_value.configure(text=InternetProtocol.local())
             self.public_value.configure(text=InternetProtocol.public())
         else:
             self.local_value.configure(text="N/A")
             self.public_value.configure(text="N/A")
 
-    async def auto_updater_infor(self):
+    async def auto_updater_info(self):
         """Cập nhật trạng thái CPU, RAM, Ping và số lượng kết nối định kỳ."""
         while True:
             # Kiểm tra xem server có còn hoạt động hay không
-            if not self.running[0]:
+            if not self.server.running:
                 self.ping_value.configure(text="N/A")
                 self.cpu_value.configure(text="0.0 %")
                 self.ram_value.configure(text="0 MB")
@@ -147,18 +138,10 @@ class Graphics(UIConfigs):
         await self._update_log("log-error.cache", self.error_log, is_error_log=True)
 
     def start_server(self):
-        if self.running[0]:
-            self.log_to_textbox(self.server_log, "Máy chủ đang hoạt động")
-            return
-
         """Bắt đầu server với coroutine."""
         asyncio.run_coroutine_threadsafe(self._start_server(), self.loop)
 
     def stop_server(self) -> None:
-        if not self.running[0]:
-            self.log_to_textbox(self.server_log, "Máy chủ không hoạt động")
-            return
-
         try:
             asyncio.run_coroutine_threadsafe(self._stop_server(), self.loop)
         except Exception as e:
@@ -174,7 +157,7 @@ class Graphics(UIConfigs):
         confirm = messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn tải lại server không?")
 
         if confirm:
-            if self.running[0]:
+            if self.server.running:
                 self.stop_server()  # Dừng server nếu đang chạy
                 self.root.quit()
 
@@ -182,12 +165,9 @@ class Graphics(UIConfigs):
 
     def on_closing(self):
         """Xử lý khi người dùng nhấn nút X để đóng cửa sổ."""
-        if self.running[0]:
-            try:
-                # Chạy coroutine stop_server và chờ nó hoàn thành
-                self.stop_server()
-            except Exception as e:
-                print(f"Lỗi dừng máy chủ: {e}")
+        if self.server.running:
+            self.stop_server()
+            self.running[2] = False
 
         # Dừng vòng lặp asyncio một cách an toàn
         if self.loop.is_running():
@@ -196,7 +176,10 @@ class Graphics(UIConfigs):
         self.root.destroy()  # Đóng cửa sổ giao diện
         self.root.quit()
 
-        del self
+        del self.server
+        del self.subserver
+        del self.loop
+        del self.cache
 
         # Dọn sạch và thoát chương trình
         System.exit()

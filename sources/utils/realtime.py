@@ -204,3 +204,7 @@ class TimeUtil:
         :return: Thời gian đã định dạng dưới dạng chuỗi
         """
         return datetime.fromtimestamp(timestamp / 1000).strftime(date_format)
+
+    @staticmethod
+    def now():
+        return datetime.now().strftime("%d/%m %H:%M:%S")

@@ -44,11 +44,16 @@ class TcpServer:
             await AsyncLogger.notify("Server is already running")
             return
 
-        try:
-            await AsyncLogger.notify(f'Server processing Commands run at {self.server_address}')
-            self.running = True
+        if not await self.sql.start():
+            self.running = False
+            await AsyncLogger.notify("SQL error occurred")
+            return
 
-            await self.sql.start()
+        await asyncio.sleep(2)
+
+        try:
+            self.running = True
+            await AsyncLogger.notify(f'Server processing Commands run at {self.server_address}')
 
             server = await asyncio.start_server(
                 self.client_handler.handle_client, *self.server_address,
@@ -60,9 +65,11 @@ class TcpServer:
             async with server:
                 await server.serve_forever()
         except OSError as error:
+            self.running = False
             await AsyncLogger.notify_error(f"OSError: {str(error)} - {self.server_address}")
             await asyncio.sleep(5)  # Retry after 5 seconds
         except Exception as error:
+            self.running = False
             await AsyncLogger.notify_error(f"Server: {error}")
 
     async def stop(self):
@@ -73,9 +80,9 @@ class TcpServer:
 
         self.running = False
 
-        asyncio.create_task(self.sql.close())
+        await self.sql.close()
         await self.client_handler.close_all_connections()
-        await AsyncLogger.notify('Máy chủ đã dừng lại')
+        await AsyncLogger.notify('The server has stopped')
 
     def increment_connection(self):
         self.current_connections += 1

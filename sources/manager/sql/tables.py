@@ -25,7 +25,7 @@ class TableManager:
     async def create_tables(self) -> bool:
         """Create necessary tables in the sqlite if they don't exist or are empty."""
         async with self.db.lock:
-            await AsyncLogger.notify(f"Kiểm tra các bảng hiện có trong {self.db.type}")
+            await AsyncLogger.notify(f"SQL: Kiểm tra các bảng hiện có trong {self.db.type}")
             existing_tables = await self._fetch_existing_tables()
 
             tables_to_create = []
@@ -34,13 +34,13 @@ class TableManager:
                     tables_to_create.append(table)
 
             if tables_to_create:
-                await AsyncLogger.notify(f"Tạo bảng bị thiếu: {', '.join(tables_to_create)}.")
+                await AsyncLogger.notify(f"SQL: Tạo bảng bị thiếu: {', '.join(tables_to_create)}")
                 sql_commands = await FileIO.read_file(configs.file_paths('create.sql'))
                 if sql_commands:
                     await self._execute_sql_commands(sql_commands)
                     return True
 
-            await AsyncLogger.notify("Tất cả các bảng bắt buộc đã tồn tại")
+            await AsyncLogger.notify("SQL: Tất cả các bảng bắt buộc đã tồn tại")
             return True
 
     async def _fetch_existing_tables(self) -> set:
@@ -49,17 +49,17 @@ class TableManager:
             async with self.db.conn.execute(await queries_line(2)) as cursor:
                 return {row[0] for row in await cursor.fetchall()}
         except aiosqlite.Error as e:
-            await AsyncLogger.notify_error(f"Lỗi tìm nạp bảng hiện có: {e}")
+            await AsyncLogger.notify_error(f"SQL: Lỗi tìm nạp bảng hiện có: {e}")
             return set()  # Return empty set in case of error
 
     async def _is_table_empty(self, table: str) -> bool:
         """Kiểm tra xem bảng có trống hay không."""
         try:
-            async with self.db.conn.execute(queries_line(2)) as cursor:
+            async with self.db.conn.execute(await queries_line(2)) as cursor:
                 row = await cursor.fetchone()
                 return row[0] == 0  # Trả về True nếu bảng trống
         except (aiosqlite.Error, aiomysql.Error) as e:
-            await AsyncLogger.notify_error(f"Lỗi kiểm tra xem bảng {table} có trống rỗng: {e}")
+            await AsyncLogger.notify_error(f"SQL: Lỗi kiểm tra xem bảng {table} có trống rỗng: {e}")
             return True  # Giả định bảng trống nếu có lỗi
 
     async def _execute_sql_commands(self, sql_commands: str):
@@ -68,14 +68,14 @@ class TableManager:
         try:
             await self.db.conn.executescript(sql_commands)
             await self.db.conn.commit()
-            await AsyncLogger.notify("Bảng được tạo thành công")
+            await AsyncLogger.notify("SQL: Bảng được tạo thành công")
         except aiosqlite.Error as e:
-            await AsyncLogger.notify_error(f"Lỗi khi tạo bảng: {e}")
+            await AsyncLogger.notify_error(f"SQL: Lỗi khi tạo bảng: {e}")
 
     async def list_tables(self):
         try:
-            cursor = await self.db.conn.execute(queries_line(2))
+            cursor = await self.db.conn.execute(await queries_line(2))
             tables = await cursor.fetchall()
-            await AsyncLogger.notify(f"Các bảng hiện có: {tables}")
+            await AsyncLogger.notify(f"SQL: Các bảng hiện có: {tables}")
         except aiosqlite.Error as e:
-            await AsyncLogger.notify_error(f"Lỗi khi liệt kê các bảng: {e}")
+            await AsyncLogger.notify_error(f"SQL: Lỗi khi liệt kê các bảng: {e}")

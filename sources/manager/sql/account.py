@@ -60,14 +60,14 @@ class AccountManager:
                 stored_password = account[1]
                 ban = account[2] == 1
                 role = account[3]
-                is_online = account[4] == 1
-                is_login = account[5] == 1
+                active = account[4] == 1
+                last_login = account[5]
 
                 if ban:
                     return Response.error("Tài khoản đã bị khóa.")
 
                 if bcrypt.checkpw(password.encode('utf-8'), stored_password):
-                    if is_login or is_online:
+                    if active:
                         return Response.error("Người dùng đã đăng nhập từ trước.")
 
                     async with self.db.conn:
@@ -87,15 +87,13 @@ class AccountManager:
             account = await result.fetchone()
 
         account_info = {
-            "user_id": account[0],
-            "stored_password": account[1],
-            "is_lock": account[2] == 1,
-            "role": account[3],
-            "is_online": account[4] == 1,
-            "ban": account[5] == 1,
-            "last_login": account[6],
-            "create_time": account[7],
-            "updated_last": account[8]
+            "id": account[0],
+            "email": account[1],
+            "password": account[2],
+            "ban": account[3] == 1,
+            "role": account[4],
+            "active": account[5] == 1,
+            "last_login": account[6]
         }
 
         return account_info

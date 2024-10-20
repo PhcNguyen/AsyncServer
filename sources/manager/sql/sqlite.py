@@ -18,23 +18,40 @@ class SQLite:
         self.lock = asyncio.Lock()
         self.type = 'sqlite'
         self.config = configs.file_paths('server.db')
+        self.create_table = False
 
+        # Initialize managers
         self.table = TableManager(self)
         self.player = PlayerManager(self)
         self.account = AccountManager(self)
 
-    async def start(self):
-        """Start the sqlite manager and initialize the sqlite connection."""
-        try:
-            if self.conn is None:
+    async def start(self) -> bool:
+        """Start the SQLite manager and initialize the connection."""
+        if self.conn is None:
+            try:
                 self.conn = await aiosqlite.connect(self.config)
-                await self.table.create_tables()
-        except Exception as e:
-            await AsyncLogger.notify_error(f"Lỗi kết nối đến cơ sở dữ liệu: {e}")
 
-    async def close(self):
-        """Close the sqlite connection."""
+                # Create tables if not created
+                if not self.create_table:
+                    if await self.table.create_tables():
+                        self.create_table = True
+                        return True
+                    return False
+
+                return True
+            except aiosqlite.Error as e:
+                self.conn = None
+                await AsyncLogger.notify_error(f"SQL: Error connecting to the database: {e}")
+                return False
+        else:
+            await AsyncLogger.notify("SQL: Connection already established.")
+            return True
+
+    async def close(self) -> None:
+        """Close the SQLite connection."""
         if self.conn:
             await self.conn.close()
-            await AsyncLogger.notify("Kết nối đã được đóng.")
+            await AsyncLogger.notify("SQL: Connection closed.")
             self.conn = None
+        else:
+            await AsyncLogger.notify("SQL: Connection already closed or not established.")

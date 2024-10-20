@@ -5,7 +5,7 @@
 
 -- Cấu trúc bảng cho bảng `account`
 CREATE TABLE IF NOT EXISTS account (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,           -- Khóa chính, tự động tăng
+    id INTEGER PRIMARY KEY AUTOINCREMENT,            -- Khóa chính, tự động tăng
     email TEXT NOT NULL UNIQUE,                      -- Địa chỉ email, duy nhất cho từng tài khoản
     password TEXT NOT NULL,                          -- Mật khẩu của tài khoản
     ban SMALLINT(1) DEFAULT 0,                       -- Trạng thái khóa tài khoản (0 cho không khóa, 1 cho khóa)

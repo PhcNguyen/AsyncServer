@@ -8,6 +8,7 @@ import customtkinter as ctk
 from PIL import Image
 from customtkinter import CTkImage
 from sources.utils.system import System
+from sources.utils.realtime import TimeUtil
 
 BASE_DIR: str = str(pathlib.Path(__file__).resolve().parent.parent.parent)
 DIR_FONT = os.path.join(BASE_DIR, "resource", "font")
@@ -129,6 +130,23 @@ class UIConfigs:
         label.image = image  # Giữ tham chiếu đến hình ảnh
         return label
 
+    def get_line_number(self, is_error_log: bool):
+        """Lấy số dòng hiện tại cho log."""
+        if is_error_log:
+            self.error_line += 1
+            return self.error_line
+        else:
+            self.server_line += 1
+            return self.server_line
+
+    def format_log_message(self, line_number: int, message: str):
+        """Định dạng thông báo log."""
+        return self.log_format.format(
+            line_number,
+            TimeUtil.now(),
+            message
+        )
+
     def _clear_textbox(self, textbox: ctk.CTkTextbox):
         """Xóa nội dung của khu vực văn bản với hiệu ứng xóa nhanh dần."""
         self.server_line = 0
@@ -203,8 +221,8 @@ class UIConfigs:
             self.control_frame,
             text="Clear logs",
             command=self.clear_logs,
-            fg_color="#2196F3",  # Màu nền xanh dương
-            hover_color="#1976D2",  # Màu xanh đậm hơn khi di chuột lên nút
+            fg_color="#000000",  # Màu đen
+            hover_color="#424242",  # Màu xám tối hơn khi di chuột
             width=150,
             height=40,
             image=clear_image,
@@ -217,8 +235,8 @@ class UIConfigs:
             self.control_frame,
             text="Reload",
             command=self.reload_server,
-            fg_color="#FFC107",  # Màu vàng
-            hover_color="#ffca28",  # Màu vàng đậm hơn khi di chuột
+            fg_color="#000000",  # Màu đen
+            hover_color="#424242",  # Màu xám tối hơn khi di chuột
             width=150,
             height=40,
             image=reload_image,
@@ -326,7 +344,7 @@ class UIConfigs:
         )
 
         self.connections_label = self.create_label(
-            self.info_frame2, " Connections:",
+            self.info_frame2, " Connect:",
             ('JetBrainsMono-VariableFont', variable_font_size), 2, 0,
             System.dirtory(DIR_ICON, 'graphics', '8.png')
         )

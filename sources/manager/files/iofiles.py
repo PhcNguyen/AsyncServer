@@ -5,8 +5,6 @@ import os
 import typing
 import aiofiles
 
-from sources.utils.logger import AsyncLogger
-
 
 
 class FileIO:
@@ -37,7 +35,7 @@ class FileIO:
             ) as files:
                 return await files.read()
         except Exception as error:
-            await AsyncLogger.notify_error(f"File-read: {error}")
+            print(f"File-read: {error}")
             return ""
 
     @staticmethod
@@ -66,4 +64,4 @@ class FileIO:
             ) as files:
                 await files.write(content)
         except Exception as error:
-            await AsyncLogger.notify_error(f"File-write: {error}")
+            print(f"File-write: {error}")
