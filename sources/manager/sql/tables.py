@@ -55,9 +55,9 @@ class TableManager:
     async def _is_table_empty(self, table: str) -> bool:
         """Kiểm tra xem bảng có trống hay không."""
         try:
-            if self.db_type == 'sqlite':  # Kiểm tra nếu là SQLite
+            if self.db.type == 'sqlite':  # Kiểm tra nếu là SQLite
                 sql_query = await queries_line(2)  # SQLite query
-            elif self.db_type == 'mysql':  # Nếu là MySQL
+            elif self.db.type == 'mysql':  # Nếu là MySQL
                 sql_query = await queries_line(71)  # MySQL query
             else:
                 raise ValueError("Loại cơ sở dữ liệu không được hỗ trợ")
@@ -71,11 +71,18 @@ class TableManager:
 
     async def _execute_sql_commands(self, sql_commands: str):
         """Execute SQL commands to create tables."""
-        async with self.db.lock:
-            try:
-                await AsyncLogger.notify(f"Thực hiện các lệnh SQL: {sql_commands}")
-                await self.db.conn.executescript(sql_commands)
-                await self.db.conn.commit()
-                await AsyncLogger.notify("Bảng được tạo thành công")
-            except aiosqlite.Error as e:
-                await AsyncLogger.notify_error(f"Lỗi khi tạo bảng: {e}")
+        #async with self.db.lock:
+        try:
+            await self.db.conn.executescript(sql_commands)
+            await self.db.conn.commit()
+            await AsyncLogger.notify("Bảng được tạo thành công")
+        except aiosqlite.Error as e:
+            await AsyncLogger.notify_error(f"Lỗi khi tạo bảng: {e}")
+
+    async def list_tables(self):
+        try:
+            cursor = await self.db.conn.execute(queries_line(2))
+            tables = await cursor.fetchall()
+            await AsyncLogger.notify(f"Các bảng hiện có: {tables}")
+        except aiosqlite.Error as e:
+            await AsyncLogger.notify_error(f"Lỗi khi liệt kê các bảng: {e}")

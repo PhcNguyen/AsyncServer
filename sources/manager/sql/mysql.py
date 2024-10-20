@@ -14,18 +14,18 @@ class MySQL:
     def __init__(self) -> None:
         self.conn = None
         self.lock = asyncio.Lock()
-        self.db_type = 'mysql'
-        self.db_config = configs.load_database("mysql.xml")
+        self.type = 'mysql'
+        self.config = configs.load_database("mysql.xml")
 
         self.table = TableManager(self)
-        self.account = AccountManager(self)
         self.player = PlayerManager(self)
+        self.account = AccountManager(self)
 
     async def start(self):
         """Start the MySQL manager and initialize the MySQL connection."""
         if self.conn is None:
             try:
-                self.conn = await aiomysql.connect(**self.db_config)
+                self.conn = await aiomysql.connect(**self.config)
                 await self.table.create_tables()
             except aiomysql.Error as e:
                 await AsyncLogger.notify_error(f"Lỗi kết nối đến cơ sở dữ liệu: {e}")

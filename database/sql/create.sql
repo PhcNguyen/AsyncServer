@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS player (
     clan_id INTEGER DEFAULT -1,                      -- ID của bang hội (mặc định là -1 nếu không thuộc bang hội)
     character BIGINT DEFAULT '0',                    -- ID cho các bộ phận
     description TEXT DEFAULT NULL,                   -- Mô tả về nhân vật
-    updated_last TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Thời gian cập nhật
+    updated_last TIMESTAMP DEFAULT CURRENT_TIMESTAMP,-- Thời gian cập nhật
     FOREIGN KEY (account_id) REFERENCES account(id)  -- Thiết lập mối quan hệ khóa ngoại với bảng account
 );
 
@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS itemsell (
     item TEXT NOT NULL,                             -- Tên vật phẩm được bán
     type INTEGER NOT NULL,                          -- Loại hình thanh toán
     coin INTEGER NOT NULL,                          -- Số tiền xu cần để mua vật phẩm
-    gem INTEGER NOT NULL,                           -- Số gem cần để mua vật phẩm
+    gem INTEGER NOT NULL                            -- Số gem cần để mua vật phẩm
 
 );
 
@@ -158,5 +158,16 @@ CREATE TABLE IF NOT EXISTS history (
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,    -- Thời gian thực hiện hành động
     FOREIGN KEY (account_id) REFERENCES account(id)  -- Khóa ngoại liên kết với bảng account
 );
+
+-- --------------------------------------------------------
+
+CREATE TRIGGER update_player_timestamp
+AFTER UPDATE ON player
+FOR EACH ROW
+BEGIN
+    UPDATE player
+    SET updated_last = CURRENT_TIMESTAMP
+    WHERE id = OLD.id;
+END;
 
 -- --------------------------------------------------------

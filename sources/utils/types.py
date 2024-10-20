@@ -67,8 +67,8 @@ class SQLite:
     def __init__(self) -> None:
         self.conn = None
         self.lock = asyncio.Lock()
-        self.db_path = None
-        self.db_type = None
+        self.config = None
+        self.type = None
         self.table: TableManager = TableManager(None)
         self.player: PlayerManager = PlayerManager(None)
         self.account: AccountManager = AccountManager(None)
@@ -92,8 +92,8 @@ class MySQL:
     def __init__(self) -> None:
         self.conn = None
         self.lock = asyncio.Lock()
-        self.db_path = None
-        self.db_type = None
+        self.config = None
+        self.type = None
         self.table: TableManager = TableManager(None)
         self.player: PlayerManager = PlayerManager(None)
         self.account: AccountManager = AccountManager(None)

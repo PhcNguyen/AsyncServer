@@ -2,11 +2,11 @@
 # Distributed under the terms of the Modified BSD License.
 
 import sys
-from sources.manager.sql import DatabaseManager
+from sources.manager.sql import SQLite
 from sources.server.tcpserver import TcpServer
 
 # Initialize DatabaseManager and TcpServer
-sqlite = DatabaseManager()
+sqlite = SQLite()
 tcp_server = TcpServer(TcpServer.LOCAL, TcpServer.PORT, sqlite)
 
 

@@ -16,18 +16,18 @@ class SQLite:
     def __init__(self) -> None:
         self.conn = None
         self.lock = asyncio.Lock()
-        self.db_type = 'sqlite'
-        self.db_path = configs.file_paths('server.db')
+        self.type = 'sqlite'
+        self.config = configs.file_paths('server.db')
 
         self.table = TableManager(self)
-        self.account = AccountManager(self)
         self.player = PlayerManager(self)
+        self.account = AccountManager(self)
 
     async def start(self):
         """Start the sqlite manager and initialize the sqlite connection."""
         try:
             if self.conn is None:
-                self.conn = await aiosqlite.connect(self.db_path)
+                self.conn = await aiosqlite.connect(self.config)
                 await self.table.create_tables()
         except Exception as e:
             await AsyncLogger.notify_error(f"Lỗi kết nối đến cơ sở dữ liệu: {e}")
