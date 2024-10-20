@@ -30,6 +30,8 @@ class TcpServer:
 
     def __init__(self, host: str, port: int, sql: types.SQLite | types.MySQL):
         self.sql = sql
+        self.host = host
+        self.port = port
 
         self.stop_event = asyncio.Event()
         self.firewall = IPFirewall()

@@ -147,8 +147,13 @@ class TcpServer:
     - start: Khởi tạo mạng và bắt đầu chấp nhận kết nối.
     - stop: Dừng máy chủ mạng.
     """
+    PORT: int = ...
+    LOCAL: str = ...
+    PUBLIC: str = ...
     def __init__(self, host: str, port: int, sql: SQLite | MySQL):
         """Khởi tạo cài đặt mạng và hàm xử lý dữ liệu."""
+        self.host = host
+        self.port = port
         self.running: bool = False
 
     async def start(self): ...

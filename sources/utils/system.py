@@ -107,7 +107,7 @@ class System:
         time.sleep(seconds)
 
     @staticmethod
-    def dirtory(a: typing.LiteralString | str,
+    def paths(a: typing.LiteralString | str,
          /,
          *path: (typing.LiteralString | str)
     ) -> (typing.LiteralString | str):

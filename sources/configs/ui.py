@@ -1,3 +1,5 @@
+# Copyright (C) PhcNguyen Developers
+# Distributed under the terms of the Modified BSD License.
 
 import os
 import typing
@@ -8,47 +10,18 @@ import customtkinter as ctk
 from PIL import Image
 from customtkinter import CTkImage
 from sources.utils.system import System
-from sources.utils.realtime import TimeUtil
+
 
 BASE_DIR: str = str(pathlib.Path(__file__).resolve().parent.parent.parent)
 DIR_FONT = os.path.join(BASE_DIR, "resource", "font")
-DIR_ICON = os.path.join(BASE_DIR, "resource", "icon")
-
+DIR_ICON = os.path.join(BASE_DIR, "resource", "icon", "graphics")
 
 
 class UIConfigs:
-    """
-    UIConfigs class to create and manage the user interface for the server application.
-
-    Attributes:
-    - root (ctk.CTk): The main window of the application.
-    - control_frame (ctk.CTkFrame): Frame containing control buttons (START, STOP, CLEAR LOGS).
-    - log_frame (ctk.CTkFrame): Frame for displaying logs (SERVER, ERROR).
-    - info_frame (ctk.CTkFrame): Frame for displaying server information (Local IP, Public IP, Ping).
-    - info_frame2 (ctk.CTkFrame): Frame for displaying additional server information (CPU, RAM, Connections).
-    - server_log (ctk.CTkTextbox): Text area for displaying server logs.
-    - error_log (ctk.CTkTextbox): Text area for displaying error logs.
-    - local_value (ctk.CTkLabel): Label showing the local IP address.
-    - public_value (ctk.CTkLabel): Label showing the public IP address.
-    - ping_value (ctk.CTkLabel): Label showing the ping status.
-    - cpu_value (ctk.CTkLabel): Label showing the CPU usage.
-    - ram_value (ctk.CTkLabel): Label showing the RAM usage.
-    - connections_value (ctk.CTkLabel): Label showing the number of connections.
-    """
-
     root = ctk.CTk()
 
     def __init__(self, root: ctk.CTk):
-
-        UIConfigs.load_font(
-            font_path=System.dirtory(DIR_FONT, 'JetBrainsMono-Italic-VariableFont_wght.ttf'),
-            font_name='JetBrainsMono-Italic-VariableFont'
-        )
-        UIConfigs.load_font(
-            font_path=System.dirtory(DIR_FONT, 'JetBrainsMono-VariableFont_wght.ttf'),
-            font_name='JetBrainsMono-VariableFont'
-        )
-
+        self.labels = []
         self.root = root
 
         self.server_line = 0
@@ -56,49 +29,31 @@ class UIConfigs:
 
         self.log_format = "[ {:05d} | {:<12} ]> {}"
 
-        self.root.title("Server Management")
-        self.root.geometry("1180x620")
-        self.root.resizable(width=False, height=False)
-        self.root.iconbitmap(System.dirtory(DIR_ICON, 'graphics',  '0.ico'))
+        self._initialize_ui()
 
-        ctk.set_appearance_mode("dark")  # Đặt chế độ giao diện tối
-        ctk.set_default_color_theme("dark-blue")  # Đặt chủ đề màu sắc tối
+    def _initialize_ui(self):
+        self._configure_window()
+        self._create_frames()
 
-        # Khởi tạo khung chứa các nút điều khiển
-        self.control_frame = ctk.CTkFrame(root)
-        self.control_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
+        self._load_fonts()
+        self._setup_tabs()
 
-        # Tạo khung chứa các bản ghi log
-        self.log_frame = ctk.CTkFrame(root)
-        self.log_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        # Tạo các tab cho bản ghi log
-        self.tab_control = ctk.CTkTabview(self.log_frame)
-        self.tab_control.add("   Server   ")
-        self.tab_control.add("   Error    ")
-        self.tab_control.pack(expand=1, fill='both')
-
-        self._setup_server_tab()
-        self._setup_error_tab()
         self._setup_buttons()
         self._setup_labels()
 
-    def start_server(self):
-        ...
-
-    def stop_server(self):
-        ...
-
-    def clear_logs(self):
-        ...
-
-    def reload_server(self):
-        ...
-
     @staticmethod
-    def load_font(font_path, font_name) -> None:
-        # Load the font and return a CTkFont object
-        tk.font.Font(family=font_path, name=font_name)
+    def _load_fonts():
+        """Load required fonts for the application."""
+        for font_file, font_name in [
+            ('JetBrainsMono-Italic-VariableFont_wght.ttf', 'JetBrainsMono-Italic-VariableFont'),
+            ('JetBrainsMono-VariableFont_wght.ttf', 'JetBrainsMono-VariableFont')
+        ]:
+            tk.font.Font(family=System.paths(DIR_FONT, font_file), name=font_name)
+
+    def get_line_number(self, is_error_log: bool):
+        """Lấy số dòng hiện tại cho log."""
+        if is_error_log: self.error_line += 1; return self.error_line
+        else: self.server_line += 1; return self.server_line
 
     @staticmethod
     def log_to_textbox(
@@ -116,6 +71,20 @@ class UIConfigs:
         textbox.yview('end')  # Cuộn xuống cuối khu vực văn bản
 
     @staticmethod
+    def _create_textbox(parent, title):
+        textbox = ctk.CTkTextbox(
+            parent,
+            state='disabled',
+            height=20,
+            width=100,
+            wrap=tk.WORD,
+            fg_color="#000000",
+            font=('JetBrainsMono-VariableFont', 16)
+        )
+        textbox.pack(fill=tk.BOTH, expand=True)
+        return textbox
+
+    @staticmethod
     def create_label(frame, text, font, row, column, icon_path=None, sticky='w'):
         image = None
         if icon_path:
@@ -130,22 +99,108 @@ class UIConfigs:
         label.image = image  # Giữ tham chiếu đến hình ảnh
         return label
 
-    def get_line_number(self, is_error_log: bool):
-        """Lấy số dòng hiện tại cho log."""
-        if is_error_log:
-            self.error_line += 1
-            return self.error_line
-        else:
-            self.server_line += 1
-            return self.server_line
+    def _configure_window(self):
+        self.root.title("Server Management")
+        self.root.geometry("1180x620")
+        self.root.resizable(False, False)
+        self.root.iconbitmap(System.paths(DIR_ICON, '0.ico'))
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("dark-blue")
 
-    def format_log_message(self, line_number: int, message: str):
-        """Định dạng thông báo log."""
-        return self.log_format.format(
-            line_number,
-            TimeUtil.now(),
-            message
+    def _create_frames(self):
+        self.control_frame = ctk.CTkFrame(self.root)
+        self.control_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
+
+        self.log_frame = ctk.CTkFrame(self.root)
+        self.log_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+    def _setup_buttons(self):
+        self.start_button = self.create_button(
+            "Start", self.start_server, "#4CAF50", "#45a049", '1.png'
         )
+        self.stop_button = self.create_button(
+            "Stop", self.stop_server, "#f44336", "#c62828", '2.png', state='disabled'
+        )
+        self.clear_button = self.create_button(
+            "Clear logs", self.clear_logs, "#000000", "#424242", '3.png'
+        )
+        self.reload_button = self.create_button(
+            "Reload", self.reload_server, "#000000", "#424242", '9.png'
+        )
+
+    def _setup_tabs(self):
+        self.tab_control = ctk.CTkTabview(self.log_frame)
+        self.tab_control.add("   Server   ")
+        self.tab_control.add("   Error    ")
+        self.tab_control.pack(expand=True, fill='both')
+        self._setup_server_tab()
+        self._setup_error_tab()
+
+    def _setup_server_tab(self):
+        self.server_log = self._create_textbox(self.tab_control.tab("   Server   "), "Server logs")
+
+    def _setup_error_tab(self):
+        self.error_log = self._create_textbox(self.tab_control.tab("   Error    "), "Error logs")
+
+    def create_button(self, text, command, color, hover_color, image_file, state='normal'):
+        image = ctk.CTkImage(Image.open(System.paths(DIR_ICON, image_file)), size=(20, 20))
+        button = ctk.CTkButton(
+            self.control_frame,
+            text=text,
+            command=command,
+            fg_color=color,
+            hover_color=hover_color,
+            width=150,
+            height=40,
+            image=image,
+            font=('JetBrainsMono-VariableFont', 13),
+            state=state
+        )
+        button.pack(side=tk.LEFT, padx=10)
+        return button
+
+    def _setup_labels(self):
+        self.info_frame = ctk.CTkFrame(self.root)
+        self.info_frame.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=8)
+
+        labels = [
+            (" Local IP: ", "N/A", '4.png'),
+            (" Public IP:", "N/A", '4.png'),
+            (" Ping:     ", "N/A", '5.png')
+        ]
+        for idx, (text, value, icon) in enumerate(labels):
+            label, value_label = self._create_label(self.info_frame, text, value, icon, idx)
+            self.labels.append((label, value_label))
+
+        self.info_frame2 = ctk.CTkFrame(self.root)
+        self.info_frame2.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=8)
+
+        resource_labels = [
+            (" CPU:    ", "N/A", '6.png'),
+            (" RAM:    ", "N/A", '7.png'),
+            (" Connect:", "0", '8.png')
+        ]
+        for idx, (text, value, icon) in enumerate(resource_labels):
+            label, value_label = self._create_label(self.info_frame2, text, value, icon, idx)
+            self.labels.append((label, value_label))
+
+    @staticmethod
+    def _create_label(frame, text, value, icon, row):
+        label_font = ('JetBrainsMono-VariableFont', 14)
+        value_font = ('JetBrainsMono-VariableFont', 12)
+        label = ctk.CTkLabel(frame, text=text, font=label_font)
+        value_label = ctk.CTkLabel(frame, text=value, font=value_font)
+
+        icon_path = System.paths(DIR_ICON, icon)
+        UIConfigs.create_label(frame, text, label_font, row, 0, icon_path, sticky='w')
+
+        value_label.grid(row=row, column=1, padx=5, pady=5, sticky='w')
+        return label, value_label
+
+    def update_label(self, index: int, new_value: str):
+        """Cập nhật giá trị của nhãn tại index."""
+        if 0 <= index < len(self.labels):
+            self.labels[index][1].configure(text=new_value)  # Cập nhật nhãn giá trị
 
     def _clear_textbox(self, textbox: ctk.CTkTextbox):
         """Xóa nội dung của khu vực văn bản với hiệu ứng xóa nhanh dần."""
@@ -172,183 +227,60 @@ class UIConfigs:
         textbox.configure(state='disabled')  # Đặt lại trạng thái về 'disabled'
         self.clear_button.configure(state='normal')
 
-    def _setup_buttons(self):
-        # Tải ảnh PNG sử dụng Pillow (PIL)
-        start_image = ctk.CTkImage(
-            Image.open(System.dirtory(DIR_ICON, 'graphics', '1.png')), size=(20, 20)
-        )
-        stop_image = ctk.CTkImage(
-            Image.open(System.dirtory(DIR_ICON, 'graphics', '2.png')), size=(20, 20)
-        )
-        clear_image = ctk.CTkImage(
-            Image.open(System.dirtory(DIR_ICON, 'graphics', '3.png')), size=(20, 20)
-        )
-        reload_image = ctk.CTkImage(
-            Image.open(System.dirtory(DIR_ICON, 'graphics', '9.png')), size=(20, 20)
-        )
+    def start_server(self):
+        """Start the server and update UI accordingly."""
+        pass  # Logic for starting the server
 
-        # Nút Start
-        self.start_button = ctk.CTkButton(
-            self.control_frame,
-            text="Start",
-            command=self.start_server,
-            fg_color="#4CAF50",  # Màu nền xanh lá cây
-            hover_color="#45a049",  # Màu xanh đậm hơn khi di chuột lên nút
-            width=150,
-            height=40,
-            image=start_image,
-            font=('JetBrainsMono-VariableFont', 13)
-        )
-        self.start_button.pack(side=tk.LEFT, padx=10)
+    def stop_server(self):
+        """Stop the server and update UI accordingly."""
+        pass
 
-        # Nút Stop
-        self.stop_button = ctk.CTkButton(
-            self.control_frame,
-            text="Stop",
-            command=self.stop_server,
-            fg_color="#f44336",  # Màu nền đỏ
-            hover_color="#c62828",  # Màu đỏ đậm hơn khi di chuột lên nút
-            width=150,
-            height=40,
-            state='disabled',  # Ban đầu bị vô hiệu hóa
-            image=stop_image,
-            font=('JetBrainsMono-VariableFont', 13)
-        )
-        self.stop_button.pack(side=tk.LEFT, padx=10)
+    def clear_logs(self):
+        pass
 
-        # Nút Clear
-        self.clear_button = ctk.CTkButton(
-            self.control_frame,
-            text="Clear logs",
-            command=self.clear_logs,
-            fg_color="#000000",  # Màu đen
-            hover_color="#424242",  # Màu xám tối hơn khi di chuột
-            width=150,
-            height=40,
-            image=clear_image,
-            font=('JetBrainsMono-VariableFont', 13)
-        )
-        self.clear_button.pack(side=tk.LEFT, padx=10)
+    def reload_server(self):
+        """Reload the server and update UI accordingly."""
+        pass  # Logic for reloading the server
 
-        # Nút Reload
-        self.reload_button = ctk.CTkButton(
-            self.control_frame,
-            text="Reload",
-            command=self.reload_server,
-            fg_color="#000000",  # Màu đen
-            hover_color="#424242",  # Màu xám tối hơn khi di chuột
-            width=150,
-            height=40,
-            image=reload_image,
-            font=('JetBrainsMono-VariableFont', 13)
-        )
-        self.reload_button.pack(side=tk.LEFT, padx=10)
 
-    def _setup_server_tab(self):
-        # Khu vực văn bản để hiển thị bản ghi server
-        self.server_log = ctk.CTkTextbox(
-            self.tab_control.tab("   Server   "),
-            state='disabled',  # Đặt ban đầu là disabled
-            height=20,
-            width=100,
-            wrap=tk.WORD,
-            fg_color="#000000",  # Màu chữ (white)
-            bg_color="#000000",  # Màu nền (black)
-            font=('JetBrainsMono-VariableFont', 16)
-        )
-        self.server_log.pack(fill=tk.BOTH, expand=True)
+class MessageBox:
+    def __init__(self, master, countdown, callback):
+        self.master = master
+        self.countdown = countdown
+        self.callback = callback
 
-    def _setup_error_tab(self):
-        # Khu vực văn bản để hiển thị bản ghi lỗi
-        self.error_log = ctk.CTkTextbox(
-            self.tab_control.tab("   Error    "),
-            state='disabled',  # Đặt ban đầu là disabled
-            height=20,
-            width=100,
-            wrap=tk.WORD,
-            fg_color="#000000",  # Màu chữ (white)
-            bg_color="#000000",  # Màu nền (light red)
-            font=('JetBrainsMono-VariableFont', 16)
-        )
-        self.error_log.pack(fill=tk.BOTH, expand=True)
+        # Tạo cửa sổ mới
+        self.dialog = ctk.CTkToplevel(master)
+        self.dialog.title("Thông báo")
+        self.dialog.geometry("260x120")  # Kích thước cửa sổ
+        self.dialog.resizable(False, False)
 
-    def _setup_labels(self):
-        # Define font sizes
-        variable_font_size = 14
-        italic_font_size = 14
+        # Tạo nhãn để hiển thị thông báo
+        self.label = ctk.CTkLabel(self.dialog, text=f"Máy chủ sẽ dừng sau {self.countdown} giây", anchor="center")
+        self.label.pack(anchor="nw", padx=10, pady=10)
 
-        # Tạo khung cha chứa thông tin server
-        self.info_container = ctk.CTkFrame(self.root)
-        self.info_container.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=8)
+        # Tạo nút tắt ngay
+        self.stop_button = ctk.CTkButton(self.dialog, text="Tắt ngay", command=self.stop_now, width=100)
+        self.stop_button.pack(side=ctk.LEFT, padx=20)
 
-        # Tạo khung chứa thông tin server
-        self.info_frame = ctk.CTkFrame(self.info_container)
-        self.info_frame.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=8, expand=True)
+        # Tạo nút hủy
+        self.cancel_button = ctk.CTkButton(self.dialog, text="Hủy", command=self.cancel, width=100)
+        self.cancel_button.pack(side=ctk.RIGHT, padx=20)
 
-        # Tạo khung chứa thông tin bổ sung
-        self.info_frame2 = ctk.CTkFrame(self.info_container)
-        self.info_frame2.pack(side=tk.LEFT, fill=tk.Y, expand=True, padx=8, pady=8)
+        # Bắt đầu đếm ngược
+        self.update_countdown()
 
-        # Label và trường hiển thị IP với font tuỳ chỉnh
-        self.local_ip = self.create_label(
-            self.info_frame, " Local IP:",
-            ('JetBrainsMono-VariableFont', variable_font_size), 0, 0,
-            System.dirtory(DIR_ICON, 'graphics', '4.png')
-        )
-        self.local_value = self.create_label(
-            self.info_frame, "N/A",
-            ('JetBrainsMono-VariableFont', italic_font_size), 0, 1
-        )
+    def update_countdown(self):
+        if self.countdown > 0:
+            self.label.configure(text=f"Máy chủ sẽ dừng sau {self.countdown} giây")  # Sử dụng configure
+            self.countdown -= 1
+            self.master.after(1000, self.update_countdown)  # Gọi lại sau 1 giây
+        else:
+            self.stop_now()  # Dừng máy chủ khi đếm ngược về 0
 
-        self.public_ip = self.create_label(
-            self.info_frame, " Public IP:",
-            ('JetBrainsMono-VariableFont', variable_font_size), 1, 0,
-            System.dirtory(DIR_ICON, 'graphics', '4.png')
-        )
-        self.public_value = self.create_label(
-            self.info_frame, "N/A",
-            ('JetBrainsMono-VariableFont', italic_font_size),
-            1, 1, sticky='e'
-        )
+    def cancel(self):
+        self.dialog.destroy()  # Đóng cửa sổ nếu người dùng chọn hủy
 
-        self.ping_label = self.create_label(
-            self.info_frame, " Ping:",
-            ('JetBrainsMono-VariableFont', variable_font_size), 2, 0,
-            System.dirtory(DIR_ICON, 'graphics', '5.png')
-        )
-        self.ping_value = self.create_label(
-            self.info_frame, "N/A",
-            ('JetBrainsMono-VariableFont', italic_font_size),
-            2, 1, sticky='e'
-        )
-
-        # Add new labels for CPU, RAM, and Connections with font tuỳ chỉnh
-        self.cpu_label = self.create_label(
-            self.info_frame2, " CPU:",
-            ('JetBrainsMono-VariableFont', variable_font_size), 0, 0,
-            System.dirtory(DIR_ICON, 'graphics', '6.png')
-        )
-        self.cpu_value = self.create_label(
-            self.info_frame2, "N/A",
-            ('JetBrainsMono-VariableFont', italic_font_size), 0, 1
-        )
-
-        self.ram_label = self.create_label(
-            self.info_frame2, " RAM:",
-            ('JetBrainsMono-VariableFont', variable_font_size), 1, 0,
-            System.dirtory(DIR_ICON, 'graphics', '7.png')
-        )
-        self.ram_value = self.create_label(
-            self.info_frame2, "N/A",
-            ('JetBrainsMono-VariableFont', italic_font_size), 1, 1
-        )
-
-        self.connections_label = self.create_label(
-            self.info_frame2, " Connect:",
-            ('JetBrainsMono-VariableFont', variable_font_size), 2, 0,
-            System.dirtory(DIR_ICON, 'graphics', '8.png')
-        )
-        self.connections_value = self.create_label(
-            self.info_frame2, "0",
-            ('JetBrainsMono-VariableFont', italic_font_size), 2, 1
-        )
+    def stop_now(self):
+        self.callback()  # Gọi hàm dừng máy chủ
+        self.dialog.destroy()
