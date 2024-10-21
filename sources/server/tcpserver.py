@@ -6,7 +6,6 @@ from typing import List, Tuple
 
 from sources.utils import types, system
 from sources.utils.logger import AsyncLogger
-from sources.manager.firewall import IPFirewall
 from sources.server.tcpsession import TcpSession
 
 
@@ -34,10 +33,9 @@ class TcpServer:
         self.port = port
 
         self.stop_event = asyncio.Event()
-        self.firewall = IPFirewall()
         self.server_address: Tuple[str, int] = (host, port)
         self.running: bool = False
-        self.client_handler = ClientHandler(self, self.firewall, self.sql)
+        self.client_handler = ClientHandler(self, self.sql)
         self.current_connections = 0  # Số lượng kết nối hiện tại
 
     async def start(self):
@@ -98,27 +96,15 @@ class TcpServer:
 
 
 class ClientHandler:
-    def __init__(self, tcp_server: TcpServer, firewall: IPFirewall, sql: types.SQLite | types.MySQL):
+    def __init__(self, tcp_server: TcpServer, sql: types.SQLite | types.MySQL):
         self.sql = sql
-        self.firewall = firewall
         self.tcp_server = tcp_server
         self.client_connections: List[TcpSession] = []  # Store TcpSession objects
 
+        asyncio.create_task(self.check_disconnected_clients())
+
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Handle data from a client asynchronously with timeout."""
-        client_address = writer.get_extra_info('peername')
-        ip_address: str = client_address[0]
-
-        if ip_address in self.firewall.block_ips:
-            writer.write(self.firewall.remaining_time(ip_address))
-            await writer.drain()  # Đảm bảo dữ liệu được gửi đi
-
-            writer.close()
-            await writer.wait_closed()
-            return
-
-        await self.firewall.track_requests(ip_address)
-
         # Create TcpSession for the connected client
         session = TcpSession(self.tcp_server, self.sql)
         await session.connect(reader, writer)
@@ -131,11 +117,40 @@ class ClientHandler:
         finally:
             await self.close_connection(session)
 
+    async def check_disconnected_clients(self):
+        """Periodically check and close disconnected client sessions."""
+        while True:
+            await asyncio.sleep(5)  # Check every 5 seconds (adjust if needed)
+
+            disconnected_sessions = [
+                session for session in self.client_connections
+                if not session.is_connected
+            ]
+
+            for session in disconnected_sessions:
+                await self.close_connection(session)
+
     async def close_connection(self, session: TcpSession):
         """Close a client connection."""
-        await session.disconnect()  # Close the session properly
-        self.client_connections.remove(session)
-        self.tcp_server.decrement_connection()  # Giảm số lượng kết nối
+        try:
+            # Ensure the session is connected before trying to disconnect
+            if session.is_connected:
+                await session.disconnect()  # Close the session properly
+                session.is_connected = False  # Mark the session as disconnected
+
+                # Remove the session only if it's still in the list
+                if session in self.client_connections:
+                    self.client_connections.remove(session)
+                else:
+                    await AsyncLogger.notify(f"Session {session.id} already removed from the list.")
+
+                # Decrement the connection count
+                self.tcp_server.decrement_connection()
+            else:
+                await AsyncLogger.notify(f"Session {session.id} already disconnected.")
+        except Exception as e:
+            # Catch any unexpected errors during disconnection
+            await AsyncLogger.notify_error(f"Error while closing connection: {e}")
 
     async def close_all_connections(self):
         """Close all client connections."""

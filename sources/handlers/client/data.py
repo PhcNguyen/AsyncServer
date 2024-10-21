@@ -1,6 +1,7 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
+import time
 import json
 import asyncio
 
@@ -9,60 +10,106 @@ from sources.utils.logger import AsyncLogger
 
 
 class DataHandler:
-    BUFFER_SIZE = 8192  # Chuyển thành hằng số lớp
+    BUFFER_SIZE = 8192  # Buffer size for reading data
 
-    def __init__(self, transport = None):
-        self.transport = transport
+    def __init__(self,
+        reader: asyncio.StreamReader=None,
+        writer:asyncio.StreamWriter=None
+    ) -> None:
+        """Initialize the DataHandler instance."""
+        self.reader = reader  # Use StreamReader for reading
+        self.writer = writer  # Use StreamWriter for writing
         self.bytes_sent = 0
         self.bytes_received = 0
         self.send_buffer = bytearray()
 
     async def _try_send(self):
+        """Attempt to send data from the send buffer."""
         while self.send_buffer:
             try:
-                sent = self.transport.send(self.send_buffer)
-                self.bytes_sent += sent
-                self.send_buffer = self.send_buffer[sent:]
-                await AsyncLogger.notify(f"Sent {sent} bytes.")
+                # Ensure that transport (writer) is available before attempting to send
+                if self.writer is None:
+                    await AsyncLogger.notify_error("No transport available.")
+                    break
+
+                # Write the data from send_buffer and track the bytes sent
+                self.writer.write(self.send_buffer)
+                await self.writer.drain()
+                self.bytes_sent += len(self.send_buffer)
+                await AsyncLogger.notify(f"Sent {len(self.send_buffer)} bytes.")
+
+                # Clear the send buffer after successful send
+                self.send_buffer.clear()
+
             except Exception as e:
                 await AsyncLogger.notify_error(f"Error during send: {e}")
                 break
 
     async def send(self, data):
-        if isinstance(data, str):                    # Kiểm tra nếu data là chuỗi
-            data = data.encode('utf-8')              # Chuyển đổi thành bytes
-        elif isinstance(data, (list, tuple, dict)):  # Nếu data là list hoặc tuple or dict
-            data = json.dumps(data).encode('utf-8')  # Chuyển list/tuple/dict thành JSON rồi mã hóa thành bytes
-        elif isinstance(data, (int, float)):         # Nếu data là số
-            data = str(data).encode('utf-8')         # Chuyển số thành chuỗi rồi mã hóa thành bytes
+        """Send data in different formats (str, dict, list, etc.)."""
+        if data is None:
+            await AsyncLogger.notify_error("Data is None, nothing to send.")
+            return
 
-        self.send_buffer.extend(data)
-        await self._try_send()
+        # Handle various data types before sending
+        try:
+            if isinstance(data, str):  # If data is a string
+                data = data.encode('utf-8')  # Convert to bytes
+            elif isinstance(data, (list, tuple, dict)):  # If data is a list/tuple/dict
+                data = json.dumps(data).encode('utf-8')  # Convert to JSON and then to bytes
+            elif isinstance(data, (int, float)):  # If data is a number
+                data = str(data).encode('utf-8')  # Convert to string and then bytes
+            elif isinstance(data, bytes):  # If data is already in bytes
+                pass  # No conversion necessary
+            else:
+                await AsyncLogger.notify_error(f"Unsupported data type: {type(data)}")
+                return  # Exit if the type is unsupported
+
+            # Add the data to the send buffer and attempt to send it
+            self.send_buffer.extend(data)
+            await self._try_send()
+
+        except Exception as e:
+            await AsyncLogger.notify_error(f"Error during send preparation: {e}")
 
     async def receive(self):
+        """Receive and process data from transport."""
         while True:
             try:
-                data = await asyncio.wait_for(self.transport.read(self.BUFFER_SIZE), timeout=1.0)
-                if not data:
-                    return None
-                try:
-                    decoded_data = json.loads(data.decode('utf-8'))  # Giải mã JSON từ chuỗi byte
-                    data = decoded_data  # Gán lại vào biến data
-                except json.JSONDecodeError as json_error:
-                    error_message = f"JSON decode error: {json_error}"
-                    await AsyncLogger.notify_error(error_message)
+                # Ensure transport (reader) is available
+                if self.reader is None:
+                    await AsyncLogger.notify_error("No transport available.")
+                    return None  # Return None if transport is not available
 
-                    # Gửi thông báo lỗi về phía client
-                    await self.send({
-                        "status": False,
-                        "message": error_message
-                    })
-                    continue  # Tiếp tục vòng lặp để nhận dữ liệu tiếp theo
+                # Read data from transport with a timeout
+                data = await asyncio.wait_for(self.reader.read(self.BUFFER_SIZE), timeout=60.0)
 
-                self.bytes_received += len(data)
-                return data
+                # If data is not empty, try to decode it
+                if data.strip():
+                    try:
+                        if isinstance(data, bytes):  # If data is bytes
+                            data = data.decode('utf-8')  # Convert to string
+                        decoded_data = json.loads(data)
+                        # Return the decoded data to the caller (server)
+                        return decoded_data  # Return decoded data if successful
+                    except json.JSONDecodeError as error:
+                        # If JSON decoding fails, log the error but continue receiving
+                        return {
+                            "status": False,
+                            "message": f"{error}"
+                        }
+
+                time.sleep(0.1)
             except asyncio.TimeoutError:
-                continue  # Continue on timeout
+                # await AsyncLogger.notify("Timeout occurred while waiting for data.")
+                continue
+
+            except UnicodeDecodeError as e:
+                # Handle cases where received data isn't valid UTF-8
+                await AsyncLogger.notify_error(f"Unicode decode error: {e}")
+                continue
+
             except Exception as e:
+                # Handle any other exceptions during receive
                 await AsyncLogger.notify_error(f"Error during receive: {e}")
-                break
+                break  # Stop receiving if an unexpected error occurs

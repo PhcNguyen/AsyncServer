@@ -2,6 +2,7 @@
 # Distributed under the terms of the Modified BSD License.
 
 import uuid
+import json
 import asyncio
 
 from sources.utils import types
@@ -18,11 +19,10 @@ class TcpSession:
         self.server = server
         self.client_ip = None
         self.client_port = None
-        self.is_connected = False  # Thêm thuộc tính này để theo dõi trạng thái kết nối
+        self.is_connected = False
 
         self.id = uuid.uuid4()
-
-        self.rate_limiter = RateLimiter(limit=5, period=10)  # 5 yêu cầu trong 10 giây
+        self.rate_limiter = RateLimiter(limit=5, period=5)  # 5 requests in 5 seconds
         self.connection_manager = ConnectionManager(server)
         self.data_handler = DataHandler(None)
         self.command_handler = CommandHandler(sql)
@@ -30,46 +30,45 @@ class TcpSession:
     async def receive_data(self):
         while self.is_connected:
             try:
-                if not await self.rate_limiter.is_allowed(self.client_ip):
-                    response = {"status": False, "message": "Too many requests. Please try again in 10 minutes."}
-                    await self.data_handler.send(response)
-                    await self.disconnect()  # Ngắt kết nối
+                data = await self.data_handler.receive()  # Receive the decoded data
+                if data:
+                    # Process the data
+                    response = await self.command_handler.handle_command(data)  # Process with command handler
+                    await self.data_handler.send(response)  # Send the response back to the client
+                else:
+                    # No data received, disconnect
+                    await self.disconnect()  # Disconnect if no data is received
                     break
 
-                data = await self.data_handler.receive()
-                if data:
-                    response =await self.command_handler.handle_command(data)
-                    await self.data_handler.send(response)
-                else:
-                    # Nếu không nhận được dữ liệu, coi như kết nối đã bị ngắt
-
-                    await self.disconnect()  # Ngắt kết nối
-                    break  # Thoát khỏi vòng lặp
             except asyncio.CancelledError:
-                await AsyncLogger.notify("Nhận nhiệm vụ đã bị hủy")  # Log khi task bị hủy
-                break  # Dừng vòng lặp nếu task bị hủy
+                await AsyncLogger.notify("Receive task was cancelled.")  # Log if task is cancelled
+                break
             except Exception as e:
-                await AsyncLogger.notify_error(f"Lỗi trong quá trình receive_data: {e}")  # Log lỗi khi có ngoại lệ
-                error_message = {
-                    "status": False,
-                    "message": f"Error during receive: {str(e)}"
-                }
-                await self.data_handler.send(error_message)  # Giả sử data_handler có hàm send
-                await self.disconnect()  # Ngắt kết nối khi có lỗi
+                await AsyncLogger.notify_error(f"Error during receive_data: {e}")
+                # Send error response to client
+                await self.data_handler.send({"status": False, "message": str(e)})
+                await self.disconnect()  # Disconnect on error
+                break
 
     async def connect(self, reader, writer):
-        # Thiết lập transport
-        self.client_ip = writer.get_extra_info('peername')[0]
+        client_address = writer.get_extra_info('peername')
+        self.client_ip, self.client_port = client_address
+
         self.connection_manager.transport = writer
         await self.connection_manager.connect()
 
-        # Gán transport cho DataHandler
-        self.data_handler = DataHandler(reader)
+        self.data_handler = DataHandler(reader, writer)
         self.is_connected = True
 
-        await AsyncLogger.notify(
-            f"Connected: {self.id} to {writer.get_extra_info('peername')}")  # Log khi kết nối thành công
+        if not await self.rate_limiter.is_allowed(self.client_ip):
+            response = {"status": False, "message": "Too many requests. Please try again in 1 minute."}
+            writer.write(json.dumps(response).encode('utf-8'))
+            await writer.drain()
+            writer.close()
+            await writer.wait_closed()
+            return
 
+        await AsyncLogger.notify(f"Port connected: {self.client_port}")
         asyncio.create_task(self.receive_data())
 
     async def disconnect(self):

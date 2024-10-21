@@ -3,114 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Socket TCP</title>
+    <title>Giao diện Kết nối và Gửi Data JSON</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-        #output {
-            margin-top: 20px;
-            border: 1px solid #ccc;
-            padding: 10px;
-            height: 200px;
-            overflow-y: scroll;
+
+        .container {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            width: 500px;
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
-        table {
-            margin-top: 20px;
-            border-collapse: collapse;
-            width: 100%;
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
         }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
+
+        label {
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #333;
             text-align: left;
+            width: 100%;
+            display: inline-block;
         }
-        th {
-            background-color: #f2f2f2;
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+            outline: none;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .response-box {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            text-align: left;
+            height: 150px;
+            width: 100%;
+            overflow-y: scroll;
+            font-family: monospace;
+            white-space: pre-wrap; /* Giữ định dạng JSON */
+        }
+
+        /* Cải thiện giao diện textarea */
+        textarea {
+            height: 150px;
+            resize: none;
+            white-space: pre-wrap;
+            font-family: monospace;
         }
     </style>
 </head>
 <body>
-    <h1>Kiểm Tra Socket TCP</h1>
-    <button id="connectButton">Kết Nối</button>
-    <button id="disconnectButton" disabled>Ngắt Kết Nối</button>
-    <div>
-        <input type="text" id="messageInput" placeholder="Nhập tin nhắn...">
-        <button id="sendButton" disabled>Gửi</button>
-    </div>
-    <div id="output"></div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Thời gian</th>
-                <th>Nội dung</th>
-            </tr>
-        </thead>
-        <tbody id="messageTableBody">
-            <!-- Tin nhắn nhận sẽ được thêm vào đây -->
-        </tbody>
-    </table>
+    <div class="container">
+        <h1>Kết nối và Gửi Dữ liệu JSON</h1>
+
+        <!-- IP và Port -->
+        <label for="ip">IP:</label>
+        <input type="text" id="ip" placeholder="Nhập IP...">
+
+        <label for="port">Port:</label>
+        <input type="text" id="port" placeholder="Nhập Port...">
+
+        <button id="connectBtn">Kết nối</button>
+
+        <!-- JSON Data nhập vào -->
+        <label for="jsonData">Dữ liệu JSON:</label>
+        <textarea id="jsonData" placeholder='{"key": "value"}'></textarea>
+
+        <button id="sendDataBtn">Gửi Data</button>
+
+        <!-- Response nhận từ server -->
+        <div class="response-box" id="responseBox">Nhận JSON từ server sẽ hiển thị ở đây...</div>
+    </div>
 
     <script>
-        let socket;
+        let socket = null;
 
-        document.getElementById('connectButton').addEventListener('click', function() {
-            // Thay thế 'ws://localhost:8080' bằng địa chỉ WebSocket của bạn
-            socket = new WebSocket('ws://192.168.1.2:7272');
+        document.getElementById('connectBtn').addEventListener('click', function () {
+            const ip = document.getElementById('ip').value;
+            const port = document.getElementById('port').value;
 
-            socket.onopen = function() {
-                document.getElementById('output').innerHTML += '<p>Kết nối thành công!</p>';
-                document.getElementById('connectButton').disabled = true;
-                document.getElementById('disconnectButton').disabled = false;
-                document.getElementById('sendButton').disabled = false;
-            };
+            if (ip && port) {
+                socket = new WebSocket(`ws://${ip}:${port}`);
 
-            socket.onmessage = function(event) {
-                const currentTime = new Date().toLocaleTimeString();
-                const message = event.data;
+                socket.onopen = function () {
+                    alert('Kết nối thành công!');
+                };
 
-                // Hiển thị tin nhắn trong output
-                document.getElementById('output').innerHTML += '<p>Nhận: ' + message + '</p>';
+                socket.onmessage = function (event) {
+                    document.getElementById('responseBox').innerText = 'Dữ liệu nhận từ server: \n' + event.data;
+                };
 
-                // Thêm tin nhắn vào bảng
-                const tableBody = document.getElementById('messageTableBody');
-                const newRow = tableBody.insertRow();
-                const timeCell = newRow.insertCell(0);
-                const messageCell = newRow.insertCell(1);
-                timeCell.textContent = currentTime;
-                messageCell.textContent = message;
-            };
+                socket.onerror = function (error) {
+                    console.error('Lỗi kết nối:', error);
+                    alert('Không thể kết nối!');
+                };
 
-            socket.onclose = function() {
-                document.getElementById('output').innerHTML += '<p>Kết nối đã ngắt!</p>';
-                document.getElementById('connectButton').disabled = false;
-                document.getElementById('disconnectButton').disabled = true;
-                document.getElementById('sendButton').disabled = true;
-            };
-        });
-
-        document.getElementById('disconnectButton').addEventListener('click', function() {
-            if (socket) {
-                socket.close();
+                socket.onclose = function () {
+                    alert('Kết nối đã đóng.');
+                };
+            } else {
+                alert('Vui lòng nhập IP và Port!');
             }
         });
 
-        document.getElementById('sendButton').addEventListener('click', function() {
-            const messageInput = document.getElementById('messageInput');
-            const message = messageInput.value;
+        document.getElementById('sendDataBtn').addEventListener('click', function () {
+            const jsonData = document.getElementById('jsonData').value;
 
-            // Kiểm tra trạng thái kết nối trước khi gửi
-            console.log('Trạng thái kết nối:', socket.readyState);
+            if (jsonData && socket && socket.readyState === WebSocket.OPEN) {
+                try {
+                    const jsonObj = JSON.parse(jsonData);  // Kiểm tra dữ liệu JSON hợp lệ
+                    const encodedData = btoa(JSON.stringify(jsonObj)); // Mã hóa base64
 
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(message);
-                document.getElementById('output').innerHTML += '<p>Gửi: ' + message + '</p>';
-                messageInput.value = ''; // Xóa ô nhập sau khi gửi
+                    console.log("Dữ liệu gửi đi: ", encodedData);  // Debug log
+
+                    socket.send(encodedData);  // Gửi dữ liệu đã mã hóa qua WebSocket
+                    alert('Dữ liệu đã gửi!');
+
+                } catch (e) {
+                    alert('Dữ liệu JSON không hợp lệ!');
+                    console.error("Lỗi trong dữ liệu JSON:", e);
+                }
+            } else if (!socket || socket.readyState !== WebSocket.OPEN) {
+                alert('Chưa kết nối tới server!');
             } else {
-                alert('Kết nối chưa mở!');
+                alert('Vui lòng nhập dữ liệu JSON trước khi gửi!');
+            }
+        });
+
+        document.getElementById('jsonData').addEventListener('keydown', function (e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+
+                this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
             }
         });
     </script>
+
 </body>
 </html>

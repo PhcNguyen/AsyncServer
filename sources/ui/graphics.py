@@ -7,10 +7,9 @@ import asyncio
 import threading
 import customtkinter as ctk
 import tkinter.messagebox as messagebox
-import tkinter.simpledialog as simpledialog
 
 from sources.utils import types
-from sources.configs import UIConfigs, MessageBox
+from sources.configs import UIConfigs
 from sources.utils.realtime import TimeUtil
 from sources.manager.files.filecache import FileCache
 from sources.utils.system import InternetProtocol, System
@@ -100,7 +99,7 @@ class Graphics(UIConfigs):
                 break
 
             await self._log(cache_file, log_target, is_error_log)
-            await asyncio.sleep(0.005)  # Chờ trước khi tiếp tục vòng lặp
+            await asyncio.sleep(0.00005)  # Chờ trước khi tiếp tục vòng lặp
 
         await self._log(cache_file, log_target, is_error_log)
         await self.cache.clear_file(cache_file)
@@ -148,35 +147,39 @@ class Graphics(UIConfigs):
 
     def stop_server(self) -> None:
         try:
-            minutes: float = simpledialog.askinteger(
-                "Thông báo", "Dừng máy chủ sau(minutes):", minvalue=0
-            )
+            if not messagebox.askyesno(
+                "Thông báo", "Xác nhận dừng máy chủ"
+            ): return
+
+            asyncio.run_coroutine_threadsafe(self._stop_server(), self.loop)
 
         except Exception as e:
             self.log_to_textbox(self.error_log, f"Lỗi khi cố gắng dừng máy chủ: {e}")
 
     def clear_logs(self):
-        confirm = messagebox.askyesno("Thông báo", "Xác nhận muốn xóa nhật ký ?")
+        if not messagebox.askyesno(
+            "Thông báo", "Xác nhận muốn xóa nhật ký?"
+        ): return
 
-        if confirm:
-            self._clear_textbox(self.server_log)
-            self._clear_textbox(self.error_log)
+        self._clear_textbox(self.server_log)
+        self._clear_textbox(self.error_log)
 
     def reload_server(self):
         """Reload server và các thành phần liên quan."""
-        confirm = messagebox.askyesno("Thông báo", f"Xác nhận tải lại chương trình ?")
+        if not messagebox.askyesno(
+            "Thông báo", "Xác nhận tải lại chương trình?"
+        ): return
 
-        if confirm:
-            if self.server.running:
-                self.stop_server()  # Dừng server nếu đang chạy
-                self.root.quit()
+        if self.server.running:
+            self._stop_server()
+            self.root.quit()
 
-            System.reset()
+        System.reset()
 
     def on_closing(self):
         """Xử lý khi người dùng nhấn nút X để đóng cửa sổ."""
         if self.server.running:
-            self.stop_server()
+            asyncio.gather(self._stop_server())
             self.running[2] = False
 
         # Dừng vòng lặp asyncio một cách an toàn

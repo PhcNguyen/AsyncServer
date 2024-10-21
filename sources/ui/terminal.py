@@ -58,14 +58,14 @@ class Terminal:
             if not self.server:
                 break
 
-            lines = await self.cache.read_lines()
+            lines = await self.cache.readlines()
             if lines:
                 for line in lines:
                     print(f"{line}")
 
             await asyncio.sleep(0.5)  # Chờ trước khi tiếp tục vòng lặp
 
-        lines = await self.cache.read_lines()
+        lines = await self.cache.readlines()
         if lines:
             for line in lines:
                 print(f"{line}")

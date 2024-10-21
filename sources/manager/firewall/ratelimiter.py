@@ -6,12 +6,11 @@ import datetime
 from collections import defaultdict
 
 
-
 class RateLimiter:
     def __init__(self, limit: int, period: int):
-        self.limit = limit  # Giới hạn số yêu cầu
-        self.period = period  # Thời gian trong giây
-        self.requests = defaultdict(list)  # Lưu trữ thời gian yêu cầu từ mỗi IP
+        self.limit = limit
+        self.period = period
+        self.requests = defaultdict(list)
 
     async def is_allowed(self, ip_address: str):
         current_time = datetime.datetime.now()
@@ -25,3 +24,11 @@ class RateLimiter:
             self.requests[ip_address].append(current_time)
             return True
         return False
+
+    def clean_inactive_ips(self):
+        """Loại bỏ các IP không gửi yêu cầu trong thời gian dài."""
+        current_time = datetime.datetime.now()
+        inactive_ips = [ip for ip, times in self.requests.items()
+                        if all((current_time - t).total_seconds() >= self.period for t in times)]
+        for ip in inactive_ips:
+            del self.requests[ip]
