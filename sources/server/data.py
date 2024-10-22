@@ -1,11 +1,10 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import time
 import json
 import asyncio
 
-from sources.utils.system import Response
+from sources.utils.response import ResponseBuilder
 from sources.utils.logger import AsyncLogger
 
 
@@ -14,8 +13,9 @@ class DataHandler:
     BUFFER_SIZE = 8192  # Buffer size for reading data
 
     def __init__(self,
-                 reader: asyncio.StreamReader = None,
-                 writer: asyncio.StreamWriter = None) -> None:
+        reader: asyncio.StreamReader = None,
+        writer: asyncio.StreamWriter = None
+    ) -> None:
         """Initialize the DataHandler instance."""
         self.reader = reader  # Use StreamReader for reading
         self.writer = writer  # Use StreamWriter for writing
@@ -30,29 +30,29 @@ class DataHandler:
                 # Ensure that transport (writer) is available before attempting to send
                 if self.writer is None:
                     await AsyncLogger.notify_error("No transport available.")
-                    return Response.error("No transport available.", error_code=1001)
+                    return ResponseBuilder.error(1001)
 
                 # Write the data from send_buffer and track the bytes sent
                 self.writer.write(self.send_buffer)
                 await self.writer.drain()
                 self.bytes_sent += len(self.send_buffer)
-                await AsyncLogger.notify(f"Sent {len(self.send_buffer)} bytes.")
+                await AsyncLogger.notify_info(f"Sent {len(self.send_buffer)} bytes.")
 
                 # Clear the send buffer after successful send
                 self.send_buffer.clear()
-                return Response.success("Data sent successfully", bytes_sent=self.bytes_sent)
+                return ResponseBuilder.success(9501, bytes_sent=self.bytes_sent)
 
-            except OSError as e:
-                if e.errno == 64:  # WinError 64
+            except OSError as error:
+                if error.errno == 64:  # WinError 64
                     await AsyncLogger.notify_error("Network error: The specified network name is no longer available.")
-                    return Response.error("Network error: The specified network name is no longer available.", error_code=5002)
+                    return ResponseBuilder.error(5002, error=error)
                 else:
-                    await AsyncLogger.notify_error(f"Error during send: {e}")
-                    return Response.error(f"Error during send: {e}", error_code=5001)
+                    await AsyncLogger.notify_error(f"Error during send: {error}")
+                    return ResponseBuilder.error(5003, error=error)
 
-            except Exception as e:
-                await AsyncLogger.notify_error(f"Unexpected error during send: {e}")
-                return Response.error(f"Unexpected error during send: {e}", error_code=5001)
+            except Exception as error:
+                await AsyncLogger.notify_error(f"Unexpected error during send: {error}")
+                return ResponseBuilder.error(5004, error=error)
 
     async def receive(self):
         """Receive and process data from transport."""
@@ -60,61 +60,74 @@ class DataHandler:
             try:
                 if self.reader is None:
                     await AsyncLogger.notify_error("No transport available.")
-                    return Response.error("No transport available.", error_code=1001)
+                    return ResponseBuilder.error(1001)
 
                 # Read data from transport with a timeout
-                data = await asyncio.wait_for(self.reader.read(self.BUFFER_SIZE), timeout=60.0)
+                data = await asyncio.wait_for(self.reader.read(self.BUFFER_SIZE), timeout=1.0)
 
                 if data.strip():
                     try:
                         if isinstance(data, bytes):
                             data = data.decode('utf-8')
                         decoded_data = json.loads(data)
-                        return Response.success("Data received successfully", data=decoded_data)
+                        return ResponseBuilder.success(9502, data=decoded_data)
 
                     except json.JSONDecodeError as error:
-                        return Response.error(f"JSON decoding error: {error}", error_code=2001)
+                        return ResponseBuilder.error(2001, error=error)
 
                 await asyncio.sleep(0.1)
             except asyncio.TimeoutError:
-                return Response.error("Timeout occurred while waiting for data.", error_code=3001)
-
+                return ResponseBuilder.error(3001)
             except UnicodeDecodeError as error:
-                return Response.error(f"Unicode decode error: {error}", error_code=4001)
-
+                return ResponseBuilder.error(4001, error=error)
             except Exception as error:
-                return Response.error(f"Unexpected error: {error}", error_code=5001)
+                return ResponseBuilder.error(5001, error=error)
 
     async def send(self, data):
         """Send data in different formats (str, dict, list, etc.)."""
         if data is None:
-            await AsyncLogger.notify_error("Data is None, nothing to send.")
-            return Response.error("Data is None, nothing to send.", error_code=1001)  # Mã lỗi: Không có dữ liệu để gửi
+            return
 
         # Handle various data types before sending
         try:
-            if isinstance(data, str):  # If data is a string
-                data = data.encode('utf-8')  # Convert to bytes
-            elif isinstance(data, (list, tuple, dict)):  # If data is a list/tuple/dict
-                data = json.dumps(data).encode('utf-8')  # Convert to JSON and then to bytes
-            elif isinstance(data, (int, float)):  # If data is a number
-                data = str(data).encode('utf-8')  # Convert to string and then bytes
-            elif isinstance(data, bytes):  # If data is already in bytes
-                pass  # No conversion necessary
-            else:
-                await AsyncLogger.notify_error(f"Unsupported data type: {type(data)}")
-                return Response.error(f"Unsupported data type: {type(data)}", error_code=5001)
+            # Sử dụng prepare_data để chuyển đổi dữ liệu sang bytes
+            data = prepare_data(data)
+
+            if isinstance(data, dict) and not data.get("status"):
+                # Nếu data là error response từ prepare_data, trả về luôn lỗi
+                return ResponseBuilder.error(404, data=data)
 
             # Add the data to the send buffer and attempt to send it
             self.send_buffer.extend(data)
             send_response = await self._try_send()
 
             if send_response and not send_response['status']:
-                # If there's an error during sending, return the error response
+                # If there's an error during sending, return the error Message
                 return send_response
 
-            return Response.success("Data sent successfully", bytes_sent=len(data))
+            return ResponseBuilder.success(9501, bytes_sent=len(data))
 
-        except Exception as e:
-            await AsyncLogger.notify_error(f"Error during send preparation: {e}")
-            return Response.error(f"Error during send preparation: {e}", error_code=5001)  # Mã lỗi: Lỗi không xác định
+        except Exception as error:
+            await AsyncLogger.notify_error(f"Error during send preparation: {error}")
+            return ResponseBuilder.error(5001, error=error)
+
+
+def prepare_data(data):
+    """Chuyển đổi dữ liệu sang định dạng byte."""
+    if isinstance(data, bytes):
+        return data  # Không cần chuyển đổi
+
+    # Chuyển đổi các kiểu dữ liệu khác sang bytes
+    try:
+        return (data.encode('utf-8')
+            if isinstance(data, str)
+            else json.dumps(data).encode('utf-8')
+            if isinstance(data, (list, tuple, dict))
+            else str(data).encode('utf-8')
+            if isinstance(data, (int, float))
+            else json.dumps(data.__dict__).encode('utf-8')
+            if hasattr(data, '__dict__')
+            else ResponseBuilder.error(4002)
+        )
+    except Exception as error:
+        return ResponseBuilder.error(5001, error=error)  # Xử lý lỗi chuyển đổi

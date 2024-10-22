@@ -32,19 +32,19 @@ class TcpServer:
     async def start(self):
         """Start the server and listen for incoming connections asynchronously."""
         if self.running:
-            await AsyncLogger.notify("Server is already running")
+            await AsyncLogger.notify_info("Server is already running")
             return
 
         if not await self.sql.start():
             self.running = False
-            await AsyncLogger.notify("SQL error occurred")
+            await AsyncLogger.notify_info("SQL error occurred")
             return
 
         await asyncio.sleep(2)
 
         try:
             self.running = True
-            await AsyncLogger.notify(f'Server processing Commands run at {self.server_address}')
+            await AsyncLogger.notify_info(f'Server processing Commands run at {self.server_address}')
 
             server = await asyncio.start_server(
                 self.client_handler.handle_client,
@@ -65,7 +65,7 @@ class TcpServer:
     async def stop(self):
         """Stop the server asynchronously."""
         if not self.running:
-            await AsyncLogger.notify("The server has stopped")
+            await AsyncLogger.notify_info("The server has stopped")
             return
 
         self.running = False
@@ -73,7 +73,7 @@ class TcpServer:
         await self.client_handler.close_all_connections()
         await self.sql.close()
 
-        await AsyncLogger.notify('The server has stopped')
+        await AsyncLogger.notify_info('The server has stopped')
 
 
 
@@ -109,16 +109,18 @@ class ClientHandler:
                 # Remove the session only if it's still in the list
                 if session in self.client_connections:
                     self.client_connections.remove(session)
-                # Decrement the connection count
-                self.server.current_connections -= 1
+
+            # Decrement the connection count
+            self.server.current_connections -= 1
         except Exception as e:
             # Catch any unexpected errors during disconnection
             await AsyncLogger.notify_error(f"Error while closing connection: {e}")
 
+
     async def close_all_connections(self):
         """Close all client connections."""
         if not self.client_connections:
-            await AsyncLogger.notify("No connections to close.")
+            await AsyncLogger.notify_info("No connections to close.")
             return
 
         # Create a list to hold the tasks
@@ -134,4 +136,4 @@ class ClientHandler:
             await task
 
         self.client_connections.clear()  # Clear the list of connections
-        await AsyncLogger.notify("All connections closed successfully.")
+        await AsyncLogger.notify_info("All connections closed successfully.")

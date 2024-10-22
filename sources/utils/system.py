@@ -16,7 +16,7 @@ import subprocess
 
 
 
-class Response:
+class Message:
     @staticmethod
     def success(message: str, **kwargs) -> dict:
         """Trả về dict với trạng thái thành công."""

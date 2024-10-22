@@ -44,14 +44,14 @@ class SQLite:
                 await AsyncLogger.notify_error(f"SQL: Error connecting to the database: {e}")
                 return False
         else:
-            await AsyncLogger.notify("SQL: Connection already established.")
+            await AsyncLogger.notify_info("SQL: Connection already established.")
             return True
 
     async def close(self) -> None:
         """Close the SQLite connection."""
         if self.conn:
             await self.conn.close()
-            await AsyncLogger.notify("SQL: Connection closed.")
+            await AsyncLogger.notify_info("SQL: Connection closed.")
             self.conn = None
         else:
-            await AsyncLogger.notify("SQL: Connection already closed or not established.")
+            await AsyncLogger.notify_info("SQL: Connection already closed or not established.")

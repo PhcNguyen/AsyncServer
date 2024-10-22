@@ -81,11 +81,10 @@ class Graphics(UIConfigs):
                 break
 
             await self._log(cache_file, log_target, is_error_log)
-            await asyncio.sleep(0.00005)  # Chờ trước khi tiếp tục vòng lặp
+            await asyncio.sleep(0.000000005)  # Chờ trước khi tiếp tục vòng lặp
 
         await self._log(cache_file, log_target, is_error_log)
         await self.cache.clear_file(cache_file)
-
 
     async def update_server_info(self):
         """Cập nhật thông tin server trong giao diện."""
@@ -104,7 +103,7 @@ class Graphics(UIConfigs):
                     self.update_label(2, "N/A")
                     self.update_label(3, "0.0 %")
                     self.update_label(4, "0 MB")
-                    self.update_label(5, "0")
+                    self.update_label(5, f"{self.server.current_connections}")
                     break  # Dừng vòng lặp nếu server không còn hoạt động
 
                 # Cập nhật thông tin server
@@ -113,10 +112,10 @@ class Graphics(UIConfigs):
                 self.update_label(4, f"{System.ram()} MB")  # Cập nhật giá trị RAM
                 self.update_label(5, f"{self.server.current_connections}")
 
-                await asyncio.sleep(0.8)  # Chờ trước khi tiếp tục vòng lặp
+                await asyncio.sleep(0.2)  # Chờ trước khi tiếp tục vòng lặp
             except Exception as e:
                 print(f"Lỗi xảy ra trong quá trình cập nhật thông tin: {e}")
-                await asyncio.sleep(1)  # Cho một khoảng dừng để tránh vòng lặp lỗi nhanh
+                await asyncio.sleep(0.8)  # Cho một khoảng dừng để tránh vòng lặp lỗi nhanh
 
     async def auto_log_server(self):
         await self._update_log("log-server.cache", self.server_log)

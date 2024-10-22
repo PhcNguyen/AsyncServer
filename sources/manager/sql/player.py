@@ -4,7 +4,7 @@
 import aiosqlite
 
 from sources.utils import types
-from sources.utils.system import Response
+from sources.utils.response import ResponseBuilder
 from sources.utils.sqlite import queries_line
 from sources.utils.logger import AsyncLogger
 
@@ -35,7 +35,7 @@ class PlayerManager:
                     player = await result.fetchone()
 
                 if player:
-                    return Response.success(
+                    return ResponseBuilder.success(
                         message="Thông tin người chơi đã được lấy thành công",
                         id=player[0],
                         name=player[1],
@@ -52,10 +52,10 @@ class PlayerManager:
                         description=player[12]
                     )
 
-                return Response.error(f"Người chơi với ID '{user_id}' không tồn tại.")
+                return ResponseBuilder.error(message=f"Người chơi với ID '{user_id}' không tồn tại.")
             except aiosqlite.Error as error:
                 await AsyncLogger.notify_error(f"SQLITE: {error}")
-                return Response.error(f"Lỗi khi lấy thông tin người chơi với ID '{user_id}': {error}")
+                return ResponseBuilder.error(message=f"Lỗi khi lấy thông tin người chơi với ID '{user_id}': {error}")
 
     async def update(self, user_id: int, **kwargs) -> dict:
         """Cập nhật thông tin của người chơi với ID đã cho."""
@@ -80,7 +80,7 @@ class PlayerManager:
                     await self.db.conn.execute(query, values)
                     await self.db.conn.commit()
 
-                return Response.success("Thông tin người chơi đã được cập nhật thành công.")
+                return ResponseBuilder.success(message="Thông tin người chơi đã được cập nhật thành công.")
             except aiosqlite.Error as error:
                 await AsyncLogger.notify_error(f"SQLITE: {error}")
-                return Response.error(f"Lỗi khi cập nhật thông tin người chơi với ID '{user_id}': {error}")
+                return ResponseBuilder.error(message=f"Lỗi khi cập nhật thông tin người chơi với ID '{user_id}': {error}")

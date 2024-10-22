@@ -3,15 +3,15 @@
 
 from sources.utils import types
 from sources.utils.cmd import Cmd
-from sources.utils.system import Response
+from sources.utils.response import ResponseBuilder
 from sources.utils.realtime import TimeUtil
 from sources.manager.security import JwtManager
 
 
 
 class CommandHandler:
-    def __init__(self, sql: types.SQLite | types.MySQL):
-        self.sqlite = sql
+    def __init__(self, database: types.SQLite | types.MySQL):
+        self.database = database
 
         # Mapping commands to corresponding handler methods
         self.command_list = {
@@ -29,13 +29,13 @@ class CommandHandler:
         try:
             command = Cmd[command_name]  # This allows accessing Cmd by name
         except KeyError:
-            return Response.error(f"Unknown command: {command_name}")
+            return ResponseBuilder.error(6001)
 
         handler = self.command_list.get(command)
         if handler:
             return await handler(data)
 
-        return Response.error(f"Handler not found for command: {command}")
+        return ResponseBuilder.error(6002)
 
     async def handle_login(self, data: dict):
         some_threshold = 20  # Minimum time threshold between logins
@@ -44,61 +44,60 @@ class CommandHandler:
         password = data.get("password", "")
 
         if not email or not password:
-            return Response.error("Thiếu email hoặc mật khẩu.")
+            return ResponseBuilder.error(6004)
 
-        account_info = await self.sqlite.account.info(email)
+        account_info = await self.database.account.info(email)
 
         if account_info["last_login"]:
             time_last_login = TimeUtil.to_vietnam(account_info["last_login"])
             if TimeUtil.since(time_last_login) < some_threshold:
-                return Response.error("Bạn đã đăng nhập tài khoản quá nhanh. Vui lòng thử lại sau ít phút.")
+                return ResponseBuilder.error(6005)
 
-        await self.sqlite.account.update_last_login(email)
+        await self.database.account.update_last_login(email)
 
         # Validate email and password
-        response = await self.sqlite.account.login(email, password)
+        response = await self.database.account.login(email, password)
 
         if response.get("status"):
             if account_info["active"]:
-                return Response.error("Tài khoản đang trực tuyến.")
+                return ResponseBuilder.error(6006)
 
             # Generate token if login is successful
             token = JwtManager.create_token(email)
-            return Response.success("Đăng nhập thành công.", token=token)
+            return ResponseBuilder.success(9001, token=token)
         else:
-            return response  # Return the error message from the response
+            return ResponseBuilder  # Return the error message from the ResponseBuilder
 
     async def handle_logout(self, data: dict):
         user_id = data.get("id")
         if user_id is None:
-            return Response.error("Thiếu ID người dùng.")
+            return ResponseBuilder.error(6007)
 
         try:
             user_id = int(user_id)
         except ValueError:
-            return Response.error("ID người dùng không hợp lệ.")
+            return ResponseBuilder.error(6007)
 
-        await self.sqlite.account.logout(user_id)
-        return Response.success("Đăng xuất thành công.")
+        await self.database.account.logout(user_id)
+        return ResponseBuilder.success(9002)
 
     async def handle_register(self, data: dict):
         email = data.get("email", "")
         password = data.get("password", "")
 
         if not email or not password:
-            return Response.error("Cần có email và mật khẩu.")
+            return ResponseBuilder.error(6008)
 
-        return await self.sqlite.account.register(email, password)
+        return await self.database.account.register(email, password)
 
     async def handle_player(self, data: dict):
         user_id = data.get("id")
         if user_id is None:
-            return Response.error("Thiếu ID người dùng.")
-
+            return ResponseBuilder.error(6007)
         try:
             user_id = int(user_id)  # Cast user_id to int
         except ValueError:
-            return Response.error("ID người dùng không hợp lệ.")
+            return ResponseBuilder.error(6007)
 
-        player_info = await self.sqlite.player.get(user_id)
-        return Response.success("Thông tin người chơi đã được lấy.", player_info=player_info)
+        info = await self.database.player.get(user_id)
+        return ResponseBuilder.info(info=info)
