@@ -22,6 +22,6 @@ if __name__ == "__main__":
         from sources.ui.graphics import Graphics
 
         # Initialize Graphics only if --nogui is not present
-        app = Graphics(Graphics.root, tcp_server, None)
+        app = Graphics(Graphics.root, tcp_server)
         # Start the GUI main loop
         Graphics.root.mainloop()

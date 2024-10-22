@@ -242,45 +242,8 @@ class UIConfigs:
         """Reload the server and update UI accordingly."""
         pass  # Logic for reloading the server
 
+    def update_start_button(self, state):
+        self.start_button.configure(state="normal" if state else "disabled")
 
-class MessageBox:
-    def __init__(self, master, countdown, callback):
-        self.master = master
-        self.countdown = countdown
-        self.callback = callback
-
-        # Tạo cửa sổ mới
-        self.dialog = ctk.CTkToplevel(master)
-        self.dialog.title("Thông báo")
-        self.dialog.geometry("260x120")  # Kích thước cửa sổ
-        self.dialog.resizable(False, False)
-
-        # Tạo nhãn để hiển thị thông báo
-        self.label = ctk.CTkLabel(self.dialog, text=f"Máy chủ sẽ dừng sau {self.countdown} giây", anchor="center")
-        self.label.pack(anchor="nw", padx=10, pady=10)
-
-        # Tạo nút tắt ngay
-        self.stop_button = ctk.CTkButton(self.dialog, text="Tắt ngay", command=self.stop_now, width=100)
-        self.stop_button.pack(side=ctk.LEFT, padx=20)
-
-        # Tạo nút hủy
-        self.cancel_button = ctk.CTkButton(self.dialog, text="Hủy", command=self.cancel, width=100)
-        self.cancel_button.pack(side=ctk.RIGHT, padx=20)
-
-        # Bắt đầu đếm ngược
-        self.update_countdown()
-
-    def update_countdown(self):
-        if self.countdown > 0:
-            self.label.configure(text=f"Máy chủ sẽ dừng sau {self.countdown} giây")  # Sử dụng configure
-            self.countdown -= 1
-            self.master.after(1000, self.update_countdown)  # Gọi lại sau 1 giây
-        else:
-            self.stop_now()  # Dừng máy chủ khi đếm ngược về 0
-
-    def cancel(self):
-        self.dialog.destroy()  # Đóng cửa sổ nếu người dùng chọn hủy
-
-    def stop_now(self):
-        self.callback()  # Gọi hàm dừng máy chủ
-        self.dialog.destroy()
+    def update_stop_button(self, state):
+        self.stop_button.configure(state="normal" if state else "disabled")

@@ -2,7 +2,6 @@
 # Distributed under the terms of the Modified TUDL License.
 
 from sources.manager.security.jwt_manager import JwtManager
-from sources.manager.security.login_attempts import LoginAttempts
 
 
 

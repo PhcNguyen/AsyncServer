@@ -1,14 +1,23 @@
-import customtkinter as ctk
 import socket
 import threading
+import json
+from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                             QTextEdit, QTabWidget)
+from PyQt6.QtCore import Qt, pyqtSignal, QObject
 
-class SocketManager:
+class SocketManager(QObject):
     """Class to handle socket operations using blocking sockets."""
+    data_received = pyqtSignal(str)  # Define a signal to emit when data is received
+
     def __init__(self, app):
+        super().__init__()
         self.app = app
         self.sock = None
         self.connected = False
         self.receive_thread = None
+
+        # Connect the data_received signal to the update_log method of the app
+        self.data_received.connect(self.app.update_log)
 
     def connect(self, ip, port):
         """Connect to the server using a blocking socket."""
@@ -73,105 +82,116 @@ class SocketManager:
             while self.connected:
                 data = self.sock.recv(1024)
                 if data:
-                    self.app.update_log(f"Server: {data.decode()}")
+                    # Emit the data_received signal with the received data
+                    self.data_received.emit(data.decode())
                 else:
                     self.app.update_log("Connection closed by server.")
                     self.disconnect()
                     break
         except Exception as e:
             self.app.update_log(f"Error receiving data: {e}")
+        finally:
+            print("Receive thread has exited.")  # Log when thread ends
 
-class ClientApp(ctk.CTk):
+
+class ClientApp(QWidget):
     """UI class that handles user interface and interaction with SocketManager."""
     def __init__(self):
         super().__init__()
 
-        self.send_button = None
-        self.send_entry = None
-        self.send_data_label = None
-        self.title("Client Application")
-        self.geometry("600x500")
+        self.setWindowTitle("Client Application")
+        self.setGeometry(100, 100, 600, 500)
 
-        # TabView
-        self.tab_view = ctk.CTkTabview(self)
-        self.tab_view.pack(expand=True, fill="both")
+        # Tab Widget
+        self.tab_widget = QTabWidget(self)
+        self.layout = QVBoxLayout(self)
+        self.layout.addWidget(self.tab_widget)
 
-        # Tạo các tab: "Kết nối", "Nhận dữ liệu", "Send Data"
-        self.tab_connect = self.tab_view.add("Kết nối")
-        self.tab_response = self.tab_view.add("Nhận dữ liệu")
-        self.tab_send_data = self.tab_view.add("Send Data")  # Tab mới để gửi dữ liệu
+        # Create tabs
+        self.tab_connect = QWidget()
+        self.tab_response = QWidget()
+        self.tab_send_data = QWidget()
+
+        self.tab_widget.addTab(self.tab_connect, "Kết nối")
+        self.tab_widget.addTab(self.tab_response, "Nhận dữ liệu")
+        self.tab_widget.addTab(self.tab_send_data, "Send Data")
 
         # Variables to hold socket and connection state
         self.socket_manager = SocketManager(self)
 
-        # Declare UI components as instance attributes
+        # Declare UI components
         self.label_ip = None
         self.entry_ip = None
         self.label_port = None
         self.entry_port = None
-        self.label_data = None
-        self.entry_data = None
-        self.button_connect = None
-        self.button_disconnect = None
-        self.button_send = None
-        self.textbox = None
         self.connection_status_label = None  # For the connection status inside the "Kết nối" tab
 
-        # Create the connection tab first to initialize UI elements
+        # Create tabs
         self.create_connection_tab()
-
-        # Create the response tab
         self.create_response_tab()
-
-        # Create the send data tab
         self.create_send_data_tab()
 
     def create_connection_tab(self):
         """Tạo giao diện cho tab 'Kết nối'"""
-        self.label_ip = ctk.CTkLabel(self.tab_connect, text="IP Address:")
-        self.label_ip.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        layout = QVBoxLayout()
 
-        self.entry_ip = ctk.CTkEntry(self.tab_connect)
-        self.entry_ip.grid(row=0, column=1, padx=10, pady=10, sticky="w")
-        self.entry_ip.insert(0, "192.168.1.2")  # Default IP
+        self.label_ip = QLabel("IP Address:")
+        self.entry_ip = QLineEdit()
+        self.entry_ip.setText("192.168.1.2")  # Default IP
 
-        self.label_port = ctk.CTkLabel(self.tab_connect, text="Port:")
-        self.label_port.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.label_port = QLabel("Port:")
+        self.entry_port = QLineEdit()
+        self.entry_port.setText("7272")  # Default Port
 
-        self.entry_port = ctk.CTkEntry(self.tab_connect)
-        self.entry_port.grid(row=1, column=1, padx=10, pady=10, sticky="w")
-        self.entry_port.insert(0, "7272")  # Default Port
+        # Connection status label
+        self.connection_status_label = QLabel("Connection Status: Disconnected")
 
-        # Update connection status label
-        self.connection_status_label = ctk.CTkLabel(self.tab_connect, text="Connection Status: Disconnected", font=("Arial", 12))
-        self.connection_status_label.grid(row=2, column=0, columnspan=2, pady=10)
+        self.button_connect = QPushButton("Connect")
+        self.button_disconnect = QPushButton("Disconnect")
 
-        self.button_connect = ctk.CTkButton(self.tab_connect, text="Connect", command=self.connect_to_server)
-        self.button_connect.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+        # Connect button signals
+        self.button_connect.clicked.connect(self.connect_to_server)
+        self.button_disconnect.clicked.connect(self.disconnect_from_server)
 
-        self.button_disconnect = ctk.CTkButton(self.tab_connect, text="Disconnect", command=self.disconnect_from_server)
-        self.button_disconnect.grid(row=3, column=1, padx=10, pady=10, sticky="w")
+        # Add widgets to layout
+        layout.addWidget(self.label_ip)
+        layout.addWidget(self.entry_ip)
+        layout.addWidget(self.label_port)
+        layout.addWidget(self.entry_port)
+        layout.addWidget(self.connection_status_label)
+        layout.addWidget(self.button_connect)
+        layout.addWidget(self.button_disconnect)
+
+        self.tab_connect.setLayout(layout)
 
     def create_response_tab(self):
         """Tạo giao diện cho tab 'Nhận dữ liệu'"""
-        self.textbox = ctk.CTkTextbox(self.tab_response, height=20, width=70)
-        self.textbox.pack(pady=10, padx=10, expand=True, fill="both")
+        layout = QVBoxLayout()
+        self.textbox = QTextEdit()
+        self.textbox.setReadOnly(True)
+        layout.addWidget(self.textbox)
+        self.tab_response.setLayout(layout)
 
     def create_send_data_tab(self):
         """Tạo giao diện cho tab 'Send Data'"""
-        self.send_data_label = ctk.CTkLabel(self.tab_send_data, text="Data to send:", font=("Arial", 14))
-        self.send_data_label.pack(pady=10, padx=10)
+        layout = QVBoxLayout()
 
-        self.send_entry = ctk.CTkEntry(self.tab_send_data, width=400)  # Make it wider
-        self.send_entry.pack(pady=10, padx=10)
+        self.send_data_label = QLabel("Send (JSON):")
+        self.send_entry = QLineEdit()
 
-        self.send_button = ctk.CTkButton(self.tab_send_data, text="Send", command=self.send_data)
-        self.send_button.pack(pady=10)
+        self.send_button = QPushButton("Send")
+        self.send_button.clicked.connect(self.send_data)
+
+        layout.addWidget(self.send_data_label)
+        layout.addWidget(self.send_entry)
+        layout.addWidget(self.send_button)
+
+        self.tab_send_data.setLayout(layout)
 
     def connect_to_server(self):
         """Xử lý khi người dùng nhấn nút Connect"""
-        ip = self.entry_ip.get()
-        port = int(self.entry_port.get())
+        ip = self.entry_ip.text()
+        port = int(self.entry_port.text())
         self.socket_manager.connect(ip, port)
 
     def disconnect_from_server(self):
@@ -180,34 +200,37 @@ class ClientApp(ctk.CTk):
 
     def send_data(self):
         """Xử lý khi người dùng nhấn nút Send Data"""
-        data = self.send_entry.get()  # Get data from send tab
-        self.socket_manager.send_data(data)
+        data = self.send_entry.text()
+        # Validate and format JSON data before sending
+        try:
+            json_data = json.loads(data)  # This will raise an error if data is not valid JSON
+            formatted_json = json.dumps(json_data, indent=4)  # Format JSON for better readability
+            self.socket_manager.send_data(formatted_json)  # Send formatted JSON
+            self.update_log(f"Sent: \n{formatted_json}")  # Show formatted JSON in log
+        except json.JSONDecodeError:
+            self.update_log("Invalid JSON format. Please enter valid JSON data.")
 
     def update_log(self, message):
         """Update the log area with new messages"""
-        self.textbox.insert("end", f"{message}\n")
-        self.textbox.yview("end")
+        self.textbox.append(message)
 
     def update_connect_button(self, state):
         """Enable/disable the connect button"""
-        self.button_connect.configure(state="normal" if state else "disabled")
+        self.button_connect.setEnabled(state)
 
     def update_send_button(self, state):
         """Enable/disable the send button"""
-        self.button_send.configure(state="normal" if state else "disabled")
+        self.send_button.setEnabled(state)
 
     def update_connection_status(self, status):
         """Update the connection status on the connection tab"""
-        if self.connection_status_label:  # Ensure the label exists
-            self.connection_status_label.configure(text=f"Connection Status: {status}")
+        self.connection_status_label.setText(f"Connection Status: {status}")
 
 
 if __name__ == "__main__":
-    ctk.set_appearance_mode("dark")  # Optional: change to 'light' if needed
-    ctk.set_default_color_theme("blue")
+    app = QApplication([])
 
-    # Run the application
-    app = ClientApp()
+    client_app = ClientApp()
+    client_app.show()
 
-    # Start the event loop for the application
-    app.mainloop()
+    app.exec()

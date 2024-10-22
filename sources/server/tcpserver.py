@@ -4,28 +4,19 @@
 import asyncio
 from typing import List, Tuple
 
-from sources.utils import types, system
+from sources.utils import types
 from sources.utils.logger import AsyncLogger
 from sources.server.tcpsession import TcpSession
+from sources.utils.system import InternetProtocol
 
 
 
 class TcpServer:
-    """
-        Configuration settings for network communication.
-
-        Attributes:
-        - LOCAL (str): Local IP address of the machine.
-        - PUBLIC (str): Public IP address of the machine.
-        - PORT (int): Port number for network communication (default is 7272).
-
-    """
     DEBUG: bool = False
-    PORT: int = 7272  # Default port number
-    LOCAL: str = system.InternetProtocol.local()  # Retrieve local IP address
-    PUBLIC: str = system.InternetProtocol.public()  # Retrieve public IP address
-    MAX_CONNECTIONS = 1000000  # Giới hạn số lượng kết nối tối đa
-
+    PORT: int   = 7272                       # Default port number
+    LOCAL: str  = InternetProtocol.local()   # Retrieve local IP address
+    PUBLIC: str = InternetProtocol.public()  # Retrieve public IP address
+    MAX_CONNECTIONS = 1000000                # Giới hạn số lượng kết nối tối đa
 
     def __init__(self, host: str, port: int, sql: types.SQLite | types.MySQL):
         self.sql = sql
@@ -56,11 +47,10 @@ class TcpServer:
             await AsyncLogger.notify(f'Server processing Commands run at {self.server_address}')
 
             server = await asyncio.start_server(
-                self.client_handler.handle_client, *self.server_address,
+                self.client_handler.handle_client,
+                *self.server_address,
                 reuse_address=True
             )
-
-            # asyncio.create_task(self.firewall.auto_unblock_ips())
 
             async with server:
                 await server.serve_forever()
@@ -80,55 +70,33 @@ class TcpServer:
 
         self.running = False
 
-        await self.sql.close()
         await self.client_handler.close_all_connections()
+        await self.sql.close()
+
         await AsyncLogger.notify('The server has stopped')
-
-    def increment_connection(self):
-        self.current_connections += 1
-
-    def decrement_connection(self):
-        self.current_connections -= 1
-
-    def can_accept_connections(self):
-        return self.current_connections < self.MAX_CONNECTIONS
 
 
 
 class ClientHandler:
-    def __init__(self, tcp_server: TcpServer, sql: types.SQLite | types.MySQL):
+    def __init__(self, server: TcpServer, sql: types.SQLite | types.MySQL):
         self.sql = sql
-        self.tcp_server = tcp_server
+        self.server = server
         self.client_connections: List[TcpSession] = []  # Store TcpSession objects
-
-        asyncio.create_task(self.check_disconnected_clients())
 
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Handle data from a client asynchronously with timeout."""
         # Create TcpSession for the connected client
-        session = TcpSession(self.tcp_server, self.sql)
+        session = TcpSession(self.server, self.sql)
         await session.connect(reader, writer)
+
         self.client_connections.append(session)
-        self.tcp_server.increment_connection()  # Tăng số lượng kết nối
+        self.server.current_connections += 1  # Tăng số lượng kết nối
 
         try:
-            while session.is_connected:
-                await asyncio.sleep(1)  # Keep the session alive
+            # Wait for the client to send data or for the connection to be closed
+            await session.receive_data()  # This will manage waiting for data.
         finally:
             await self.close_connection(session)
-
-    async def check_disconnected_clients(self):
-        """Periodically check and close disconnected client sessions."""
-        while True:
-            await asyncio.sleep(5)  # Check every 5 seconds (adjust if needed)
-
-            disconnected_sessions = [
-                session for session in self.client_connections
-                if not session.is_connected
-            ]
-
-            for session in disconnected_sessions:
-                await self.close_connection(session)
 
     async def close_connection(self, session: TcpSession):
         """Close a client connection."""
@@ -141,19 +109,29 @@ class ClientHandler:
                 # Remove the session only if it's still in the list
                 if session in self.client_connections:
                     self.client_connections.remove(session)
-                else:
-                    await AsyncLogger.notify(f"Session {session.id} already removed from the list.")
-
                 # Decrement the connection count
-                self.tcp_server.decrement_connection()
-            else:
-                await AsyncLogger.notify(f"Session {session.id} already disconnected.")
+                self.server.current_connections -= 1
         except Exception as e:
             # Catch any unexpected errors during disconnection
             await AsyncLogger.notify_error(f"Error while closing connection: {e}")
 
     async def close_all_connections(self):
         """Close all client connections."""
-        close_tasks = [self.close_connection(session) for session in self.client_connections]
-        await asyncio.gather(*close_tasks)
-        self.client_connections.clear()
+        if not self.client_connections:
+            await AsyncLogger.notify("No connections to close.")
+            return
+
+        # Create a list to hold the tasks
+        close_tasks = []
+
+        # Schedule each close_connection call as a task
+        for session in self.client_connections:
+            task = asyncio.create_task(self.close_connection(session))
+            close_tasks.append(task)
+
+        # Optionally await each task if you need to ensure they complete later
+        for task in close_tasks:
+            await task
+
+        self.client_connections.clear()  # Clear the list of connections
+        await AsyncLogger.notify("All connections closed successfully.")

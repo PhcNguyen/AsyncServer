@@ -17,14 +17,15 @@ from sources.utils.system import InternetProtocol, System
 
 
 class Graphics(UIConfigs):
-    def __init__(self, root: ctk.CTk, server: types.TcpServer, subserver: typing.Optional[types.TcpServer] = None):
+    """Handles the graphical user interface and server management."""
+
+    def __init__(self, root: ctk.CTk, server: types.TcpServer):
         super().__init__(root)  # Gọi khởi tạo của lớp cha
 
         self.current_log = None  # Biến để theo dõi khu vực văn bản hiện tại
         self.cache: FileCache = FileCache()
-        self.server: types.TcpServer = server                # Máy chủ đầu tiên
-        self.subserver: typing.Optional[types.TcpServer] = subserver  # Máy chủ thứ hai
-        self.running: list = [False, False, True]  # Biến để theo dõi trạng thái của server
+        self.server: typing.Optional[types.TcpServer] = server
+        self.running = True
 
         # Đăng ký sự kiện đóng cửa sổ
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -37,51 +38,32 @@ class Graphics(UIConfigs):
         threading.Thread(target=self.loop.run_forever, daemon=True).start()
 
     async def _start_server(self):
-        try:
-            self.start_button.configure(state='disabled')
+        """Starts the server asynchronously and manages log updates."""
+        self.update_start_button(False)
 
-            # Tạo các tác vụ tự động cập nhật thông tin
-            asyncio.create_task(self.auto_log_error())
-            asyncio.create_task(self.auto_log_server())
+        # Tạo các tác vụ tự động cập nhật thông tin
+        asyncio.create_task(self.auto_log_error())
+        asyncio.create_task(self.auto_log_server())
 
-            if not self.server.running:
-                asyncio.create_task(self.server.start())
+        if not self.server.running:
+            asyncio.create_task(self.server.start())
 
-            if self.subserver:
-                asyncio.create_task(self.subserver.start())
-                self.running[1] = True
+        await asyncio.sleep(3.3)
+        asyncio.create_task(self.auto_updater_info())
+        asyncio.create_task(self.update_server_info())
 
-            asyncio.create_task(self.auto_updater_info())
-            await asyncio.sleep(3.3)
-            asyncio.create_task(self.update_server_info())
-
-            if self.server.running:
-                self.stop_button.configure(state='normal')
-            else:
-                self.start_button.configure(state='normal')
-                self.stop_button.configure(state='disabled')
-
-        except Exception as e:
-            self.log_to_textbox(self.error_log, f"Lỗi khởi động máy chủ: {e}")
-            self.start_button.configure(state='normal')
-            self.stop_button.configure(state='disabled')
+        self.update_stop_button(True)
 
     async def _stop_server(self):
-        try:
-            self.stop_button.configure(state='disabled')
+        """Stops the server and updates the GUI accordingly."""
+        self.update_stop_button(False)
 
-            if self.server.running:
-                await self.server.stop()  # Chạy lệnh dừng server chính
+        if self.server.running:
+            await self.server.stop()  # Chạy lệnh dừng server chính
+            self.running = False
 
-            if self.running[1]:
-                await self.subserver.stop()  # Dừng máy chủ thứ hai nếu có
-                self.running[1] = False  # Đánh dấu server2 đã dừng
-
-        except Exception as e:
-            self.log_to_textbox(self.error_log, f"Lỗi khi dừng máy chủ: {e}")
-        finally:
-            self.start_button.configure(state='normal')
-            await self.update_server_info()
+        await self.update_server_info()
+        self.update_start_button(True)
 
 
     async def _log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
@@ -95,7 +77,7 @@ class Graphics(UIConfigs):
 
     async def _update_log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
         while True:
-            if not self.running[2]:
+            if not self.running:
                 break
 
             await self._log(cache_file, log_target, is_error_log)
@@ -104,9 +86,10 @@ class Graphics(UIConfigs):
         await self._log(cache_file, log_target, is_error_log)
         await self.cache.clear_file(cache_file)
 
+
     async def update_server_info(self):
         """Cập nhật thông tin server trong giao diện."""
-        if self.server.running:
+        if self.running:
             self.update_label(0, f"{self.server.LOCAL}")
             self.update_label( 1, f"{self.server.PUBLIC}")
         else:
@@ -117,7 +100,7 @@ class Graphics(UIConfigs):
         """Cập nhật trạng thái CPU, RAM, Ping và số lượng kết nối định kỳ."""
         while True:
             try:
-                if not self.running[2]:
+                if not self.running:
                     self.update_label(2, "N/A")
                     self.update_label(3, "0.0 %")
                     self.update_label(4, "0 MB")
@@ -128,7 +111,7 @@ class Graphics(UIConfigs):
                 self.update_label(2, f"{InternetProtocol.ping()} ms")
                 self.update_label(3, f"{System.cpu()} %")  # Cập nhật giá trị CPU
                 self.update_label(4, f"{System.ram()} MB")  # Cập nhật giá trị RAM
-                self.update_label(5, "N/A")
+                self.update_label(5, f"{self.server.current_connections}")
 
                 await asyncio.sleep(0.8)  # Chờ trước khi tiếp tục vòng lặp
             except Exception as e:
@@ -140,6 +123,7 @@ class Graphics(UIConfigs):
 
     async def auto_log_error(self):
         await self._update_log("log-error.cache", self.error_log, is_error_log=True)
+
 
     def start_server(self):
         """Bắt đầu server với coroutine."""
@@ -180,7 +164,7 @@ class Graphics(UIConfigs):
         """Xử lý khi người dùng nhấn nút X để đóng cửa sổ."""
         if self.server.running:
             asyncio.gather(self._stop_server())
-            self.running[2] = False
+            self.server.running = False
 
         # Dừng vòng lặp asyncio một cách an toàn
         if self.loop.is_running():
@@ -190,7 +174,6 @@ class Graphics(UIConfigs):
         self.root.quit()
 
         del self.server
-        del self.subserver
         del self.loop
         del self.cache
 

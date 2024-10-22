@@ -135,26 +135,21 @@ class ClientHandler:
 
 
 class TcpServer:
-    """
-    Lớp TcpServer để quản lý kết nối mạng và xử lý dữ liệu.
-
-    Thuộc tính:
-    - host: Địa chỉ host cho kết nối mạng.
-    - port: Số port cho kết nối mạng.
-    - handle_data: Hàm xử lý dữ liệu đến.
-
-    Phương thức:
-    - start: Khởi tạo mạng và bắt đầu chấp nhận kết nối.
-    - stop: Dừng máy chủ mạng.
-    """
     PORT: int = ...
     LOCAL: str = ...
     PUBLIC: str = ...
+
     def __init__(self, host: str, port: int, sql: SQLite | MySQL):
         """Khởi tạo cài đặt mạng và hàm xử lý dữ liệu."""
         self.host = host
         self.port = port
         self.running: bool = False
+
+        self.stop_event = asyncio.Event()
+        self.server_address: [str, int] = (host, port)
+        self.running: bool = False
+        self.client_handler = ...
+        self.current_connections = 0  # Số lượng kết nối hiện tại
 
     async def start(self): ...
     async def stop(self): ...
