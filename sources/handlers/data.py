@@ -63,7 +63,7 @@ class DataHandler:
                     return ResponseBuilder.error(1001)
 
                 # Read data from transport with a timeout
-                data = await asyncio.wait_for(self.reader.read(self.BUFFER_SIZE), timeout=1.0)
+                data = await asyncio.wait_for(self.reader.read(self.BUFFER_SIZE), timeout=10.0)
 
                 if data.strip():
                     try:
@@ -78,8 +78,10 @@ class DataHandler:
                 await asyncio.sleep(0.1)
             except asyncio.TimeoutError:
                 return ResponseBuilder.error(3001)
+
             except UnicodeDecodeError as error:
                 return ResponseBuilder.error(4001, error=error)
+
             except Exception as error:
                 return ResponseBuilder.error(5001, error=error)
 
@@ -120,14 +122,13 @@ def prepare_data(data):
     # Chuyển đổi các kiểu dữ liệu khác sang bytes
     try:
         return (data.encode('utf-8')
-            if isinstance(data, str)
-            else json.dumps(data).encode('utf-8')
-            if isinstance(data, (list, tuple, dict))
-            else str(data).encode('utf-8')
-            if isinstance(data, (int, float))
-            else json.dumps(data.__dict__).encode('utf-8')
-            if hasattr(data, '__dict__')
-            else ResponseBuilder.error(4002)
-        )
+        if isinstance(data, str)
+        else json.dumps(data).encode('utf-8')
+        if isinstance(data, (list, tuple, dict))
+        else str(data).encode('utf-8')
+        if isinstance(data, (int, float))
+        else json.dumps(data.__dict__).encode('utf-8')
+        if hasattr(data, '__dict__')
+        else ResponseBuilder.error(4002))
     except Exception as error:
         return ResponseBuilder.error(5001, error=error)  # Xử lý lỗi chuyển đổi

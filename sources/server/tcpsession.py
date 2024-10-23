@@ -12,9 +12,11 @@ from sources.manager.firewall import RateLimiter
 from sources.handlers.command import CommandHandler
 
 
-
 class TcpSession:
-    def __init__(self,
+    """Manages a TCP session between the server and a client."""
+
+    def __init__(
+        self,
         server: types.TcpServer,
         database: typing.Optional[types.SQLite | types.MySQL]
     ) -> None:
@@ -28,20 +30,19 @@ class TcpSession:
         self.id = uuid.uuid4()
         self.data_handler = DataHandler(None)
         self.command_handler = CommandHandler(database)
-        self.rate_limiter = RateLimiter(limit=1, period=2)  # Giới hạn 5 yêu cầu trong 5 giây
+        self.rate_limiter = RateLimiter(limit=1, period=2)  # Limit 1 request per 2 seconds
 
     async def connect(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        """Kết nối với client và thiết lập thông tin phiên."""
+        """Establish a connection with the client and set session details."""
         try:
             self.client_address = writer.get_extra_info('peername')
-
             self.reader = reader
             self.writer = writer
             self.is_connected = True
 
             self.data_handler = DataHandler(self.reader, self.writer)
 
-            # Kiểm tra giới hạn tốc độ
+            # Rate limit check
             if not await self.rate_limiter.is_allowed(self.client_address[0]):
                 await self.data_handler.send({
                     "status": False,
@@ -57,12 +58,13 @@ class TcpSession:
             await self.disconnect()
 
     async def disconnect(self):
-        """Ngắt kết nối client một cách an toàn."""
-        if not self.is_connected: return
+        """Safely disconnect the client."""
+        if not self.is_connected:
+            return
         try:
-            # Đánh dấu phiên làm việc đã bị ngắt
-            self.is_connected = False
-            # Đóng writer nếu tồn tại
+            self.is_connected = False  # Mark the session as disconnected
+
+            # Safely close the writer
             if self.writer:
                 await self.writer.drain()
                 try:
@@ -71,38 +73,33 @@ class TcpSession:
                     self.writer.close()
 
             await AsyncLogger.notify_info(f"Port disconnected: {self.client_address[1]}")
+
         except Exception as e:
             await AsyncLogger.notify_error(f"Disconnection error: {e}")
 
     async def receive_data(self):
-        """Nhận dữ liệu từ client với timeout."""
+        """Receive and process data from the client with timeout handling."""
         while self.is_connected:
-            try:
-                data = await self.data_handler.receive()
-                code = data.get("code")
+            data = await self.data_handler.receive()
+            code = data.get("code", "")
 
-                if not isinstance(data, dict):
-                    await AsyncLogger.notify_error("Received data is not a dictionary.")
-                    await self.disconnect()
-                    break
-
-                # Ngắt kết nối nếu có lỗi hoặc status False
-                if isinstance(code, int) and code == 404:
-                    await self.disconnect()
-                    break
-
-                if (isinstance(code, int)
-                and code in [5001, 5002, 3001, 4002]
-                or not data.get('status')):
-                    await self.data_handler.send(data)
-                    await self.disconnect()
-                    break
-
-                response = await self.command_handler.process_command(data)
-                await self.data_handler.send(response)
-
-            except Exception as e:
-                # Log lỗi nếu xảy ra, sau đó ngắt kết nối
-                await AsyncLogger.notify_error(f"Error during receive_data: {e}")
+            if not isinstance(data, dict):
+                await AsyncLogger.notify_error("Received data is not a dictionary.")
                 await self.disconnect()
                 break
+
+            # Handle specific disconnect codes
+            if isinstance(code, int) and code in [1001, 3001]:
+                await self.disconnect()
+                break
+
+            if (isinstance(code, int)
+            and code in [404, 5001, 5002, 5003, 5004]
+            or not data.get('status')):
+                await self.data_handler.send(data)
+                await self.disconnect()
+                break
+
+            # Process command and send the response
+            response = await self.command_handler.process_command(data)
+            await self.data_handler.send(response)

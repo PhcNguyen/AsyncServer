@@ -18,16 +18,20 @@ class TcpServer:
     PUBLIC: str = InternetProtocol.public()  # Retrieve public IP address
     MAX_CONNECTIONS = 1000000                # Giới hạn số lượng kết nối tối đa
 
-    def __init__(self, host: str, port: int, database: types.SQLite | types.MySQL):
-        self.database = database
+    def __init__(
+        self, host: str, port: int,
+        database: types.SQLite | types.MySQL
+    ) -> None:
         self.host = host
         self.port = port
+        self.running = False
+        self.database = database
+        self.current_connections = 0  # Số lượng kết nối hiện tại
 
         self.stop_event = asyncio.Event()
         self.server_address: Tuple[str, int] = (host, port)
-        self.running: bool = False
         self.client_handler = ClientHandler(self, self.database)
-        self.current_connections = 0  # Số lượng kết nối hiện tại
+
 
     async def start(self):
         """Start the server and listen for incoming connections asynchronously."""
@@ -54,10 +58,12 @@ class TcpServer:
 
             async with server:
                 await server.serve_forever()
+
         except OSError as error:
             self.running = False
             await AsyncLogger.notify_error(f"OSError: {str(error)} - {self.server_address}")
             await asyncio.sleep(5)  # Retry after 5 seconds
+
         except Exception as error:
             self.running = False
             await AsyncLogger.notify_error(f"Server: {error}")
@@ -78,13 +84,17 @@ class TcpServer:
 
 
 class ClientHandler:
-    def __init__(self, server: TcpServer, database: types.SQLite | types.MySQL):
-        self.database = database
+    def __init__(
+        self, server: TcpServer,
+        database: types.SQLite | types.MySQL
+    ) -> None:
         self.server = server
+        self.database = database
         self.client_connections: List[TcpSession] = []  # Store TcpSession objects
 
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Handle data from a client asynchronously with timeout."""
+
         # Create TcpSession for the connected client
         session = TcpSession(self.server, self.database)
         await session.connect(reader, writer)
@@ -103,19 +113,17 @@ class ClientHandler:
         try:
             # Ensure the session is connected before trying to disconnect
             if session.is_connected:
-                await session.disconnect()  # Close the session properly
+                await session.disconnect()    # Close the session properly
                 session.is_connected = False  # Mark the session as disconnected
 
                 # Remove the session only if it's still in the list
                 if session in self.client_connections:
                     self.client_connections.remove(session)
 
-            # Decrement the connection count
             self.server.current_connections -= 1
         except Exception as e:
             # Catch any unexpected errors during disconnection
             await AsyncLogger.notify_error(f"Error while closing connection: {e}")
-
 
     async def close_all_connections(self):
         """Close all client connections."""
