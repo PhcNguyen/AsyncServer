@@ -2,11 +2,11 @@
 # Distributed under the terms of the Modified BSD License.
 
 import uuid
+import typing
 import asyncio
 
-from typing import Optional, Tuple
 from sources.utils import types
-from sources.server.data import DataHandler
+from sources.handlers.data import DataHandler
 from sources.utils.logger import AsyncLogger
 from sources.manager.firewall import RateLimiter
 from sources.handlers.command import CommandHandler
@@ -16,19 +16,19 @@ from sources.handlers.command import CommandHandler
 class TcpSession:
     def __init__(self,
         server: types.TcpServer,
-        database: Optional[types.SQLite | types.MySQL]
+        database: typing.Optional[types.SQLite | types.MySQL]
     ) -> None:
-        self.database = database
         self.server = server
-        self.client_address: Optional[Tuple[str, int]] = None
-        self.reader: Optional[asyncio.StreamReader] = None
-        self.writer: Optional[asyncio.StreamWriter] = None
+        self.database = database
         self.is_connected = False
-        self.id = uuid.uuid4()
+        self.reader: typing.Optional[asyncio.StreamReader] = None
+        self.writer: typing.Optional[asyncio.StreamWriter] = None
+        self.client_address: typing.Optional[typing.Tuple[str, int]] = None
 
-        self.rate_limiter = RateLimiter(limit=5, period=5)  # Giới hạn 5 yêu cầu trong 5 giây
+        self.id = uuid.uuid4()
         self.data_handler = DataHandler(None)
         self.command_handler = CommandHandler(database)
+        self.rate_limiter = RateLimiter(limit=1, period=2)  # Giới hạn 5 yêu cầu trong 5 giây
 
     async def connect(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Kết nối với client và thiết lập thông tin phiên."""
@@ -58,8 +58,7 @@ class TcpSession:
 
     async def disconnect(self):
         """Ngắt kết nối client một cách an toàn."""
-        #if not self.is_connected: return
-        print(self.is_connected)
+        if not self.is_connected: return
         try:
             # Đánh dấu phiên làm việc đã bị ngắt
             self.is_connected = False

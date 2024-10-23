@@ -18,15 +18,15 @@ class TcpServer:
     PUBLIC: str = InternetProtocol.public()  # Retrieve public IP address
     MAX_CONNECTIONS = 1000000                # Giới hạn số lượng kết nối tối đa
 
-    def __init__(self, host: str, port: int, sql: types.SQLite | types.MySQL):
-        self.sql = sql
+    def __init__(self, host: str, port: int, database: types.SQLite | types.MySQL):
+        self.database = database
         self.host = host
         self.port = port
 
         self.stop_event = asyncio.Event()
         self.server_address: Tuple[str, int] = (host, port)
         self.running: bool = False
-        self.client_handler = ClientHandler(self, self.sql)
+        self.client_handler = ClientHandler(self, self.database)
         self.current_connections = 0  # Số lượng kết nối hiện tại
 
     async def start(self):
@@ -35,7 +35,7 @@ class TcpServer:
             await AsyncLogger.notify_info("Server is already running")
             return
 
-        if not await self.sql.start():
+        if not await self.database.start():
             self.running = False
             await AsyncLogger.notify_info("SQL error occurred")
             return
@@ -71,22 +71,22 @@ class TcpServer:
         self.running = False
 
         await self.client_handler.close_all_connections()
-        await self.sql.close()
+        await self.database.close()
 
         await AsyncLogger.notify_info('The server has stopped')
 
 
 
 class ClientHandler:
-    def __init__(self, server: TcpServer, sql: types.SQLite | types.MySQL):
-        self.sql = sql
+    def __init__(self, server: TcpServer, database: types.SQLite | types.MySQL):
+        self.database = database
         self.server = server
         self.client_connections: List[TcpSession] = []  # Store TcpSession objects
 
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Handle data from a client asynchronously with timeout."""
         # Create TcpSession for the connected client
-        session = TcpSession(self.server, self.sql)
+        session = TcpSession(self.server, self.database)
         await session.connect(reader, writer)
 
         self.client_connections.append(session)

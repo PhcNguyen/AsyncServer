@@ -73,18 +73,18 @@ class Graphics(UIConfigs):
             for message in lines:
                 line_number = self.get_line_number(is_error_log)
                 self.log_to_textbox(log_target, self.log_format.format(line_number,TimeUtil.now(),message))
-                self.root.update()
+            self.root.update()
 
     async def _update_log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
+        await self.cache.clear_file(cache_file)
+
         while True:
             if not self.running:
                 break
 
             await self._log(cache_file, log_target, is_error_log)
-            await asyncio.sleep(0.000000005)  # Chờ trước khi tiếp tục vòng lặp
+            await asyncio.sleep(0.01)  # Chờ trước khi tiếp tục vòng lặp
 
-        await self._log(cache_file, log_target, is_error_log)
-        await self.cache.clear_file(cache_file)
 
     async def update_server_info(self):
         """Cập nhật thông tin server trong giao diện."""

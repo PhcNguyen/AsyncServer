@@ -15,9 +15,13 @@ class Cmd(Enum):
     UPDATE_COIN = 5
     TRANSFER_COINS = 6
 
+class MessageServer:
+    pass
 
 class MessageCode:
     messages = {
+        500: "None",
+
         9001: "Đăng nhập thành công.",
         9002: "Đăng xuất thành công.",
 

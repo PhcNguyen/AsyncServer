@@ -11,16 +11,16 @@ from sources.utils.logger import AsyncLogger
 
 
 class PlayerManager:
-    def __init__(self, db: types.SQLite | types.MySQL):
-        self.db = db
+    def __init__(self, database: types.SQLite | types.MySQL):
+        self.database = database
 
     async def dump_data(self, **kwargs) -> bool:
         """Insert a new player into the player table using keyword arguments."""
-        async with self.db.lock:
+        async with self.database.lock:
             try:
-                async with self.db.conn:
-                    await self.db.conn.execute(await queries_line(22), (kwargs['name'],))
-                    await self.db.conn.commit()
+                async with self.database.conn:
+                    await self.database.conn.execute(await queries_line(22), (kwargs['name'],))
+                    await self.database.conn.commit()
                 return True
             except aiosqlite.Error as error:
                 await AsyncLogger.notify_error(f"SQLITE: {error}")
@@ -28,10 +28,10 @@ class PlayerManager:
 
     async def get(self, user_id: int) -> dict:
         """Retrieve all information of a specific player."""
-        async with self.db.lock:
+        async with self.database.lock:
             try:
-                async with self.db.conn:
-                    result = await self.db.conn.execute(await queries_line(3), (user_id,))
+                async with self.database.conn:
+                    result = await self.database.conn.execute(await queries_line(3), (user_id,))
                     player = await result.fetchone()
 
                 if player:
@@ -59,9 +59,9 @@ class PlayerManager:
 
     async def update(self, user_id: int, **kwargs) -> dict:
         """Cập nhật thông tin của người chơi với ID đã cho."""
-        async with self.db.lock:
+        async with self.database.lock:
             try:
-                async with self.db.conn:
+                async with self.database.conn:
                     # Tạo danh sách các trường cần cập nhật và giá trị của chúng
                     fields = []
                     values = []
@@ -77,8 +77,8 @@ class PlayerManager:
                     query: str = await queries_line(3)
                     query.replace('{fields}', ', '.join(fields))
 
-                    await self.db.conn.execute(query, values)
-                    await self.db.conn.commit()
+                    await self.database.conn.execute(query, values)
+                    await self.database.conn.commit()
 
                 return ResponseBuilder.success(message="Thông tin người chơi đã được cập nhật thành công.")
             except aiosqlite.Error as error:
