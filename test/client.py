@@ -1,9 +1,11 @@
 import socket
 import threading
 import json
-from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+from PyQt6.QtWidgets import (QApplication, QWidget,
+                             QVBoxLayout, QLabel,
+                             QLineEdit, QPushButton,
                              QTextEdit, QTabWidget)
-from PyQt6.QtCore import Qt, pyqtSignal, QObject
+from PyQt6.QtCore import pyqtSignal, QObject
 
 class SocketManager(QObject):
     """Class to handle socket operations using blocking sockets."""
