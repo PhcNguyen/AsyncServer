@@ -5,7 +5,7 @@ import aiosqlite
 
 from sources.utils import types
 from sources.utils.response import ResponseBuilder
-from sources.utils.sqlite import queries_line
+from sources.utils.sql import queries_line
 from sources.utils.logger import AsyncLogger
 
 

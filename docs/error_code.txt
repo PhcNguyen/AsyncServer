@@ -1,7 +1,0 @@
-
-1001: Không có transport (reader).
-2001: Lỗi khi giải mã JSON.
-3001: Lỗi timeout.
-4001: Lỗi khi giải mã Unicode.
-5001: Lỗi không xác định (general error).
-5002: Lỗi mạng: Tên mạng được chỉ định không còn khả dụng (chỉ dành cho OSError với mã lỗi 64).

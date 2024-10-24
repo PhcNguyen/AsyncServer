@@ -4,6 +4,7 @@
 import os
 import typing
 import pathlib
+import asyncio
 import tkinter as tk
 import customtkinter as ctk
 
@@ -27,6 +28,7 @@ class UIConfigs:
         self.server_line = 0
         self.error_line = 0
 
+        self.loop = asyncio.new_event_loop()
         self.log_format = "[ {:05d} | {:<12} ]> {}"
 
         self._initialize_ui()
@@ -71,7 +73,7 @@ class UIConfigs:
         textbox.yview('end')  # Cuộn xuống cuối khu vực văn bản
 
     @staticmethod
-    def _create_textbox(parent, title):
+    def _create_textbox(parent):
         textbox = ctk.CTkTextbox(
             parent,
             state='disabled',
@@ -116,16 +118,20 @@ class UIConfigs:
 
     def _setup_buttons(self):
         self.start_button = self.create_button(
-            "Start", self.start_server, "#4CAF50", "#45a049", '1.png'
+            "Start", self.async_command(self.start_server),
+            "#4CAF50", "#45a049", '1.png'
         )
         self.stop_button = self.create_button(
-            "Stop", self.stop_server, "#f44336", "#c62828", '2.png', state='disabled'
+            "Stop", self.async_command(self.stop_server),
+            "#f44336", "#c62828", '2.png', state='disabled'
         )
         self.clear_button = self.create_button(
-            "Clear logs", self.clear_logs, "#000000", "#424242", '3.png'
+            "Clear logs", self.async_command(self.clear_logs),
+            "#000000", "#424242", '3.png'
         )
         self.reload_button = self.create_button(
-            "Reload", self.reload_server, "#000000", "#424242", '9.png'
+            "Reload", self.async_command(self.reload_server),
+            "#000000", "#424242", '9.png'
         )
 
     def _setup_tabs(self):
@@ -137,10 +143,14 @@ class UIConfigs:
         self._setup_error_tab()
 
     def _setup_server_tab(self):
-        self.server_log = self._create_textbox(self.tab_control.tab("   Server   "), "Server logs")
+        self.server_log = self._create_textbox(
+            self.tab_control.tab("   Server   ")
+        )
 
     def _setup_error_tab(self):
-        self.error_log = self._create_textbox(self.tab_control.tab("   Error    "), "Error logs")
+        self.error_log = self._create_textbox(
+            self.tab_control.tab("   Error    ")
+        )
 
     def create_button(self, text, command, color, hover_color, image_file, state='normal'):
         image = ctk.CTkImage(Image.open(System.paths(DIR_ICON, image_file)), size=(20, 20))
@@ -159,14 +169,18 @@ class UIConfigs:
         button.pack(side=tk.LEFT, padx=10)
         return button
 
+    def async_command(self, func):
+        """Helper to run an async function in the event loop."""
+        return lambda: asyncio.run_coroutine_threadsafe(func(), self.loop)
+
     def _setup_labels(self):
         self.info_frame = ctk.CTkFrame(self.root)
         self.info_frame.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=8)
 
         labels = [
-            (" Local IP: ", "N/A", '4.png'),
-            (" Public IP:", "N/A", '4.png'),
-            (" Ping:     ", "N/A", '5.png')
+            ("  Local  ", "N/A", '4.png'),
+            ("  Public ", "N/A", '4.png'),
+            ("  Ping   ", "N/A", '5.png')
         ]
         for idx, (text, value, icon) in enumerate(labels):
             label, value_label = self._create_label(self.info_frame, text, value, icon, idx)
@@ -176,9 +190,9 @@ class UIConfigs:
         self.info_frame2.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=8)
 
         resource_labels = [
-            (" CPU:    ", "N/A", '6.png'),
-            (" RAM:    ", "N/A", '7.png'),
-            (" Connect:", "0", '8.png')
+            ("  CPU     ", "N/A", '6.png'),
+            ("  RAM     ", "N/A", '7.png'),
+            ("  Connect ", "0", '8.png')
         ]
         for idx, (text, value, icon) in enumerate(resource_labels):
             label, value_label = self._create_label(self.info_frame2, text, value, icon, idx)
@@ -227,23 +241,13 @@ class UIConfigs:
         textbox.configure(state='disabled')  # Đặt lại trạng thái về 'disabled'
         self.clear_button.configure(state='normal')
 
-    def start_server(self):
-        """Start the server and update UI accordingly."""
-        pass  # Logic for starting the server
-
-    def stop_server(self):
-        """Stop the server and update UI accordingly."""
-        pass
-
-    def clear_logs(self):
-        pass
-
-    def reload_server(self):
-        """Reload the server and update UI accordingly."""
-        pass  # Logic for reloading the server
-
     def update_start_button(self, state):
         self.start_button.configure(state="normal" if state else "disabled")
 
     def update_stop_button(self, state):
         self.stop_button.configure(state="normal" if state else "disabled")
+
+    async def start_server(self):...
+    async def stop_server(self):...
+    async def clear_logs(self): ...
+    async def reload_server(self): ...

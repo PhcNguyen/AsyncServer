@@ -5,25 +5,6 @@ import asyncio
 
 
 
-class FireWall:
-    """
-    Lớp FireWall dùng để theo dõi và quản lý các địa chỉ IP bị chặn.
-
-    Phương thức:
-    - _save_block_ips: Lưu các IP bị chặn.
-    - _load_block_ips: Tải các IP bị chặn.
-    - track_requests: Theo dõi các yêu cầu từ một địa chỉ IP cụ thể.
-    - auto_unblock_ips: Tự động mở chặn IP sau thời gian nhất định.
-    - close: Đóng firewall.
-    """
-    def __init__(self): ...
-    async def _save_block_ips(self): ...
-    async def _load_block_ips(self): ...
-    async def track_requests(self, ip_address: str): ...
-    async def auto_unblock_ips(self): ...
-    async def close(self): ...
-
-
 class AccountManager:
     def __init__(self, db_manager):
         self.db_manager = db_manager

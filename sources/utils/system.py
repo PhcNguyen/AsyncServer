@@ -16,22 +16,6 @@ import subprocess
 
 
 
-class Message:
-    @staticmethod
-    def success(message: str, **kwargs) -> dict:
-        """Trả về dict với trạng thái thành công."""
-        response = {"status": True, "message": message}
-        response.update(kwargs)
-        return response
-
-    @staticmethod
-    def error(message: str | Exception, **kwargs) -> dict:
-        """Trả về dict với trạng thái lỗi."""
-        response = {"status": False, "message": message}
-        response.update(kwargs)
-        return response
-
-
 class Colors:
     @staticmethod
     def start(color: str) -> str:
@@ -82,8 +66,9 @@ class System:
     @staticmethod
     def reset() -> typing.NoReturn:
         print("Application is reset...")
-        return os.execv(
-            sys.executable, ['python'] + sys.argv
+        os.execv(
+            sys.executable,
+            [sys.executable, '-m', 'sources.main'] + sys.argv[1:]
         )
 
     @staticmethod
@@ -121,21 +106,9 @@ class System:
         :param length: Độ dài của chuỗi ngẫu nhiên cần tạo.
         :return: Chuỗi ngẫu nhiên được tạo ra.
         """
-        left_limit = 48  # Giới hạn trái cho ký tự số '0'
-        right_limit = 122  # Giới hạn phải cho ký tự chữ cái 'z'
-        random_gen = random.Random()  # Tạo đối tượng Random
-
-        # Tạo chuỗi ngẫu nhiên
-        generated_string = ''.join(
-            # Lấy các ký tự ngẫu nhiên từ left_limit đến right_limit
-            chr(i) for i in random_gen.choices(
-                range(left_limit, right_limit + 1),  # Giới hạn cho các ký tự
-                k = length  # Số lượng ký tự cần lấy
-            )
-            # Lọc ra các ký tự hợp lệ (0-9, A-Z, a-z)
-            if (48 <= i <= 57) or (65 <= i <= 90) or (97 <= i <= 122)
-        )
-        return generated_string
+        # Giới hạn cho các ký tự hợp lệ (0-9, A-Z, a-z)
+        valid_chars = [i for i in range(48, 123) if (48 <= i <= 57) or (65 <= i <= 90) or (97 <= i <= 122)]
+        return ''.join(random.choices(valid_chars, k=length))  # Lấy các ký tự ngẫu nhiên
 
 
 class InternetProtocol:

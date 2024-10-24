@@ -8,7 +8,7 @@ from sources import configs
 from sources.utils import types
 from sources.manager.files.iofiles import FileIO
 from sources.utils.logger import AsyncLogger
-from sources.utils.sqlite import queries_line
+from sources.utils.sql import queries_line
 
 
 

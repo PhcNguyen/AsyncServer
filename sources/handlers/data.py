@@ -4,131 +4,131 @@
 import json
 import asyncio
 
-from sources.utils.logger import AsyncLogger
+from typing import Optional, Union
+from sources.utils.logger import Logger
 from sources.utils.response import ResponseBuilder
+
+
+logger = Logger("data_handler.log")
 
 
 
 class DataHandler:
-    BUFFER_SIZE = 8192  # Buffer size for reading data
+    BUFFER_SIZE = 8192  # Kích thước bộ đệm để đọc dữ liệu
 
-    def __init__(self,
-        reader: asyncio.StreamReader = None,
-        writer: asyncio.StreamWriter = None
-    ) -> None:
-        """Initialize the DataHandler instance."""
-        self.reader = reader  # Use StreamReader for reading
-        self.writer = writer  # Use StreamWriter for writing
+    def __init__(self, reader: asyncio.StreamReader = None, writer: asyncio.StreamWriter = None) -> None:
+        """Khởi tạo phiên bản DataHandler."""
+        self.reader = reader
+        self.writer = writer
+        self.encoding = 'utf-8'
         self.bytes_sent = 0
         self.bytes_received = 0
         self.send_buffer = bytearray()
 
-    async def _try_send(self):
-        """Attempt to send data from the send buffer."""
-        while self.send_buffer:
-            try:
-                # Ensure that transport (writer) is available before attempting to send
-                if self.writer is None:
-                    await AsyncLogger.notify_error("No transport available.")
-                    return ResponseBuilder.error(1001)
+    async def _process_received_data(self, data):
+        """Xử lý dữ liệu nhận được."""
+        try:
+            if isinstance(data, bytes):
+                data = data.decode(self.encoding)
+            decoded_data = json.loads(data)
+            await logger.log(f"Received data processed successfully: {decoded_data}")
+            return ResponseBuilder.success(9502, data=decoded_data)
 
-                # Write the data from send_buffer and track the bytes sent
+        except json.JSONDecodeError as error:
+            await logger.log(f"JSON decode error: {error}", level="ERROR")
+            return ResponseBuilder.error(2001, error=error)
+
+    async def _try_send(self) -> Optional[dict]:
+        """Thử gửi dữ liệu từ bộ đệm gửi."""
+        if not self.writer:
+            await logger.log("Writer is not available.", level="ERROR")
+            return ResponseBuilder.error(1001)
+
+        try:
+            while self.send_buffer:
                 self.writer.write(self.send_buffer)
                 await self.writer.drain()
+
                 self.bytes_sent += len(self.send_buffer)
-                await AsyncLogger.notify_info(f"Sent {len(self.send_buffer)} bytes.")
-
-                # Clear the send buffer after successful send
+                await logger.log(f"Sent {len(self.send_buffer)} bytes.")
                 self.send_buffer.clear()
-                return ResponseBuilder.success(9501, bytes_sent=self.bytes_sent)
 
-            except OSError as error:
-                if error.errno == 64:  # WinError 64
-                    await AsyncLogger.notify_error("Network error: The specified network name is no longer available.")
-                    return ResponseBuilder.error(5002, error=error)
-                else:
-                    await AsyncLogger.notify_error(f"Error during send: {error}")
-                    return ResponseBuilder.error(5003, error=error)
+            return ResponseBuilder.success(9501, bytes_sent=self.bytes_sent)
 
-            except Exception as error:
-                await AsyncLogger.notify_error(f"Unexpected error during send: {error}")
-                return ResponseBuilder.error(5004, error=error)
+        except OSError as error:
+            await logger.log(f"OSError occurred: {error}", level="ERROR")
+            return ResponseBuilder.error(
+                5002 if error.errno == 64 else 5003,
+                error=error
+            )
+
+        except Exception as error:
+            await logger.log(f"Error occurred while sending: {error}", level="ERROR")
+            return ResponseBuilder.error(5004, error=error)
+
+    async def send(self, data: Optional[dict]) -> Optional[dict]:
+        """Gửi dữ liệu ở các định dạng khác nhau (str, dict, list, etc.)."""
+        if data is None:
+            await logger.log("No data to send.", level="WARNING")
+            return
+        try:
+            data = await prepare_data(data)
+            if isinstance(data, dict):
+                await logger.log(f"Error preparing data: {data}", level="ERROR")
+                return data
+
+            if isinstance(data, bytes):
+                self.send_buffer.extend(data)
+                await logger.log("Data added to send buffer.")
+                return await self._try_send()
+
+        except Exception as error:
+            await logger.log(f"Error during send preparation: {error}", level="ERROR")
+            return ResponseBuilder.error(5001, error=error)
 
     async def receive(self):
-        """Receive and process data from transport."""
+        """Nhận và xử lý dữ liệu từ transport."""
+        if not self.reader:
+            await logger.log("Reader is not available.", level="ERROR")
+            return ResponseBuilder.error(1001)
+
         while True:
             try:
-                if self.reader is None:
-                    await AsyncLogger.notify_error("No transport available.")
-                    return ResponseBuilder.error(1001)
-
-                # Read data from transport with a timeout
                 data = await asyncio.wait_for(self.reader.read(self.BUFFER_SIZE), timeout=10.0)
-
                 if data.strip():
-                    try:
-                        if isinstance(data, bytes):
-                            data = data.decode('utf-8')
-                        decoded_data = json.loads(data)
-                        return ResponseBuilder.success(9502, data=decoded_data)
-
-                    except json.JSONDecodeError as error:
-                        return ResponseBuilder.error(2001, error=error)
-
+                    await logger.log("Data received from transport.")
+                    return await self._process_received_data(data)
                 await asyncio.sleep(0.1)
+
             except asyncio.TimeoutError:
+                await logger.log("Timeout while receiving data.", level="WARNING")
                 return ResponseBuilder.error(3001)
 
             except UnicodeDecodeError as error:
+                await logger.log(f"Unicode decode error: {error}", level="ERROR")
                 return ResponseBuilder.error(4001, error=error)
 
             except Exception as error:
+                await logger.log(f"Error during receiving data: {error}", level="ERROR")
                 return ResponseBuilder.error(5001, error=error)
 
-    async def send(self, data):
-        """Send data in different formats (str, dict, list, etc.)."""
-        if data is None:
-            return
-
-        # Handle various data types before sending
-        try:
-            # Sử dụng prepare_data để chuyển đổi dữ liệu sang bytes
-            data = prepare_data(data)
-
-            if isinstance(data, dict) and not data.get("status"):
-                # Nếu data là error response từ prepare_data, trả về luôn lỗi
-                return ResponseBuilder.error(404, data=data)
-
-            # Add the data to the send buffer and attempt to send it
-            self.send_buffer.extend(data)
-            send_response = await self._try_send()
-
-            if send_response and not send_response['status']:
-                # If there's an error during sending, return the error Message
-                return send_response
-
-            return ResponseBuilder.success(9501, bytes_sent=len(data))
-
-        except Exception as error:
-            await AsyncLogger.notify_error(f"Error during send preparation: {error}")
-            return ResponseBuilder.error(5001, error=error)
-
-
-def prepare_data(data):
-    """Chuyển đổi dữ liệu sang định dạng byte."""
+async def prepare_data(data, encoding='utf-8') -> Optional[Union[dict, bytes]]:
+    """Chuyển đổi dữ liệu sang định dạng bytes sử dụng mã hóa chỉ định."""
     if isinstance(data, bytes):
-        return data  # Không cần chuyển đổi
-
-    # Chuyển đổi các kiểu dữ liệu khác sang bytes
+        return data
     try:
-        return (data.encode('utf-8')
-        if isinstance(data, str)
-        else json.dumps(data).encode('utf-8')
-        if isinstance(data, (list, tuple, dict))
-        else str(data).encode('utf-8')
-        if isinstance(data, (int, float))
-        else json.dumps(data.__dict__).encode('utf-8')
-        if hasattr(data, '__dict__')
-        else ResponseBuilder.error(4002))
+        if isinstance(data, str):
+            return data.encode(encoding)
+        if isinstance(data, (list, tuple, dict)):
+            return json.dumps(data).encode(encoding)
+        if isinstance(data, (int, float)):
+            return str(data).encode(encoding)
+        if hasattr(data, '__dict__'):
+            return json.dumps(data.__dict__).encode(encoding)
+
+        await logger.log("Unsupported data type.", level="ERROR")
+        return ResponseBuilder.error(4002)  # Unsupported data type
+
     except Exception as error:
-        return ResponseBuilder.error(5001, error=error)  # Xử lý lỗi chuyển đổi
+        await logger.log(f"Error in data conversion: {error}", level="ERROR")
+        return ResponseBuilder.error(5001, error=error)  # Error in conversion

@@ -6,7 +6,7 @@ import aiosqlite
 
 from sources.utils import types
 from sources.utils.response import ResponseBuilder
-from sources.utils.sqlite import (
+from sources.utils.sql import (
     queries_line,
     is_valid_email,
     is_valid_password

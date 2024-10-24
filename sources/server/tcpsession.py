@@ -8,7 +8,7 @@ import asyncio
 from sources.utils import types
 from sources.handlers.data import DataHandler
 from sources.utils.logger import AsyncLogger
-from sources.manager.firewall import RateLimiter
+from sources.manager.security import RateLimiter
 from sources.handlers.command import CommandHandler
 
 
@@ -81,25 +81,25 @@ class TcpSession:
         """Receive and process data from the client with timeout handling."""
         while self.is_connected:
             data = await self.data_handler.receive()
-            code = data.get("code", "")
+            code = data.get("code", None)
 
-            if not isinstance(data, dict):
-                await AsyncLogger.notify_error("Received data is not a dictionary.")
-                await self.disconnect()
-                break
+            if isinstance(code, int):
+                # Nhóm các điều kiện ngắt kết nối ngay lập tức
+                if code in {404, 1001, 5002, 5003, 5004}:
+                    await self.disconnect()
+                    break
 
-            # Handle specific disconnect codes
-            if isinstance(code, int) and code in [1001, 3001]:
-                await self.disconnect()
-                break
+                # Gửi dữ liệu và ngắt kết nốis
+                if code in {2001, 3001, 4001, 4002}:
+                    await self.data_handler.send(data)
+                    await self.disconnect()
+                    break
 
-            if (isinstance(code, int)
-            and code in [404, 5001, 5002, 5003, 5004]
-            or not data.get('status')):
-                await self.data_handler.send(data)
-                await self.disconnect()
-                break
+                # Gửi dữ liệu và tiếp tục nhận
+                if code == 5001:
+                    await self.data_handler.send(data)
+                    continue
 
-            # Process command and send the response
+            # Xử lý lệnh và gửi phản hồi
             response = await self.command_handler.process_command(data)
             await self.data_handler.send(response)

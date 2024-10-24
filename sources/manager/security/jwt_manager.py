@@ -26,7 +26,7 @@ def secret_key_file():
             created_time = float(file.readline().strip())  # Đọc timestamp
 
         # Kiểm tra xem khóa đã quá hạn chưa (1 tháng = 30 ngày)
-        if time.time() - created_time > 30 * 24 * 60 * 60:  # 30 ngày
+        if time.time() - created_time > (30 * 24 * 60 * 60):  # 30 ngày
             secret_key = secrets.token_hex(32)
             with open(filename, 'w') as file:
                 file.write(secret_key)

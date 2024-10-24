@@ -15,33 +15,69 @@ from sources.manager.files.filecache import FileCache
 from sources.utils.system import InternetProtocol, System
 
 
-
 class Graphics(UIConfigs):
     """Handles the graphical user interface and server management."""
 
     def __init__(self, root: ctk.CTk, server: types.TcpServer):
-        super().__init__(root)  # Gọi khởi tạo của lớp cha
-
-        self.current_log = None  # Biến để theo dõi khu vực văn bản hiện tại
+        super().__init__(root)
         self.cache: FileCache = FileCache()
         self.server: typing.Optional[types.TcpServer] = server
         self.running = True
 
-        # Đăng ký sự kiện đóng cửa sổ
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.root.protocol("WM_DELETE_WINDOW", self.async_command(self.on_closing))
 
-        # Khởi tạo vòng lặp sự kiện
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-
-        # Tạo và chạy luồng cho vòng lặp sự kiện
         threading.Thread(target=self.loop.run_forever, daemon=True).start()
 
-    async def _start_server(self):
+    async def _log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
+        """Read and display logs in the specified textbox."""
+        lines = await self.cache.read_lines(cache_file)
+        if lines:
+            for message in lines:
+                self.log_to_textbox(
+                    log_target, self.log_format.format(self.get_line_number(is_error_log),
+                    TimeUtil.now(), message)
+                )
+            self.root.update()
+
+    async def _update_log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
+        """Continuously update logs from the cache file."""
+        await self.cache.clear_file(cache_file)
+        while self.running:
+            await self._log(cache_file, log_target, is_error_log)
+            await asyncio.sleep(0.01)  # Delay before the next update
+
+    async def update_server_info(self):
+        """Cập nhật thông tin server trong giao diện."""
+        ip0_info = f"{self.server.LOCAL if self.running else 'N/A'}"
+        ip1_info = f"{self.server.PUBLIC if self.running else 'N/A'}"
+        self.update_label(0, ip0_info)
+        self.update_label(1, ip1_info)
+
+    async def auto_updater_info(self):
+        """Cập nhật trạng thái CPU, RAM, Ping và số lượng kết nối định kỳ."""
+        while self.running:
+            try:
+                self.update_label(2, f"{InternetProtocol.ping()} ms")
+                self.update_label(3, f"{System.cpu()} %")
+                self.update_label(4, f"{System.ram()} MB")
+                self.update_label(5, f"{self.server.current_connections}")
+                await asyncio.sleep(0.2)
+            except Exception as e:
+                print(f"Lỗi xảy ra trong quá trình cập nhật thông tin: {e}")
+                await asyncio.sleep(0.8)
+
+    async def auto_log_server(self):
+        await self._update_log("log-server.cache", self.server_log)
+
+    async def auto_log_error(self):
+        await self._update_log("log-error.cache", self.error_log, is_error_log=True)
+
+    async def start_server(self):
         """Starts the server asynchronously and manages log updates."""
         self.update_start_button(False)
 
-        # Tạo các tác vụ tự động cập nhật thông tin
         asyncio.create_task(self.auto_log_error())
         asyncio.create_task(self.auto_log_server())
 
@@ -54,127 +90,53 @@ class Graphics(UIConfigs):
 
         self.update_stop_button(True)
 
-    async def _stop_server(self):
-        """Stops the server and updates the GUI accordingly."""
+    async def stop_server(self) -> None:
+        if not messagebox.askyesno("Thông báo", "Xác nhận dừng máy chủ"): return
+
         self.update_stop_button(False)
 
         if self.server.running:
-            await self.server.stop()  # Chạy lệnh dừng server chính
-            self.running = False
+            await self.server.stop()
 
         await self.update_server_info()
+
         self.update_start_button(True)
 
-
-    async def _log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
-        """Ghi log ra giao diện."""
-        lines = await self.cache.readlines(cache_file)
-        if lines:
-            for message in lines:
-                line_number = self.get_line_number(is_error_log)
-                self.log_to_textbox(log_target, self.log_format.format(line_number,TimeUtil.now(),message))
-            self.root.update()
-
-    async def _update_log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
-        await self.cache.clear_file(cache_file)
-
-        while True:
-            if not self.running:
-                break
-
-            await self._log(cache_file, log_target, is_error_log)
-            await asyncio.sleep(0.01)  # Chờ trước khi tiếp tục vòng lặp
-
-
-    async def update_server_info(self):
-        """Cập nhật thông tin server trong giao diện."""
-        if self.running:
-            self.update_label(0, f"{self.server.LOCAL}")
-            self.update_label( 1, f"{self.server.PUBLIC}")
-        else:
-            self.update_label(0, "N/A")
-            self.update_label(1, "N/A")
-
-    async def auto_updater_info(self):
-        """Cập nhật trạng thái CPU, RAM, Ping và số lượng kết nối định kỳ."""
-        while True:
-            try:
-                if not self.running:
-                    self.update_label(2, "N/A")
-                    self.update_label(3, "0.0 %")
-                    self.update_label(4, "0 MB")
-                    self.update_label(5, f"{self.server.current_connections}")
-                    break  # Dừng vòng lặp nếu server không còn hoạt động
-
-                # Cập nhật thông tin server
-                self.update_label(2, f"{InternetProtocol.ping()} ms")
-                self.update_label(3, f"{System.cpu()} %")  # Cập nhật giá trị CPU
-                self.update_label(4, f"{System.ram()} MB")  # Cập nhật giá trị RAM
-                self.update_label(5, f"{self.server.current_connections}")
-
-                await asyncio.sleep(0.2)  # Chờ trước khi tiếp tục vòng lặp
-            except Exception as e:
-                print(f"Lỗi xảy ra trong quá trình cập nhật thông tin: {e}")
-                await asyncio.sleep(0.8)  # Cho một khoảng dừng để tránh vòng lặp lỗi nhanh
-
-    async def auto_log_server(self):
-        await self._update_log("log-server.cache", self.server_log)
-
-    async def auto_log_error(self):
-        await self._update_log("log-error.cache", self.error_log, is_error_log=True)
-
-
-    def start_server(self):
-        """Bắt đầu server với coroutine."""
-        asyncio.run_coroutine_threadsafe(self._start_server(), self.loop)
-
-    def stop_server(self) -> None:
-        try:
-            if not messagebox.askyesno(
-                "Thông báo", "Xác nhận dừng máy chủ"
-            ): return
-
-            asyncio.run_coroutine_threadsafe(self._stop_server(), self.loop)
-
-        except Exception as e:
-            self.log_to_textbox(self.error_log, f"Lỗi khi cố gắng dừng máy chủ: {e}")
-
-    def clear_logs(self):
-        if not messagebox.askyesno(
-            "Thông báo", "Xác nhận muốn xóa nhật ký?"
-        ): return
-
+    async def clear_logs(self):
+        if not messagebox.askyesno("Thông báo", "Xác nhận muốn xóa nhật ký?"): return
         self._clear_textbox(self.server_log)
         self._clear_textbox(self.error_log)
 
-    def reload_server(self):
+    async def reload_server(self):
         """Reload server và các thành phần liên quan."""
-        if not messagebox.askyesno(
-            "Thông báo", "Xác nhận tải lại chương trình?"
-        ): return
+        if not messagebox.askyesno("Thông báo", "Xác nhận tải lại chương trình?"): return
 
         if self.server.running:
-            self._stop_server()
+            await self.stop_server()
             self.root.quit()
-
         System.reset()
 
-    def on_closing(self):
-        """Xử lý khi người dùng nhấn nút X để đóng cửa sổ."""
-        if self.server.running:
-            asyncio.gather(self._stop_server())
-            self.server.running = False
+    async def on_closing(self):
+        """Handle window close event asynchronously."""
+        self.running = False  # Stop any running loops or updates
 
-        # Dừng vòng lặp asyncio một cách an toàn
-        if self.loop.is_running():
-            self.loop.stop()
+        try:
+            if self.server.running:
+                # Stop the server asynchronously
+                stop_future = asyncio.run_coroutine_threadsafe(self.stop_server(), self.loop)
+                stop_future.result()  # Wait for stop_server() to finish
 
-        self.root.destroy()  # Đóng cửa sổ giao diện
-        self.root.quit()
+            if self.loop.is_running():
+                self.loop.stop()
 
-        del self.server
-        del self.loop
-        del self.cache
+            # Safely stop any updates or interaction with the widgets
+            if self.root:
+                self.root.quit()
+                self.root.destroy()
 
-        # Dọn sạch và thoát chương trình
-        System.exit()
+            self.cache.clear()
+
+            System.exit()
+
+        except Exception as e:
+            print(f"Error during on_closing: {e}")

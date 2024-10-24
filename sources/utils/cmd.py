@@ -15,8 +15,10 @@ class Cmd(Enum):
     UPDATE_COIN = 5
     TRANSFER_COINS = 6
 
+
 class MessageServer:
     pass
+
 
 class MessageCode:
     messages = {
