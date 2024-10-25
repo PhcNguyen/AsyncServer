@@ -7,17 +7,27 @@ from sources.configs import file_paths
 from sources.manager.files.filecache import FileCache
 
 
-
 class AsyncLogger:
     cache = FileCache()
 
     @staticmethod
     async def notify_info(message: str | Exception):
-        await AsyncLogger.cache.write(message, file_path='log-server.cache')
+        await AsyncLogger._log(message, 'log-server.cache')
 
     @staticmethod
     async def notify_error(message: str | Exception):
-        await AsyncLogger.cache.write(message, file_path='log-error.cache')
+        await AsyncLogger._log(message, 'log-error.cache')
+
+    @staticmethod
+    async def notify_warning(message: str | Exception):
+        await AsyncLogger._log(message, 'log-warning.cache')
+
+    @staticmethod
+    async def _log(message: str | Exception, file_path: str):
+        """Ghi nhật ký thông điệp vào tệp cache tương ứng."""
+        if isinstance(message, Exception):
+            message = f"Error occurred: {str(message)}"  # Chuyển đổi Exception thành chuỗi
+        await AsyncLogger.cache.write(message, file_path=file_path)
 
 
 class Logger:

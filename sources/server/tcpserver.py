@@ -7,6 +7,7 @@ from typing import List, Tuple
 from sources.utils import types
 from sources.utils.logger import AsyncLogger
 from sources.server.tcpsession import TcpSession
+from sources.manager.security import RateLimiter
 from sources.utils.system import InternetProtocol
 
 
@@ -26,12 +27,12 @@ class TcpServer:
         self.port = port
         self.running = False
         self.database = database
-        self.current_connections = 0  # Số lượng kết nối hiện tại
+        self.current_connections = 0
 
         self.stop_event = asyncio.Event()
+        self.rate_limiter = RateLimiter(limit=3, period=1)  # Limit 3 request per 1 seconds
         self.server_address: Tuple[str, int] = (host, port)
-        self.client_handler = ClientHandler(self, self.database)
-
+        self.client_handler = ClientHandler(self, self.database, self.rate_limiter)
 
     async def start(self):
         """Start the server and listen for incoming connections asynchronously."""
@@ -48,13 +49,15 @@ class TcpServer:
 
         try:
             self.running = True
+            self.rate_limiter.running = True
             await AsyncLogger.notify_info(f'Server processing Commands run at {self.server_address}')
 
             server = await asyncio.start_server(
                 self.client_handler.handle_client,
-                *self.server_address,
-                reuse_address=True
+                *self.server_address, reuse_address=True
             )
+
+            asyncio.create_task(self.rate_limiter.clean_inactive_ips())
 
             async with server:
                 await server.serve_forever()
@@ -75,6 +78,7 @@ class TcpServer:
             return
 
         self.running = False
+        self.rate_limiter.running = False
 
         await self.client_handler.close_all_connections()
         await self.database.close()
@@ -84,19 +88,21 @@ class TcpServer:
 
 
 class ClientHandler:
-    def __init__(
-        self, server: TcpServer,
-        database: types.SQLite | types.MySQL
+    def __init__(self,
+        server: TcpServer,
+        database: types.SQLite | types.MySQL,
+        rate_limiter: RateLimiter
     ) -> None:
         self.server = server
         self.database = database
+        self.rate_limiter = rate_limiter
         self.client_connections: List[TcpSession] = []  # Store TcpSession objects
 
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Handle data from a client asynchronously with timeout."""
 
         # Create TcpSession for the connected client
-        session = TcpSession(self.server, self.database)
+        session = TcpSession(self.server, self.database, self.rate_limiter)
         await session.connect(reader, writer)
 
         self.client_connections.append(session)

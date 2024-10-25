@@ -6,8 +6,8 @@ import aiomysql
 
 from sources import configs
 from sources.utils.logger import AsyncLogger
-from sources.manager.sql.player import PlayerManager
-from sources.manager.sql.account import AccountManager
+from sources.manager.sql.player import SQLPlayer
+from sources.manager.sql.account import SQLAccount
 
 
 
@@ -19,8 +19,8 @@ class MySQL:
         self.config = configs.load_database("mysql.xml")
         self.ip = f"('{self.config['host']}', {self.config['port']})"
 
-        self.player = PlayerManager(self)
-        self.account = AccountManager(self)
+        self.player = SQLPlayer(self)
+        self.account = SQLAccount(self)
 
     async def start(self) -> bool:
         """Start the MySQL manager and initialize the MySQL connection."""

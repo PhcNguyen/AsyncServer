@@ -6,9 +6,9 @@ import aiosqlite
 
 from sources import configs
 from sources.utils.logger import AsyncLogger
-from sources.manager.sql.tables import TableManager
-from sources.manager.sql.player import PlayerManager
-from sources.manager.sql.account import AccountManager
+from sources.manager.sql.tables import SQLTable
+from sources.manager.sql.player import SQLPlayer
+from sources.manager.sql.account import SQLAccount
 
 
 
@@ -21,9 +21,9 @@ class SQLite:
         self.create_table = False
 
         # Initialize managers
-        self.table = TableManager(self)
-        self.player = PlayerManager(self)
-        self.account = AccountManager(self)
+        self.table = SQLTable(self)
+        self.player = SQLPlayer(self)
+        self.account = SQLAccount(self)
 
     async def start(self) -> bool:
         """Start the SQLite manager and initialize the connection."""

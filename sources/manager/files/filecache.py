@@ -112,9 +112,25 @@ class FileCache:
             async with aiofiles.open(path, 'a', encoding='utf-8') as file:
                 await file.write(content + '\n')
 
-    async def clear_file(self, file_path: typing.Optional[str] = None):
-        """Clear the content of a file."""
-        path = configs.file_paths(file_path) if file_path else self.file_path
+    async def clear_file(
+        self, dir_path: typing.Optional[str] = configs.DIR_CACHE
+    ) -> None:
+        """Delete all files in a specified directory asynchronously."""
+        # Use the provided directory path or default to the object's file_path
+        path = dir_path if dir_path else self.file_path
+
+        # Ensure the path is a directory
+        if not os.path.isdir(path):
+            raise ValueError(f"{path} is not a valid directory")
+
+        # Get all file names in the directory
+        files = os.listdir(path)
+
         async with self.lock:
-            async with aiofiles.open(path, 'w', encoding='utf-8') as file:
-                await file.write("")  # Write an empty string to clear the file
+            for file_name in files:
+                file_path = os.path.join(path, file_name)
+                if os.path.isfile(file_path):
+                    # Asynchronously delete the file
+                    async with aiofiles.open(file_path, 'w', encoding='utf-8') as file:
+                        await file.write("")  # Clear the content of the file
+                    os.remove(file_path)  # Remove the empty file after clearing

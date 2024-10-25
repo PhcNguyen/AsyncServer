@@ -6,13 +6,13 @@ import typing
 import asyncio
 import threading
 import customtkinter as ctk
-import tkinter.messagebox as messagebox
 
 from sources.utils import types
 from sources.configs import UIConfigs
 from sources.utils.realtime import TimeUtil
 from sources.manager.files.filecache import FileCache
 from sources.utils.system import InternetProtocol, System
+
 
 
 class Graphics(UIConfigs):
@@ -43,7 +43,6 @@ class Graphics(UIConfigs):
 
     async def _update_log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
         """Continuously update logs from the cache file."""
-        await self.cache.clear_file(cache_file)
         while self.running:
             await self._log(cache_file, log_target, is_error_log)
             await asyncio.sleep(0.01)  # Delay before the next update
@@ -91,7 +90,7 @@ class Graphics(UIConfigs):
         self.update_stop_button(True)
 
     async def stop_server(self) -> None:
-        if not messagebox.askyesno("Thông báo", "Xác nhận dừng máy chủ"): return
+        if not self.ask_confirmation("Xác nhận dừng máy chủ"): return
 
         self.update_stop_button(False)
 
@@ -103,40 +102,37 @@ class Graphics(UIConfigs):
         self.update_start_button(True)
 
     async def clear_logs(self):
-        if not messagebox.askyesno("Thông báo", "Xác nhận muốn xóa nhật ký?"): return
+        if not self.ask_confirmation("Xác nhận muốn xóa nhật ký?"): return
+
         self._clear_textbox(self.server_log)
         self._clear_textbox(self.error_log)
 
     async def reload_server(self):
         """Reload server và các thành phần liên quan."""
-        if not messagebox.askyesno("Thông báo", "Xác nhận tải lại chương trình?"): return
+        if not self.ask_confirmation("Xác nhận tải lại chương trình?"): return
 
         if self.server.running:
             await self.stop_server()
             self.root.quit()
+
         System.reset()
 
     async def on_closing(self):
         """Handle window close event asynchronously."""
         self.running = False  # Stop any running loops or updates
+        if self.server.running:
+            # Stop the server asynchronously
+            stop_future = asyncio.run_coroutine_threadsafe(self.stop_server(), self.loop)
+            stop_future.result()  # Wait for stop_server() to finish
 
-        try:
-            if self.server.running:
-                # Stop the server asynchronously
-                stop_future = asyncio.run_coroutine_threadsafe(self.stop_server(), self.loop)
-                stop_future.result()  # Wait for stop_server() to finish
+        if self.loop.is_running():
+            self.loop.stop()
 
-            if self.loop.is_running():
-                self.loop.stop()
+        # Safely stop any updates or interaction with the widgets
+        if self.root:
+            self.root.quit()
+            self.root.destroy()
 
-            # Safely stop any updates or interaction with the widgets
-            if self.root:
-                self.root.quit()
-                self.root.destroy()
+        await self.cache.clear_file()
 
-            self.cache.clear()
-
-            System.exit()
-
-        except Exception as e:
-            print(f"Error during on_closing: {e}")
+        System.exit()

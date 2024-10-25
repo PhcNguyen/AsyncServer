@@ -7,6 +7,7 @@ import pathlib
 import asyncio
 import tkinter as tk
 import customtkinter as ctk
+import tkinter.messagebox as messagebox
 
 from PIL import Image
 from customtkinter import CTkImage
@@ -71,6 +72,11 @@ class UIConfigs:
 
         textbox.configure(state='disabled')  # Vô hiệu hóa chỉnh sửa lại
         textbox.yview('end')  # Cuộn xuống cuối khu vực văn bản
+
+    @staticmethod
+    def ask_confirmation(message: str) -> bool:
+        """Display a confirmation dialog and return the user's response."""
+        return messagebox.askyesno("Thông báo", message)
 
     @staticmethod
     def _create_textbox(parent):
