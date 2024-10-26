@@ -63,3 +63,5 @@ class RateLimiter:
                 if all((current_time - t).total_seconds() >= self.period for t in times)
             ]
             for ip in inactive_ips: del self.requests[ip]
+
+            await asyncio.sleep(300)

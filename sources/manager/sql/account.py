@@ -4,12 +4,12 @@
 import bcrypt
 import aiosqlite
 from sources.utils import types
-from sources.utils.result import ResultBuilder
 from sources.utils.sql import (
     queries_line,
     is_valid_email,
     is_valid_password
 )
+from sources.utils.result import ResultBuilder
 
 
 
@@ -38,7 +38,8 @@ class SQLAccount:
         if data is None:
             return {}  # Early return if no data is provided
 
-        result = await self._execute(await queries_line(1), (data,))
+        queries = await queries_line(1) if data.isdigit() else await queries_line(7)
+        result = await self._execute(queries, (data,))
         account = await result.fetchone()
 
         # Return account information if found, else return an empty dictionary

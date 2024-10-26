@@ -20,9 +20,9 @@ class Graphics(UIConfigs):
 
     def __init__(self, root: ctk.CTk, server: types.TcpServer):
         super().__init__(root)
+        self.running = True
         self.cache: FileCache = FileCache()
         self.server: typing.Optional[types.TcpServer] = server
-        self.running = True
 
         self.root.protocol("WM_DELETE_WINDOW", self.async_command(self.on_closing))
 
@@ -51,6 +51,7 @@ class Graphics(UIConfigs):
         """Cập nhật thông tin server trong giao diện."""
         ip0_info = f"{self.server.LOCAL if self.running else 'N/A'}"
         ip1_info = f"{self.server.PUBLIC if self.running else 'N/A'}"
+
         self.update_label(0, ip0_info)
         self.update_label(1, ip1_info)
 
@@ -62,10 +63,10 @@ class Graphics(UIConfigs):
                 self.update_label(3, f"{System.cpu()} %")
                 self.update_label(4, f"{System.ram()} MB")
                 self.update_label(5, f"{self.server.current_connections}")
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.8)
             except Exception as e:
                 print(f"Lỗi xảy ra trong quá trình cập nhật thông tin: {e}")
-                await asyncio.sleep(0.8)
+                await asyncio.sleep(1.6)
 
     async def auto_log_server(self):
         await self._update_log("log-server.cache", self.server_log)
@@ -76,6 +77,8 @@ class Graphics(UIConfigs):
     async def start_server(self):
         """Starts the server asynchronously and manages log updates."""
         self.update_start_button(False)
+
+        await self.cache.clear_file()
 
         asyncio.create_task(self.auto_log_error())
         asyncio.create_task(self.auto_log_server())
@@ -132,7 +135,5 @@ class Graphics(UIConfigs):
         if self.root:
             self.root.quit()
             self.root.destroy()
-
-        await self.cache.clear_file()
 
         System.exit()

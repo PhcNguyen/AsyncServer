@@ -57,7 +57,7 @@ class SQLTable:
             existing_tables = await self._fetch_existing_tables()
 
             tables_to_create = []
-            for table in TableManager.REQUIRED_TABLES:
+            for table in SQLTable.REQUIRED_TABLES:
                 if table not in existing_tables or await self._is_table_empty(table):
                     tables_to_create.append(table)
 

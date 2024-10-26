@@ -6,14 +6,14 @@ import asyncio
 
 from typing import Optional, Union
 from sources.utils.logger import Logger
-from sources.utils.result import ResponseBuilder
+from sources.utils.result import ResultBuilder
 
-logger = Logger("data_handler.log")
+logger = Logger("transport.log")
 
 async def log_error(message: str, error_code: int) -> dict:
     """Hàm trợ giúp để ghi lỗi và trả về phản hồi lỗi."""
     await logger.log(message, level="ERROR")
-    return ResponseBuilder.error(error_code)
+    return ResultBuilder.error(error_code)
 
 
 
@@ -35,13 +35,16 @@ class ClientTransport:
 
         try:
             while self.send_buffer:
-                self.writer.write(self.send_buffer)
-                await self.writer.drain()
-                self.bytes_sent += len(self.send_buffer)
-                await logger.log(f"Đã gửi {len(self.send_buffer)} bytes.")
-                self.send_buffer.clear()
+                # Send the data in chunks
+                bytes_to_send = len(self.send_buffer)
+                self.writer.write(self.send_buffer)  # Write to the stream
+                await self.writer.drain()  # Ensure the data is flushed
 
-            return ResponseBuilder.success(9501, bytes_sent=self.bytes_sent)
+                await logger.log(f"Đã gửi {bytes_to_send} bytes.")
+                self.bytes_sent += bytes_to_send  # Track total bytes sent
+                self.send_buffer.clear()  # Clear the buffer after sending
+
+            return ResultBuilder.success(9501, bytes_sent=self.bytes_sent)
 
         except OSError as error:
             error_code = 5002 if error.errno == 64 else 5003
@@ -56,9 +59,9 @@ class ClientTransport:
             return await log_error("Reader không khả dụng.", 1001)
 
         try:
-            data = await asyncio.wait_for(self.reader.read(self.BUFFER_SIZE), timeout=10.0)
+            data = await asyncio.wait_for(self.reader.read(self.BUFFER_SIZE), timeout=120.0)
             if data.strip():
-                return ResponseBuilder.success(9502, data=data)
+                return ResultBuilder.success(9502, data=data)
             
             return None
 
@@ -85,7 +88,7 @@ class PacketHandler:
         try:
             decoded_data = json.loads(data.decode(self.encoding))
             await logger.log(f"Dữ liệu đã xử lý: {decoded_data}")
-            return ResponseBuilder.success(9502, data=decoded_data)
+            return ResultBuilder.success(9502, data=decoded_data)
 
         except json.JSONDecodeError as error:
             return await log_error(f"Lỗi giải mã JSON: {error}", 2001)
@@ -123,10 +126,10 @@ class PacketHandler:
             return
 
         try:
-            encoded_data = self._prepare_data(data)
+            encoded_data = await self._prepare_data(data)  # Await here to ensure proper execution
             if isinstance(encoded_data, bytes):
                 self.transport.send_buffer.extend(encoded_data)
-                return await self.transport.send_data()
+                return await self.transport.send_data()  # Send the data
 
         except Exception as error:
             return await log_error(f"Lỗi chuẩn bị gửi: {error}", 5001)

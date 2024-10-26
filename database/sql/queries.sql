@@ -3,9 +3,7 @@
 -- --------------------------------------------------------
 -- SELECT
 
-SELECT * FROM account
-WHERE (id = ? OR email = ?)
-AND (? IS NOT NULL OR ? IS NOT NULL);                  -- 1
+SELECT * FROM account WHERE id = ? ;                   -- 1
 
 SELECT name FROM sqlite_master WHERE type = 'table';   -- 2
 
@@ -17,7 +15,7 @@ SELECT * FROM history WHERE account_id = ?;            -- 5
 
 SELECT * FROM history_transfer WHERE account_id = ?;   -- 6
 
-;   -- 7
+SELECT * FROM account WHERE email = ? ;                -- 7
 ;   -- 8
 ;   -- 9
 ;   -- 10

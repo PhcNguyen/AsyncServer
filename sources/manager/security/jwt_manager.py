@@ -43,11 +43,11 @@ class JwtManager:
         cls._initialize_secret_key()
 
     @staticmethod
-    def create_token(email: str) -> str:
+    def create_token(email: str, hours=1) -> str:
         """Tạo token JWT với email và thời gian hết hạn."""
         payload = {
             "email": email,
-            "exp": TimeUtil.now_vietnam() + datetime.timedelta(hours=2)  # Token hết hạn sau 2 giờ
+            "exp": TimeUtil.now_vietnam() + datetime.timedelta(hours=hours)  # Token hết hạn sau 2 giờ
         }
         return jwt.encode(payload, JwtManager.SECRET_KEY, algorithm="HS256")
 

@@ -2,9 +2,11 @@
 # Distributed under the terms of the Modified BSD License.
 
 import logging
+import asyncio
 
 from sources.configs import file_paths
 from sources.manager.files.filecache import FileCache
+
 
 
 class AsyncLogger:
@@ -30,36 +32,41 @@ class AsyncLogger:
         await AsyncLogger.cache.write(message, file_path=file_path)
 
 
+
+
+import logging
+
 class Logger:
-    """Logger cho phép ghi log vào file một cách bất đồng bộ."""
+    """Logger that allows asynchronous logging to a file."""
 
     def __init__(self, log_file: str):
-        """Khởi tạo AsyncLogger."""
-        self.log_file = file_paths(log_file)
+        """Initialize the logger."""
         self.logger = None
+        self.log_file = file_paths(log_file)
         self.setup_logger()
 
     def setup_logger(self):
-        """Thiết lập cấu hình cho logger."""
+        """Set up logger configuration."""
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger(__name__)
 
-        # Thiết lập ghi log vào file
-        file_handler = logging.FileHandler(self.log_file)
+        # Set up logging to file with UTF-8 encoding
+        file_handler = logging.FileHandler(self.log_file, encoding='utf-8')  # Set encoding to 'utf-8'
         file_handler.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
 
     async def log(self, message: str, level: str = "INFO"):
-        """Ghi log với mức độ đã chỉ định."""
-        if level == "INFO":
-            self.logger.info(message)
-        elif level == "ERROR":
-            self.logger.error(message)
-        elif level == "WARNING":
-            self.logger.warning(message)
-        elif level == "DEBUG":
-            self.logger.debug(message)
-        else:
-            self.logger.info(message)  # Mặc định ghi log ở mức độ INFO
+        """Log the message at the specified level asynchronously."""
+        log_methods = {
+            "INFO": self.logger.info,
+            "ERROR": self.logger.error,
+            "WARNING": self.logger.warning,
+            "DEBUG": self.logger.debug
+        }
+
+        log_method = log_methods.get(level.upper(), self.logger.info)
+
+        # Execute the logging method asynchronously
+        await asyncio.to_thread(log_method, message)
