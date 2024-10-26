@@ -18,11 +18,11 @@ from sources.utils.system import InternetProtocol, System
 class Graphics(UIConfigs):
     """Handles the graphical user interface and server management."""
 
-    def __init__(self, root: ctk.CTk, server: types.TcpServer):
+    def __init__(self, root: ctk.CTk):
         super().__init__(root)
         self.running = True
         self.cache: FileCache = FileCache()
-        self.server: typing.Optional[types.TcpServer] = server
+        self.server: typing.Optional[types.TcpServer] = None
 
         self.root.protocol("WM_DELETE_WINDOW", self.async_command(self.on_closing))
 
@@ -31,8 +31,9 @@ class Graphics(UIConfigs):
         threading.Thread(target=self.loop.run_forever, daemon=True).start()
 
     async def _log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
-        """Read and display logs in the specified textbox."""
+        """Read and display log in the specified textbox."""
         lines = await self.cache.read_lines(cache_file)
+
         if lines:
             for message in lines:
                 self.log_to_textbox(
@@ -42,10 +43,10 @@ class Graphics(UIConfigs):
             self.root.update()
 
     async def _update_log(self, cache_file: str, log_target: ctk.CTkTextbox, is_error_log: bool = False):
-        """Continuously update logs from the cache file."""
+        """Continuously update log from the cache file."""
         while self.running:
             await self._log(cache_file, log_target, is_error_log)
-            await asyncio.sleep(0.01)  # Delay before the next update
+            await asyncio.sleep(0.05)  # Delay before the next update
 
     async def update_server_info(self):
         """Cập nhật thông tin server trong giao diện."""
@@ -69,10 +70,13 @@ class Graphics(UIConfigs):
                 await asyncio.sleep(1.6)
 
     async def auto_log_server(self):
-        await self._update_log("log-server.cache", self.server_log)
+        await self._update_log("info.cache", self.server_log)
 
     async def auto_log_error(self):
-        await self._update_log("log-error.cache", self.error_log, is_error_log=True)
+        await self._update_log("error.cache", self.error_log, is_error_log=True)
+
+    def setup_server(self, server: types.TcpServer):
+        self.server: types.TcpServer = server
 
     async def start_server(self):
         """Starts the server asynchronously and manages log updates."""
@@ -122,12 +126,12 @@ class Graphics(UIConfigs):
 
     async def on_closing(self):
         """Handle window close event asynchronously."""
-        self.running = False  # Stop any running loops or updates
         if self.server.running:
             # Stop the server asynchronously
             stop_future = asyncio.run_coroutine_threadsafe(self.stop_server(), self.loop)
             stop_future.result()  # Wait for stop_server() to finish
 
+        self.running = False  # Stop any running loops or updates
         if self.loop.is_running():
             self.loop.stop()
 

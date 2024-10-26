@@ -4,7 +4,7 @@
 from datetime import datetime, timedelta
 from sources.constants.result import ResultBuilder
 from sources.manager.security import JwtManager
-from sources.constants.textserver import Codes
+from sources.constants.cmd import Codes
 from sources.handlers.utils import is_valid_user_id
 
 

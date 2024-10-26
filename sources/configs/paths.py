@@ -29,7 +29,7 @@ def file_paths(file_name: str, dir_type: str = "database") -> str:
 
     dir_map = {
         "pem": "key", "db": "sql", "txt": "data", "json": "data",
-        "yaml": "data", "csv": "data", "log": "logs", "ini": "config",
+        "yaml": "data", "csv": "data", "log": "log", "ini": "config",
         "xml": "config", "md": "docs"
     }
 

@@ -5,7 +5,7 @@ import re
 
 from sources import configs
 from sources.manager.files.iofiles import FileIO
-from sources.utils.logger import AsyncLogger
+from sources.utils.logger import Logger
 
 
 
@@ -17,10 +17,10 @@ async def queries_line(line_number: int) -> str:
 
         if valid_lines and 1 <= line_number <= len(valid_lines):
             return valid_lines[line_number - 1].strip() + ';'
-        await AsyncLogger.notify_error("Invalid line number.")
+        await Logger.error("Invalid line number.")
         return ''
     except Exception as error:
-        await AsyncLogger.notify_error(error)
+        await Logger.error(error)
         return ''
 
 

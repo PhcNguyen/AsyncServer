@@ -1,69 +1,80 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
+import os.path
 import logging
 import asyncio
 
-from sources.configs import file_paths
+from sources.configs import DIR_LOG
 from sources.manager.files.filecache import FileCache
 
 
+def setup_logger() -> logging.Logger:
+    """
+    Sets up a comprehensive logging configuration with separate files for different log levels
+    and a console handler.
 
-class AsyncLogger:
-    cache = FileCache()
+    Returns:
+        logging.Logger: The configured logger instance.
+    """
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)  # Mức tối thiểu để ghi log
 
-    @staticmethod
-    async def info(message: str | Exception):
-        await AsyncLogger._log(message, 'log-server.cache')
+    # Formatter sử dụng chung cho cả file và console
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-    @staticmethod
-    async def error(message: str | Exception):
-        await AsyncLogger._log(message, 'log-error.cache')
+    # Thêm file handlers cho mỗi mức log (info, error, warning, debug)
+    log_levels = ['info', 'error', 'warning', 'debug']
+    for level in log_levels:
+        file_path = os.path.join(DIR_LOG, f"{level}.log")  # Tạo đường dẫn log file
+        file_handler = logging.FileHandler(file_path, encoding='utf-8')
+        file_handler.setLevel(getattr(logging, level.upper()))  # Đặt đúng mức log
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
-    @staticmethod
-    async def warning(message: str | Exception):
-        await AsyncLogger._log(message, 'log-warning.cache')
+    # Thêm console handler để in log ra màn hình
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)  # Hiển thị mọi log từ mức DEBUG trở lên
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
 
-    @staticmethod
-    async def _log(message: str | Exception, file_path: str):
-        """Ghi nhật ký thông điệp vào tệp cache tương ứng."""
-        if isinstance(message, Exception):
-            message = f"Error occurred: {str(message)}"  # Chuyển đổi Exception thành chuỗi
-        await AsyncLogger.cache.write(message, file_path=file_path)
+    return logger
 
 
 
 class Logger:
-    """Logger that allows asynchronous logging to a file."""
+    """Logger cho phép ghi log bất đồng bộ vào các tệp log và tệp cache."""
 
-    def __init__(self, log_file: str):
-        """Initialize the logger."""
-        self.logger = None
-        self.log_file = file_paths(log_file)
-        self.setup_logger()
+    cache = FileCache()  # Khởi tạo bộ nhớ cache để lưu trữ thông điệp log
+    logger = setup_logger()
 
-    def setup_logger(self):
-        """Set up logger configuration."""
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-        self.logger = logging.getLogger(__name__)
+    @staticmethod
+    async def __log__(
+        message: str | Exception,
+        write_cache: bool, level: str = "INFO"
+    ) -> None:
+        """Ghi log thông điệp ở mức đã chỉ định một cách bất đồng bộ."""
+        level = level.lower()
+        message = str(message) if isinstance(message, Exception) else message
+        if write_cache: await Logger.cache.write(message, f'{level}.cache')
+        await asyncio.to_thread(getattr(Logger.logger, level, Logger.logger.info), message)
 
-        # Set up logging to file with UTF-8 encoding
-        file_handler = logging.FileHandler(self.log_file, encoding='utf-8')  # Set encoding to 'utf-8'
-        file_handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        file_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
+    @staticmethod
+    async def info(message: str | Exception, write_cache: bool = True):
+        """Ghi một thông điệp info."""
+        await Logger.__log__(message, write_cache, level="INFO")
 
-    async def log(self, message: str, level: str = "INFO"):
-        """Log the message at the specified level asynchronously."""
-        log_methods = {
-            "INFO": self.logger.info,
-            "ERROR": self.logger.error,
-            "WARNING": self.logger.warning,
-            "DEBUG": self.logger.debug
-        }
+    @staticmethod
+    async def error(message: str | Exception, write_cache: bool = True):
+        """Ghi một thông điệp lỗi."""
+        await Logger.__log__(message, write_cache, level="ERROR")
 
-        log_method = log_methods.get(level.upper(), self.logger.info)
+    @staticmethod
+    async def warning(message: str | Exception, write_cache: bool = True):
+        """Ghi một thông điệp cảnh báo."""
+        await Logger.__log__(message, write_cache, level="WARNING")
 
-        # Execute the logging method asynchronously
-        await asyncio.to_thread(log_method, message)
+    @staticmethod
+    async def debug(message: str | Exception, write_cache: bool = True):
+        """Ghi một thông điệp debug."""
+        await Logger.__log__(message, write_cache, level="DEBUG")

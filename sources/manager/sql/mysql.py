@@ -5,7 +5,7 @@ import asyncio
 import aiomysql
 
 from sources import configs
-from sources.utils.logger import AsyncLogger
+from sources.utils.logger import Logger
 from sources.manager.sql.player import SQLPlayer
 from sources.manager.sql.account import SQLAccount
 
@@ -28,23 +28,23 @@ class MySQL:
             try:
 
                 self.conn = await aiomysql.connect(**self.config)
-                await AsyncLogger.info(f"Connection MySQL established at {self.ip}")
+                await Logger.info(f"Connection MySQL established at {self.ip}")
                 return True
             except aiomysql.Error as e:
                 self.conn = None
-                await AsyncLogger.error(f"Lỗi kết nối đến cơ sở dữ liệu: {e}")
+                await Logger.error(f"Lỗi kết nối đến cơ sở dữ liệu: {e}")
                 return False
         else:
-            await AsyncLogger.info(f"MySQL đạ được kết nối tại {self.ip}")
+            await Logger.info(f"MySQL đạ được kết nối tại {self.ip}")
             return True
 
     async def close(self) -> bool:
         """Close the MySQL connection."""
         if self.conn:
             self.conn.close()
-            await AsyncLogger.info("Kết nối đã được đóng.")
+            await Logger.info("Kết nối đã được đóng.")
             self.conn = None
             return True
         else:
-            await AsyncLogger.info("Kết nối MySQL đã được đóng trước đó hoặc chưa được thiết lập.")
+            await Logger.info("Kết nối MySQL đã được đóng trước đó hoặc chưa được thiết lập.")
             return False

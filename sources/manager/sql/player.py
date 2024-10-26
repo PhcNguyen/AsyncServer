@@ -5,8 +5,8 @@ import aiosqlite
 
 from sources.utils import types
 from sources.constants.result import ResultBuilder
-from sources.utils.sql import queries_line
-from sources.utils.logger import AsyncLogger
+from sources.manager.sql.utils import queries_line
+from sources.utils.logger import Logger
 
 
 
@@ -18,7 +18,7 @@ class SQLPlayer:
     @staticmethod
     async def handle_error(message: str, error: Exception) -> dict:
         """Handle errors by logging and returning an error response."""
-        await AsyncLogger.error(f"SQLITE: {error}")
+        await Logger.error(f"SQLITE: {error}")
         return ResultBuilder.error(message=message, error=error)
 
     @staticmethod
