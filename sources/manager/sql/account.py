@@ -1,7 +1,7 @@
 import bcrypt
 import aiosqlite
 from sources.utils import types
-from sources.utils.sql import (
+from sources.manager.sql.utils import (
     queries_line,
     is_valid_email,
     is_valid_password

@@ -5,7 +5,7 @@ import asyncio
 from typing import List, Tuple
 
 from sources.utils import types
-from sources.utils.logger import AsyncLogger
+from sources.utils.logger import Logger
 from sources.server.tcpsession import TcpSession
 from sources.manager.security import RateLimiter
 from sources.utils.system import InternetProtocol
@@ -37,12 +37,12 @@ class TcpServer:
     async def start(self):
         """Start the server and listen for incoming connections asynchronously."""
         if self.running:
-            await AsyncLogger.info("Server is already running")
+            await Logger.info("Server is already running")
             return
 
         if not await self.database.start():
             self.running = False
-            await AsyncLogger.info("SQL error occurred")
+            await Logger.info("SQL error occurred")
             return
 
         await asyncio.sleep(2)
@@ -50,7 +50,7 @@ class TcpServer:
         try:
             self.running = True
             self.rate_limiter.running = True
-            await AsyncLogger.info(f'Server processing Commands run at {self.server_address}')
+            await Logger.info(f'Server processing Commands run at {self.server_address}')
 
             server = await asyncio.start_server(
                 self.client_handler.handle_client,
@@ -64,17 +64,17 @@ class TcpServer:
 
         except OSError as error:
             self.running = False
-            await AsyncLogger.error(f"OSError: {str(error)} - {self.server_address}")
+            await Logger.error(f"OSError: {str(error)} - {self.server_address}")
             await asyncio.sleep(5)  # Retry after 5 seconds
 
         except Exception as error:
             self.running = False
-            await AsyncLogger.error(f"Server: {error}")
+            await Logger.error(f"Server: {error}")
 
     async def stop(self):
         """Stop the server asynchronously."""
         if not self.running:
-            await AsyncLogger.info("The server has stopped")
+            await Logger.info("The server has stopped")
             return
 
         self.running = False
@@ -83,7 +83,7 @@ class TcpServer:
         await self.client_handler.close_all_connections()
         await self.database.close()
 
-        await AsyncLogger.info('The server has stopped')
+        await Logger.info('The server has stopped')
 
 
 
@@ -129,12 +129,12 @@ class ClientHandler:
             self.server.current_connections = -~self.server.current_connections
         except Exception as e:
             # Catch any unexpected errors during disconnection
-            await AsyncLogger.error(f"Error while closing connection: {e}")
+            await Logger.error(f"Error while closing connection: {e}")
 
     async def close_all_connections(self):
         """Close all client connections."""
         if not self.client_connections:
-            await AsyncLogger.info("No connections to close.")
+            await Logger.info("No connections to close.")
             return
 
         # Create a list to hold the tasks
@@ -150,4 +150,4 @@ class ClientHandler:
             await task
 
         self.client_connections.clear()  # Clear the list of connections
-        await AsyncLogger.info("All connections closed successfully.")
+        await Logger.info("All connections closed successfully.")

@@ -132,7 +132,7 @@ class UIConfigs:
             "#f44336", "#c62828", '2.png', state='disabled'
         )
         self.clear_button = self.create_button(
-            "Clear logs", self.async_command(self.clear_logs),
+            "Clear log", self.async_command(self.clear_logs),
             "#000000", "#424242", '3.png'
         )
         self.reload_button = self.create_button(

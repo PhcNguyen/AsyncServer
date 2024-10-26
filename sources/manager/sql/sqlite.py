@@ -5,7 +5,7 @@ import asyncio
 import aiosqlite
 
 from sources import configs
-from sources.utils.logger import AsyncLogger
+from sources.utils.logger import Logger
 from sources.manager.sql.tables import SQLTable
 from sources.manager.sql.player import SQLPlayer
 from sources.manager.sql.account import SQLAccount
@@ -41,17 +41,17 @@ class SQLite:
                 return True
             except aiosqlite.Error as e:
                 self.conn = None
-                await AsyncLogger.error(f"SQL: Error connecting to the database: {e}")
+                await Logger.error(f"SQL: Error connecting to the database: {e}")
                 return False
         else:
-            await AsyncLogger.info("SQL: Connection already established.")
+            await Logger.info("SQL: Connection already established.")
             return True
 
     async def close(self) -> None:
         """Close the SQLite connection."""
         if self.conn:
             await self.conn.close()
-            await AsyncLogger.info("SQL: Connection closed.")
+            await Logger.info("SQL: Connection closed.")
             self.conn = None
         else:
-            await AsyncLogger.info("SQL: Connection already closed or not established.")
+            await Logger.info("SQL: Connection already closed or not established.")
