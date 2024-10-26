@@ -3,7 +3,8 @@
 
 import typing
 import datetime
-from sources.handlers.const import Messages
+from sources.constants.textserver import Messages
+
 
 
 class ResultBuilder:

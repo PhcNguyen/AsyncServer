@@ -4,20 +4,9 @@
 from typing import Dict, Callable
 
 from sources.utils import types
-from sources.utils.result import ResultBuilder
+from sources.constants.cmd import Cmd, Codes
+from sources.constants.result import ResultBuilder
 from sources.handlers.client import PlayerCommands, AccountCommands
-
-
-
-class Cmd:
-    LOGIN = 0
-    LOGOUT = 1
-    REGISTER = 2
-    PLAYER_INFO = 3
-
-    UPDATE_APPELLATION = 4
-    UPDATE_COIN = 5
-    TRANSFER_COINS = 6
 
 
 
@@ -40,11 +29,11 @@ class CommandHandler:
         command_code = data.get("command")
 
         if not isinstance(command_code, int):
-            return ResultBuilder.error(6001)
+            return ResultBuilder.error(Codes.COMMAND_CODE_INVALID)
 
         handler = self.command_list.get(command_code)
 
         if callable(handler):
             return await handler(data)
-        else:
-            return ResultBuilder.error(6002)
+
+        return ResultBuilder.error(Codes.ACCESS_DENIED)

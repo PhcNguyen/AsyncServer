@@ -6,15 +6,15 @@ import asyncio
 
 from typing import Optional, Union
 from sources.utils.logger import Logger
-from sources.utils.result import ResultBuilder
+from sources.constants.result import ResultBuilder
 
 logger = Logger("transport.log")
+
 
 async def log_error(message: str, error_code: int) -> dict:
     """Hàm trợ giúp để ghi lỗi và trả về phản hồi lỗi."""
     await logger.log(message, level="ERROR")
     return ResultBuilder.error(error_code)
-
 
 
 class ClientTransport:

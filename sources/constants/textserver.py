@@ -1,33 +1,20 @@
+# Copyright (C) PhcNguyen Developers
+# Distributed under the terms of the Modified BSD License.
 
 from sources.utils.system import System
 
 
-class Codes:
-    # Success codes
-    LOGIN_SUCCESS = 9001
-    LOGOUT_SUCCESS = 9002
-
-    # Error codes
-    COMMAND_CODE_INVALID = 6001
-    MISSING_CREDENTIALS = 6008
-    LOGIN_TOO_FAST = 6005
-    ACCOUNT_ACTIVE = 6006
-    USER_ID_INVALID = 6007
-    TOKEN_REQUIRED = 6010
-    TOKEN_INVALID = 6011
-    PLAYER_INFO_NOT_FOUND = 6009
-
 
 class Messages:
     # Define message categories
-    SUCCESS_MESSAGES = {
+    MESSAGES = {
+        # Success messages
         9001: "Đăng nhập thành công.",
         9002: "Đăng xuất thành công.",
         9501: "Dữ liệu đã gửi thành công.",
         9502: "Dữ liệu đã nhận thành công.",
-    }
 
-    ERROR_MESSAGES = {
+        # Error messages
         404: "Lỗi nghiêm trọng disconnected.",
         1001: "Không có transport.",
         2001: "Lỗi khi giải mã JSON.",
@@ -54,39 +41,16 @@ class Messages:
     @classmethod
     def get_message(cls, code: int) -> str:
         """Lấy thông điệp tương ứng với mã."""
-        if code in cls.SUCCESS_MESSAGES:
-            return cls.SUCCESS_MESSAGES[code]
-
-        elif code in cls.ERROR_MESSAGES:
-            return cls.ERROR_MESSAGES[code]
-
-        return "Lỗi không xác định."
-
-    @classmethod
-    def is_error_code(cls, code: int) -> bool:
-        """Check if the provided code is an error code."""
-        return code in cls.ERROR_MESSAGES
-
-    @classmethod
-    def is_success_code(cls, code: int) -> bool:
-        """Check if the provided code is a success code."""
-        return code in cls.SUCCESS_MESSAGES
+        return cls.MESSAGES.get(code, "Lỗi không xác định.")
 
     @classmethod
     def check_duplicates(cls):
-        """Check for duplicate codes in success and error messages."""
-        set(cls.SUCCESS_MESSAGES.keys()).union(set(cls.ERROR_MESSAGES.keys()))
-
-        # Check for duplicates within success and error messages
-        duplicates = {
-            code for code in cls.SUCCESS_MESSAGES
-            if code in cls.ERROR_MESSAGES
-        }
-
-        if duplicates:
+        """Check for duplicate codes in messages."""
+        codes = set(cls.MESSAGES.keys())
+        if len(codes) < len(cls.MESSAGES):
+            duplicates = [code for code in cls.MESSAGES if list(cls.MESSAGES).count(code) > 1]
             print(f"Duplicate message codes found: {duplicates}")
             System.exit()  # Exit the program with a non-zero status code to indicate failure
-
 
 
 if __name__ == "__main__":

@@ -13,15 +13,15 @@ class AsyncLogger:
     cache = FileCache()
 
     @staticmethod
-    async def notify_info(message: str | Exception):
+    async def info(message: str | Exception):
         await AsyncLogger._log(message, 'log-server.cache')
 
     @staticmethod
-    async def notify_error(message: str | Exception):
+    async def error(message: str | Exception):
         await AsyncLogger._log(message, 'log-error.cache')
 
     @staticmethod
-    async def notify_warning(message: str | Exception):
+    async def warning(message: str | Exception):
         await AsyncLogger._log(message, 'log-warning.cache')
 
     @staticmethod
@@ -32,9 +32,6 @@ class AsyncLogger:
         await AsyncLogger.cache.write(message, file_path=file_path)
 
 
-
-
-import logging
 
 class Logger:
     """Logger that allows asynchronous logging to a file."""

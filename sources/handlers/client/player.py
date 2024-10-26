@@ -1,9 +1,9 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-from sources.utils.result import ResultBuilder
+from sources.constants.result import ResultBuilder
 from sources.manager.security import JwtManager
-from sources.handlers.const import Codes
+from sources.constants.textserver import Codes
 from sources.handlers.utils import is_valid_user_id
 
 

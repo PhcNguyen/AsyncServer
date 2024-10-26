@@ -28,23 +28,23 @@ class MySQL:
             try:
 
                 self.conn = await aiomysql.connect(**self.config)
-                await AsyncLogger.notify_info(f"Connection MySQL established at {self.ip}")
+                await AsyncLogger.info(f"Connection MySQL established at {self.ip}")
                 return True
             except aiomysql.Error as e:
                 self.conn = None
-                await AsyncLogger.notify_error(f"Lỗi kết nối đến cơ sở dữ liệu: {e}")
+                await AsyncLogger.error(f"Lỗi kết nối đến cơ sở dữ liệu: {e}")
                 return False
         else:
-            await AsyncLogger.notify_info(f"MySQL đạ được kết nối tại {self.ip}")
+            await AsyncLogger.info(f"MySQL đạ được kết nối tại {self.ip}")
             return True
 
     async def close(self) -> bool:
         """Close the MySQL connection."""
         if self.conn:
             self.conn.close()
-            await AsyncLogger.notify_info("Kết nối đã được đóng.")
+            await AsyncLogger.info("Kết nối đã được đóng.")
             self.conn = None
             return True
         else:
-            await AsyncLogger.notify_info("Kết nối MySQL đã được đóng trước đó hoặc chưa được thiết lập.")
+            await AsyncLogger.info("Kết nối MySQL đã được đóng trước đó hoặc chưa được thiết lập.")
             return False

@@ -7,7 +7,7 @@ import asyncio
 
 from sources.utils import types
 from sources.utils.logger import AsyncLogger
-from sources.handlers.cmd import CommandHandler
+from sources.handlers.commands import CommandHandler
 from sources.manager.security import RateLimiter
 from sources.server.transport import ClientTransport, PacketHandler
 
@@ -53,7 +53,7 @@ class TcpSession:
             self.client_address = writer.get_extra_info('peername')
 
             if not self.client_address:
-                await AsyncLogger.notify_error("Failed to get client address.")
+                await AsyncLogger.error("Failed to get client address.")
                 await self.disconnect()
                 return
 
@@ -67,18 +67,18 @@ class TcpSession:
                 return
 
             # Ghi nhật ký khi kết nối thành công
-            await AsyncLogger.notify_info(f"Port connected: {self.client_address[1]}")
+            await AsyncLogger.info(f"Port connected: {self.client_address[1]}")
 
         except OSError as e:
-            await AsyncLogger.notify_error(f"Network error: {e}")
+            await AsyncLogger.error(f"Network error: {e}")
             await self.disconnect()
 
         except asyncio.IncompleteReadError as e:
-            await AsyncLogger.notify_error(f"Incomplete read error: {e}")
+            await AsyncLogger.error(f"Incomplete read error: {e}")
             await self.disconnect()
 
         except Exception as e:
-            await AsyncLogger.notify_error(f"Unexpected error during connection: {e}")
+            await AsyncLogger.error(f"Unexpected error during connection: {e}")
             await self.disconnect()
 
     async def disconnect(self):
@@ -96,21 +96,21 @@ class TcpSession:
                 try:
                     await asyncio.wait_for(self.writer.wait_closed(), timeout=2.0)
                 except asyncio.TimeoutError:
-                    await AsyncLogger.notify_warning(
+                    await AsyncLogger.warning(
                         f"Timeout while waiting for writer to close: {self.client_address[1]}"
                     )
                     self.writer.close()  # Đóng writer nếu quá thời gian chờ
 
-            await AsyncLogger.notify_info(f"Port disconnected: {self.client_address[1]}")
+            await AsyncLogger.info(f"Port disconnected: {self.client_address[1]}")
 
         except OSError as e:
-            await AsyncLogger.notify_error(f"OSError during disconnection: {e}")
+            await AsyncLogger.error(f"OSError during disconnection: {e}")
 
         except asyncio.CancelledError:
-            await AsyncLogger.notify_info("Disconnection was cancelled.")
+            await AsyncLogger.info("Disconnection was cancelled.")
 
         except Exception as e:
-            await AsyncLogger.notify_error(f"Unexpected error during disconnection: {e}")
+            await AsyncLogger.error(f"Unexpected error during disconnection: {e}")
 
     async def receive_data(self):
         """Nhận và xử lý dữ liệu từ client với xử lý timeout."""
