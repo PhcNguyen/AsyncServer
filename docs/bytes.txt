@@ -4,12 +4,15 @@ Khi phát triển một server game TCP, kích thước dữ liệu bạn cần 
 Dữ Liệu Người Chơi: Nếu bạn cần gửi thông tin trạng thái của người chơi, chẳng hạn như vị trí, điểm số, và các thuộc tính khác, mỗi người chơi có thể yêu cầu vài chục đến vài trăm byte.
 Dữ Liệu Vật Thể: Nếu bạn có nhiều vật thể trong trò chơi (như NPC, item), bạn cần đủ byte để mô tả tất cả các vật thể này.
 Thao Tác Hành Động: Gửi các lệnh từ client tới server (như di chuyển, tấn công) có thể chiếm ít byte hơn nhưng cần được gửi thường xuyên.
+
 2. Kích Thước Gói Dữ Liệu
 Gói Dữ Liệu Nhỏ: Khoảng từ 64 đến 512 bytes thường là đủ cho các lệnh cơ bản hoặc thông báo trạng thái.
 Gói Dữ Liệu Lớn: Nếu bạn đang gửi nhiều thông tin trong một lần (chẳng hạn như bản đồ, thông tin người chơi), bạn có thể cần từ 1 KB đến 10 KB hoặc thậm chí lớn hơn.
+
 3. Tối Ưu Hóa
 Nén Dữ Liệu: Nếu bạn cần gửi thông tin lớn, hãy xem xét việc nén dữ liệu để tiết kiệm băng thông.
 Chia Nhỏ Dữ Liệu: Nếu dữ liệu lớn, chia nhỏ thành nhiều gói nhỏ sẽ giúp gửi hiệu quả hơn và giảm độ trễ.
+
 4. Thời Gian Thực
 Thời Gian Trễ Thấp: Trong các trò chơi cần thời gian thực (real-time), bạn cần tối ưu hóa kích thước gói để tránh độ trễ. Gói nhỏ hơn giúp gửi nhanh hơn, nhưng quá nhỏ có thể dẫn đến nhiều overhead.
 Kết Luận

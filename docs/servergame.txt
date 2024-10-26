@@ -1,0 +1,79 @@
+1. Quản lý kết nối mạng
+Giao thức mạng:
+UDP (User Datagram Protocol) thường được dùng cho các game yêu cầu thời gian thực và độ trễ thấp (như bắn súng hoặc game đối kháng), nhưng không đảm bảo độ tin cậy của gói tin.
+TCP (Transmission Control Protocol) thích hợp cho các game không yêu cầu độ trễ thấp nhưng cần truyền dữ liệu ổn định và đáng tin cậy (ví dụ: các game chiến thuật hoặc game bài).
+Quản lý kết nối: Server phải quản lý nhiều kết nối từ các client. Điều này bao gồm:
+Xử lý kết nối và ngắt kết nối của người chơi.
+Giữ kết nối sống giữa server và client (sử dụng "heartbeat" hoặc "ping").
+
+2. Quản lý người chơi (Player Management)
+Xác thực người chơi:
+Cần cơ chế xác thực để đảm bảo chỉ những người chơi hợp lệ mới có thể truy cập server. Điều này có thể bao gồm đăng nhập, mã token, hoặc sử dụng hệ thống OAuth với tài khoản game.
+Danh sách người chơi:
+Server phải giữ danh sách những người chơi hiện đang kết nối. Mỗi người chơi cần có một định danh (ID) duy nhất.
+Đồng bộ hóa thông tin người chơi:
+Dữ liệu trạng thái của người chơi (vị trí, máu, điểm số, v.v.) cần được đồng bộ hóa giữa server và client để đảm bảo mọi người chơi nhìn thấy cùng một trạng thái của trò chơi.
+
+3. Xử lý game logic
+Game loop:
+
+Server cần có một vòng lặp game (game loop) để tính toán và xử lý các sự kiện trong game như di chuyển, tấn công, tương tác giữa các người chơi hoặc với môi trường.
+Các hành động này phải được tính toán theo thời gian thực hoặc theo các chu kỳ ngắn (tick).
+Quản lý trạng thái game:
+
+Server cần duy trì trạng thái game (các thông số như vị trí nhân vật, trạng thái vật phẩm, v.v.) để xử lý các yêu cầu và cập nhật từ phía client.
+Cập nhật và đồng bộ hóa trạng thái:
+
+Sau khi xử lý logic, server cần gửi thông tin cập nhật đến các client để đồng bộ hóa game giữa các người chơi.
+4. Quản lý thời gian (Time Management)
+Tick rate:
+
+Server game thường hoạt động theo các chu kỳ (ticks). Mỗi chu kỳ sẽ xử lý các sự kiện xảy ra trong game và cập nhật trạng thái.
+Tick rate cao (nhiều ticks/giây) giúp cập nhật trạng thái game nhanh hơn, nhưng cũng tốn nhiều tài nguyên tính toán hơn.
+Xử lý độ trễ (Lag Compensation):
+
+Độ trễ mạng giữa server và client là điều không thể tránh khỏi. Server phải có các cơ chế để giảm thiểu tác động của độ trễ, như dự đoán vị trí của người chơi hoặc tính toán các hành động xảy ra trước khi nhận được phản hồi từ client.
+5. Bảo mật
+Chống gian lận (Anti-cheat):
+
+Server cần các cơ chế để phát hiện và ngăn chặn gian lận. Các hành động gian lận có thể bao gồm thay đổi dữ liệu game hoặc gửi các lệnh không hợp lệ từ client.
+Các thông tin quan trọng (như tính toán sát thương, vị trí nhân vật) nên được xử lý trên server để tránh bị can thiệp từ client.
+Mã hóa:
+
+Mã hóa dữ liệu truyền tải giữa server và client (như sử dụng SSL/TLS) để bảo vệ khỏi các cuộc tấn công từ bên ngoài.
+6. Phân phối tải (Load Balancing)
+Quản lý tài nguyên:
+Server cần được thiết kế để có thể xử lý nhiều người chơi cùng một lúc mà không bị quá tải. Điều này bao gồm quản lý CPU, bộ nhớ, và băng thông mạng.
+Load balancing:
+Nếu có nhiều server, cần phân phối người chơi giữa các server khác nhau để tránh tình trạng quá tải ở một server duy nhất. Điều này có thể được thực hiện thông qua các hệ thống cân bằng tải (load balancers).
+7. Lưu trữ dữ liệu và trạng thái (Data Persistence)
+Lưu trữ trạng thái game:
+
+Server cần lưu trữ trạng thái của người chơi và trạng thái game (ví dụ: điểm số, thông tin tài khoản) để có thể tiếp tục game khi người chơi quay lại.
+Cơ sở dữ liệu:
+
+Sử dụng cơ sở dữ liệu để lưu trữ thông tin người chơi và trạng thái game. Các cơ sở dữ liệu phổ biến có thể là SQL hoặc NoSQL (như PostgreSQL, MongoDB).
+8. Quản lý phiên (Session Management)
+Phiên chơi (Session):
+Server cần quản lý các phiên chơi để biết người chơi nào đang tham gia vào một phiên cụ thể và theo dõi thông tin của họ trong phiên đó.
+Kết nối lại (Reconnect):
+Trong trường hợp kết nối mạng bị mất, server nên hỗ trợ người chơi kết nối lại mà không mất dữ liệu hay trạng thái.
+9. Công cụ giám sát và quản trị (Monitoring and Admin Tools)
+Giám sát hiệu năng:
+
+Server cần có các công cụ giám sát để theo dõi hiệu năng, tải trọng, và các vấn đề kỹ thuật trong quá trình vận hành.
+Quản trị viên (Admin tools):
+
+Cần có công cụ để quản lý server (khởi động, tắt, khởi động lại server) và các công cụ quản lý người chơi (kick/ban người chơi vi phạm).
+10. Chức năng mở rộng (Scaling)
+Horizontal scaling:
+Nếu số lượng người chơi tăng lên, bạn có thể mở rộng server bằng cách thêm nhiều máy chủ (sharding hoặc clustering) và phân chia người chơi theo cụm (shards hoặc zones).
+Cloud support:
+Sử dụng dịch vụ đám mây (như AWS, Google Cloud) giúp mở rộng tài nguyên server dễ dàng khi cần.
+11. Ghi nhật ký và ghi lỗi (Logging and Error Handling)
+Ghi nhật ký (Logging):
+
+Server cần ghi lại tất cả các sự kiện và hoạt động quan trọng để có thể theo dõi và phát hiện lỗi hoặc vấn đề.
+Xử lý lỗi (Error Handling):
+
+Khi gặp lỗi (kết nối mất, quá tải), server cần có cơ chế xử lý hợp lý để tránh sụp đổ và ảnh hưởng đến trải nghiệm người chơi.

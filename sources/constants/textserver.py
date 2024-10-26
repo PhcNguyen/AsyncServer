@@ -17,7 +17,7 @@ class Messages:
         # Error messages
         404: "Lỗi nghiêm trọng disconnected.",
         1001: "Không có transport.",
-        2001: "Lỗi khi giải mã JSON.",
+        2001: "Lỗi không có dữ liệu.",
         3001: "Lỗi timeout.",
         4001: "Lỗi khi giải mã Unicode.",
         4002: "Kiểu dữ liệu không được hỗ trợ.",

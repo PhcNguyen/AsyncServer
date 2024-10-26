@@ -9,7 +9,7 @@ from sources.utils import types
 from sources.utils.logger import Logger
 from sources.handlers.commands import CommandHandler
 from sources.manager.security import RateLimiter
-from sources.server.IO.packet import PacketHandler
+from sources.server.IO.transport import Transport
 
 
 
@@ -23,7 +23,7 @@ class TcpSession:
         rate_limiter: RateLimiter,
     ) -> None:
         self.server = server
-        self.packet = None
+        self.transport = None
         self.data_handler = None
         self.database = database
         self.is_connected = False
@@ -37,7 +37,7 @@ class TcpSession:
 
     async def _handle_rate_limit_exceeded(self):
         """Gửi thông báo và ngắt kết nối khi vượt quá giới hạn yêu cầu."""
-        await self.packet.send({
+        await self.transport.send({
             "status": False,
             "message": "Too many requests. Please try again in 1 minute."
         })
@@ -50,7 +50,7 @@ class TcpSession:
             self.reader = reader
             self.writer = writer
             self.is_connected = True
-            self.packet = PacketHandler(self.reader, self.writer)
+            self.transport = Transport(self.reader, self.writer)
             self.client_address = writer.get_extra_info('peername')
 
             if not self.client_address:
@@ -59,7 +59,8 @@ class TcpSession:
 
             # Kiểm tra giới hạn tốc độ (rate limiting)
             if not await self.rate_limiter.is_allowed(self.client_address[0]):
-                await self._handle_rate_limit_exceeded(); return
+                await self._handle_rate_limit_exceeded()
+                await self.disconnect(); return
 
             # Ghi nhật ký khi kết nối thành công
             await Logger.info(f"Port connected: {self.client_address[1]}")
@@ -111,7 +112,7 @@ class TcpSession:
         """Nhận và xử lý dữ liệu từ client với xử lý timeout."""
         while self.is_connected:
             # Nhận dữ liệu từ data_handler
-            response = await self.packet.receive()
+            response = await self.transport.receive()
 
             # Kiểm tra phản hồi nhận được có hợp lệ không
             if response is None:
@@ -133,15 +134,15 @@ class TcpSession:
 
                 # Gửi dữ liệu và ngắt kết nối sau khi gửi
                 if code in {2001, 3001, 4001, 4002}:
-                    await self.packet.send(data)
+                    await self.transport.send(data)
                     await self.disconnect()
                     break
 
                 # Gửi dữ liệu và tiếp tục nhận (có thể là gửi báo cáo lỗi hoặc xử lý tạm thời)
                 if code == 5001:
-                    await self.packet.send(data)
+                    await self.transport.send(data)
                     continue
 
             # Nếu không phải mã lỗi, xử lý lệnh và gửi phản hồi
             response = await self.command_handler.process_command(data)
-            await self.packet.send(response)
+            await self.transport.send(response)
