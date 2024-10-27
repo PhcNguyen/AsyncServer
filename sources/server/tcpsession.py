@@ -5,48 +5,27 @@ import uuid
 import typing
 import asyncio
 
-from sources.utils import types
 from sources.utils.logger import Logger
-from sources.handlers.commands import CommandHandler
-from sources.manager.security import RateLimiter
 from sources.server.IO.transport import Transport
 
 
-
-class TcpSession:
+class TCPSession:
     """Manages a TCP session between the server and a client."""
 
-    def __init__(
-        self,
-        server: types.TcpServer,
-        database: typing.Optional[types.SQLite | types.MySQL],
-        rate_limiter: RateLimiter,
-    ) -> None:
-        self.server = server
+    def __init__(self) -> None:
         self.transport = None
+        self.controller = None
         self.data_handler = None
-        self.database = database
         self.is_connected = False
-        self.rate_limiter = rate_limiter
         self.reader: typing.Optional[asyncio.StreamReader] = None
         self.writer: typing.Optional[asyncio.StreamWriter] = None
         self.client_address: typing.Optional[typing.Tuple[str, int]] = None
-
-        self.id = uuid.uuid4()
-        self.command_handler = CommandHandler(database)
-
-    async def _handle_rate_limit_exceeded(self):
-        """Gửi thông báo và ngắt kết nối khi vượt quá giới hạn yêu cầu."""
-        await self.transport.send({
-            "status": False,
-            "message": "Too many requests. Please try again in 1 minute."
-        })
-        await self.disconnect()
+        self.id = uuid.uuid4()  # Unique identifier for the session
 
     async def connect(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Establish a connection with the client and set session details."""
         try:
-            # Lấy thông tin về địa chỉ client
+            # Get the client address information
             self.reader = reader
             self.writer = writer
             self.is_connected = True
@@ -55,15 +34,11 @@ class TcpSession:
 
             if not self.client_address:
                 await Logger.error("Failed to get client address.")
-                await self.disconnect(); return
+                await self.disconnect()
+                return
 
-            # Kiểm tra giới hạn tốc độ (rate limiting)
-            if not await self.rate_limiter.is_allowed(self.client_address[0]):
-                await self._handle_rate_limit_exceeded()
-                await self.disconnect(); return
-
-            # Ghi nhật ký khi kết nối thành công
-            await Logger.info(f"Port connected: {self.client_address[1]}")
+            # Log successful connection
+            await Logger.info(f"Accepted Session: {self.id} Successful")
 
         except OSError as error:
             await Logger.error(f"Network error: {error}")
@@ -82,22 +57,20 @@ class TcpSession:
         if not self.is_connected:
             return
 
-        self.is_connected = False  # Đánh dấu phiên làm việc đã ngắt kết nối
+        self.is_connected = False  # Mark the session as disconnected
 
         try:
-            # Kiểm tra xem writer có tồn tại và đã được khởi tạo
+            # Check if writer exists and has been initialized
             if self.writer:
-                await self.writer.drain()  # Đảm bảo gửi hết dữ liệu còn lại
+                await self.writer.drain()  # Ensure all remaining data is sent
 
                 try:
                     await asyncio.wait_for(self.writer.wait_closed(), timeout=2.0)
                 except asyncio.TimeoutError:
-                    await Logger.warning(
-                        f"Timeout while waiting for writer to close: {self.client_address[1]}"
-                    )
-                    self.writer.close()  # Đóng writer nếu quá thời gian chờ
+                    await Logger.warning(f"Timeout while waiting for writer to close: {self.id}")
+                    self.writer.close()  # Close writer if timeout occurs
 
-            await Logger.info(f"Port disconnected: {self.client_address[1]}")
+            await Logger.info(f"Session: {self.id} disconnected...")
 
         except OSError as error:
             await Logger.error(f"OSError during disconnection: {error}")
@@ -107,42 +80,3 @@ class TcpSession:
 
         except Exception as error:
             await Logger.error(f"Unexpected error during disconnection: {error}")
-
-    async def receive_data(self):
-        """Nhận và xử lý dữ liệu từ client với xử lý timeout."""
-        while self.is_connected:
-            # Nhận dữ liệu từ data_handler
-            response = await self.transport.receive()
-
-            # Kiểm tra phản hồi nhận được có hợp lệ không
-            if response is None:
-                await self.disconnect()
-                break
-
-            data = response.get("data", None)
-            if data is None:
-                await self.disconnect()
-                break
-
-            code = data.get("code", None)
-
-            if isinstance(code, int):
-                # Nhóm các điều kiện ngắt kết nối ngay lập tức
-                if code in {404, 1001, 5002, 5003, 5004}:
-                    await self.disconnect()
-                    break
-
-                # Gửi dữ liệu và ngắt kết nối sau khi gửi
-                if code in {2001, 3001, 4001, 4002}:
-                    await self.transport.send(data)
-                    await self.disconnect()
-                    break
-
-                # Gửi dữ liệu và tiếp tục nhận (có thể là gửi báo cáo lỗi hoặc xử lý tạm thời)
-                if code == 5001:
-                    await self.transport.send(data)
-                    continue
-
-            # Nếu không phải mã lỗi, xử lý lệnh và gửi phản hồi
-            response = await self.command_handler.process_command(data)
-            await self.transport.send(response)

@@ -22,7 +22,7 @@ class Graphics(UIConfigs):
         super().__init__(root)
         self.running = True
         self.cache: FileCache = FileCache()
-        self.server: typing.Optional[types.TcpServer] = None
+        self.server: typing.Optional[types.TCPServer] = None
 
         self.root.protocol("WM_DELETE_WINDOW", self.async_command(self.on_closing))
 
@@ -75,8 +75,8 @@ class Graphics(UIConfigs):
     async def auto_log_error(self):
         await self._update_log("error.cache", self.error_log, is_error_log=True)
 
-    def setup_server(self, server: types.TcpServer):
-        self.server: types.TcpServer = server
+    def setup_server(self, server: types.TCPServer):
+        self.server: types.TCPServer = server
 
     async def start_server(self):
         """Starts the server asynchronously and manages log updates."""

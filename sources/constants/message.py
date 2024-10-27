@@ -13,21 +13,24 @@ class Messages:
         9002: "Đăng xuất thành công.",
         9501: "Dữ liệu đã gửi thành công.",
         9502: "Dữ liệu đã nhận thành công.",
+        1000: "Pass",
 
         # Error messages
-        404: "Lỗi nghiêm trọng disconnected.",
+
         1001: "Không có transport.",
         2001: "Lỗi không có dữ liệu.",
         3001: "Lỗi timeout.",
-        4001: "Lỗi khi giải mã Unicode.",
+        4001: "Lỗi khi giải mã dữ liệu.",
         4002: "Kiểu dữ liệu không được hỗ trợ.",
         5001: "Lỗi không xác định.",
         5002: "Lỗi mạng: Tên mạng được chỉ định không còn khả dụng.",
         5003: "Lỗi trong khi gửi.",
         5004: "Lỗi không mong muốn trong khi gửi.",
+        5005: "Không có dữ liệu nhận được.",
         6001: "Lệnh không hợp lệ.",
         6002: "Không có quyền truy cập.",
         6003: "Lỗi xử lý lệnh.",
+
         6004: "Thiếu email hoặc mật khẩu.",
         6005: "Bạn đã đăng nhập tài khoản quá nhanh. Vui lòng thử lại sau ít phút.",
         6006: "Tài khoản đang trực tuyến.",

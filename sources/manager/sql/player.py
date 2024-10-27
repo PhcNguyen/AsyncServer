@@ -4,9 +4,8 @@
 import aiosqlite
 
 from sources.utils import types
-from sources.constants.result import ResultBuilder
-from sources.manager.sql.utils import queries_line
 from sources.utils.logger import Logger
+from sources.manager.sql.utils import queries_line
 
 
 
@@ -14,32 +13,6 @@ class SQLPlayer:
     def __init__(self, database: types.SQLite | types.MySQL):
         """Initialize PlayerManager with the provided database."""
         self.database = database
-
-    @staticmethod
-    async def handle_error(message: str, error: Exception) -> dict:
-        """Handle errors by logging and returning an error response."""
-        await Logger.error(f"SQLITE: {error}")
-        return ResultBuilder.error(message=message, error=error)
-
-    @staticmethod
-    def build_player_response(player: tuple) -> dict:
-        """Build a structured response for player information."""
-        return ResultBuilder.success(
-            message="Thông tin người chơi đã được lấy thành công",
-            id=player[0],
-            name=player[1],
-            coin=player[2],
-            gem=player[3],
-            power=player[4],
-            hp=player[5],
-            mp=player[6],
-            damage=player[7],
-            defense=player[8],
-            crit=player[9],
-            exp=player[10],
-            character=player[11],
-            description=player[12]
-        )
 
     async def dump_data(self, **kwargs) -> bool:
         """Insert a new player into the player table using keyword arguments."""
@@ -49,39 +22,66 @@ class SQLPlayer:
                 await self.database.conn.commit()
             return True
         except aiosqlite.Error as error:
-            await self.handle_error("Lỗi khi thêm người chơi.", error)
+            await Logger.error(f"SQL: {error}", False)
             return False
 
-    async def get(self, user_id: int) -> dict:
-        """Retrieve all information of a specific player."""
+    async def get(self, user_id: int) -> dict | bool:
+        """
+        Retrieve all information of a specific player.
+
+        [0] ID của người chơi - [1] Tên người chơi
+        [2] Số tiền (coin) của người chơi
+        [3] Số gem (đá quý) của người chơi
+        [4] Máu (HP) của người chơi
+        [5] Năng lượng (MP) của người chơi
+        [6] Tốc độ của người chơi
+        [7] Sát thương của người chơi
+        [8] Phòng thủ của người chơi
+        [9] Tỉ lệ chí mạng của người chơi
+
+        [10] Sức mạnh tổng thể của người chơi
+        [11] Kinh nghiệm (EXP) của người chơi
+        [12] Vị trí hiện tại của người chơi
+        [13] Trang bị trên cơ thể của người chơi
+        [14] Đồ trong túi (bag) của người chơi
+        [15] Đồ trong hộp (box) của người chơi
+        [16] Danh sách bạn bè của người chơi
+        [17] Dữ liệu nhiệm vụ của người chơi
+        [18] Sức chứa tối đa (luggage) của người chơi
+        [19] Cấp độ của túi đồ (bag level)
+        [20] ID của bang hội (clan) của người chơi
+        [21] Mô tả về người chơi
+        """
         try:
             async with self.database.lock:
                 result = await self.database.conn.execute(await queries_line(3), (user_id,))
-                player = await result.fetchone()
+                data = await result.fetchone()
 
-            if player:
-                return self.build_player_response(player)
+            if data: return data
 
-            return ResultBuilder.error(message=f"Người chơi với ID '{user_id}' không tồn tại.")
+            await Logger.error(f"ID {user_id} không tồn tại")
+            return False
         except aiosqlite.Error as error:
-            return await self.handle_error(f"Lỗi khi lấy thông tin người chơi với ID '{user_id}'.", error)
+            await Logger.error(f"ID: {user_id} - SQL: {error}", False)
+            return False
 
-    async def update(self, user_id: int, **kwargs) -> dict:
+    async def update(self, user_id: int, **kwargs) -> bool:
         """Update the player's information for the given user ID."""
         if not kwargs:
-            return ResultBuilder.error(message="Không có thông tin nào để cập nhật.")
+            return False
 
         try:
             async with self.database.lock:
                 fields = ', '.join(f"{key} = ?" for key in kwargs.keys())
                 values = list(kwargs.values()) + [user_id]
 
-                query: str = await queries_line(3)
+                query: str = await queries_line(48)
                 query.replace('{fields}', ', '.join(fields))
 
                 await self.database.conn.execute(query, values)
                 await self.database.conn.commit()
 
-            return ResultBuilder.success(message="Thông tin người chơi đã được cập nhật thành công.")
+            return True
         except aiosqlite.Error as error:
-            return await self.handle_error(f"Lỗi khi cập nhật thông tin người chơi với ID '{user_id}'.", error)
+            await Logger.error(f"ID: {user_id} - SQL: {error}", False)
+            return False

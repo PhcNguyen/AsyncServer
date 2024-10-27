@@ -4,6 +4,8 @@
 
 
 class Cmd:
+    PING = -1
+    PONG = -2
     LOGIN = 0           # Mã lệnh cho đăng nhập
     LOGOUT = 1          # Mã lệnh cho đăng xuất
     REGISTER = 2        # Mã lệnh cho đăng ký tài khoản

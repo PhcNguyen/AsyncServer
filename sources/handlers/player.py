@@ -8,7 +8,7 @@ from sources.handlers.utils import is_valid_user_id
 
 
 
-class PlayerCommands:
+class PlayerHandler:
     def __init__(self, database):
         self.database = database
 

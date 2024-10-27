@@ -42,7 +42,6 @@ CREATE TABLE IF NOT EXISTS player (
     max_luggage INTEGER NOT NULL DEFAULT 30,         -- Giới hạn trọng lượng tối đa, mặc định là 30
     level_bag INTEGER NOT NULL DEFAULT 0,            -- Cấp độ túi, mặc định là 0
     clan_id INTEGER DEFAULT -1,                      -- ID của bang hội (mặc định là -1 nếu không thuộc bang hội)
-    character BIGINT DEFAULT '0',                    -- ID cho các bộ phận
     description TEXT DEFAULT NULL,                   -- Mô tả về nhân vật
     updated_last TIMESTAMP DEFAULT CURRENT_TIMESTAMP,-- Thời gian cập nhật
     FOREIGN KEY (account_id) REFERENCES account(id)  -- Thiết lập mối quan hệ khóa ngoại với bảng account

@@ -1,11 +1,16 @@
+# Copyright (C) PhcNguyen Developers
+# Distributed under the terms of the Modified BSD License.
+
 import bcrypt
 import aiosqlite
+
 from sources.utils import types
 from sources.manager.sql.utils import (
     queries_line,
     is_valid_email,
     is_valid_password
 )
+
 
 
 class SQLAccount:
@@ -28,10 +33,20 @@ class SQLAccount:
         result = await self._execute(await queries_line(1), (email,))
         return await result.fetchone() is not None
 
-    async def info(self, data: str | int = None) -> (bool, dict | str):
-        """Retrieve account information based on email or user ID."""
+    async def info(self, data: str | int = None) -> (bool, list):
+        """
+        Retrieve account information based on email or user ID.
+
+        [0] ID của tài khoản
+        [1] Địa chỉ email của người dùng
+        [2] Mật khẩu của tài khoản
+        [3] Trạng thái cấm (ban) của tài khoản (True nếu bị cấm)
+        [4] Vai trò của người dùng (ví dụ: 1.admin, 0.user)
+        [5] Trạng thái hoạt động của tài khoản (True nếu đang hoạt động)
+        [6] Thời gian đăng nhập cuối cùng của người dùng
+        """
         if data is None:
-            return False, "No data provided."
+            return False, []
 
         queries = await queries_line(1) if data.isdigit() else await queries_line(7)
         data = int(data) if isinstance(data, str) and data.isdigit() else data
@@ -40,17 +55,11 @@ class SQLAccount:
         account = await result.fetchone()
 
         if account:
-            return True, {
-                "id": account[0],
-                "email": account[1],
-                "password": account[2],
-                "ban": account[3] == 1,
-                "role": account[4],
-                "active": account[5] == 1,
-                "last_login": account[6]
-            }
+            account[3] = True if account[3] == 1 else False
+            account[5] = True if account[5] == 1 else False
+            return True, account
         else:
-            return False, "Account not found."
+            return False, []
 
     async def register(self, email: str, password: str) -> (bool, str):
         """Register a new account."""
@@ -78,12 +87,12 @@ class SQLAccount:
             if not success:
                 return False, account  # Return the error message
 
-            if account["ban"]:
+            if account[3]:
                 return False, "Tài khoản đã bị khóa."
 
             if bcrypt.checkpw(password.encode('utf-8'), account["password"]):
-                if not account["active"]:
-                    return False, "Tài khoản chưa được kích hoạt."
+                if account[5]:
+                    return False, "Tài khoản đang hoạt động."
 
                 # Update last login time
                 await self.update_last_login(email=email)
@@ -93,7 +102,7 @@ class SQLAccount:
             return False, "Mật khẩu không đúng."
 
         except aiosqlite.Error as error:
-            return False, f"Lỗi khi đăng nhập: {error}"
+            return False, f"Lỗi khi đăng nhập."
 
     async def change_password(self, user_id: int, old_password: str, new_password: str) -> (bool, str):
         """Change the user's password if the old password is correct."""
@@ -104,11 +113,11 @@ class SQLAccount:
         if not success:
             return False, account  # Return the error message
 
-        if not bcrypt.checkpw(old_password.encode('utf-8'), account["password"]):
+        if not bcrypt.checkpw(old_password.encode('utf-8'), account[2]):
             return False, "Mật khẩu cũ không chính xác."
 
         hashed_new_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
-        await self._execute(await queries_line(41), (hashed_new_password, account["id"]))
+        await self._execute(await queries_line(41), (hashed_new_password, account[0]))
         await self._commit()
 
         return True, "Mật khẩu đã được thay đổi thành công."
@@ -134,12 +143,14 @@ class SQLAccount:
 
         return True, "Người dùng đã đăng xuất thành công."
 
-    async def update_last_login(self, email=None, user_id: int = None) -> (bool, str):
+    async def update_last_login(self, email = None, user_id: int = None) -> (bool, str):
         """Update the last login timestamp."""
         if user_id is not None:
             await self._execute(await queries_line(43), (user_id,))
+
         elif email is not None:
             await self._execute(await queries_line(43), (email,))
+
         else:
             return False, "Không có thông tin để cập nhật."
 

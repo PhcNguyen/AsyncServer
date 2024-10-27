@@ -1,7 +1,7 @@
 # Copyright (C) PhcNguyen Developers
 # Distributed under the terms of the Modified BSD License.
 
-import os.path
+import os
 import logging
 import asyncio
 
@@ -23,14 +23,19 @@ def setup_logger() -> logging.Logger:
     # Formatter sử dụng chung cho cả file và console
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-    # Thêm file handlers cho mỗi mức log (info, error, warning, debug)
-    log_levels = ['info', 'error', 'warning', 'debug']
-    for level in log_levels:
-        file_path = os.path.join(DIR_LOG, f"{level}.log")  # Tạo đường dẫn log file
-        file_handler = logging.FileHandler(file_path, encoding='utf-8')
-        file_handler.setLevel(getattr(logging, level.upper()))  # Đặt đúng mức log
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+    # Hàm tạo file handler
+    def add_file_handler(level_name: str, level: int) -> None:
+        file_path = os.path.join(DIR_LOG, f"{level_name}.log")
+        handler = logging.FileHandler(file_path, encoding='utf-8')
+        handler.setLevel(level)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    # Tạo các file handler cho từng mức log
+    add_file_handler('debug', logging.DEBUG)
+    add_file_handler('info', logging.INFO)
+    add_file_handler('error', logging.ERROR)
+    add_file_handler('warning', logging.WARNING)
 
     # Thêm console handler để in log ra màn hình
     console_handler = logging.StreamHandler()
@@ -39,7 +44,6 @@ def setup_logger() -> logging.Logger:
     logger.addHandler(console_handler)
 
     return logger
-
 
 
 class Logger:
@@ -56,7 +60,8 @@ class Logger:
         """Ghi log thông điệp ở mức đã chỉ định một cách bất đồng bộ."""
         level = level.lower()
         message = str(message) if isinstance(message, Exception) else message
-        if write_cache: await Logger.cache.write(message, f'{level}.cache')
+        if write_cache:
+            await Logger.cache.write(message, f'{level}.cache')
         await asyncio.to_thread(getattr(Logger.logger, level, Logger.logger.info), message)
 
     @staticmethod

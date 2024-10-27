@@ -6,23 +6,20 @@ from typing import List, Tuple
 
 from sources.utils import types
 from sources.utils.logger import Logger
-from sources.server.tcpsession import TcpSession
+from sources.server.tcpsession import TCPSession
 from sources.manager.security import RateLimiter
 from sources.utils.system import InternetProtocol
+from sources.server.tcpcontroller import TCPController
 
 
-
-class TcpServer:
+class TCPServer:
     DEBUG: bool = False
-    PORT: int   = 7272                       # Default port number
-    LOCAL: str  = InternetProtocol.local()   # Retrieve local IP address
+    PORT: int = 7272  # Default port number
+    LOCAL: str = InternetProtocol.local()  # Retrieve local IP address
     PUBLIC: str = InternetProtocol.public()  # Retrieve public IP address
-    MAX_CONNECTIONS = 1000000                # Giới hạn số lượng kết nối tối đa
+    MAX_CONNECTIONS = 1000000  # Giới hạn số lượng kết nối tối đa
 
-    def __init__(
-        self, host: str, port: int,
-        database: types.SQLite | types.MySQL
-    ) -> None:
+    def __init__(self, host: str, port: int, database: types.SQLite | types.MySQL) -> None:
         self.host = host
         self.port = port
         self.running = False
@@ -30,7 +27,7 @@ class TcpServer:
         self.current_connections = 0
 
         self.stop_event = asyncio.Event()
-        self.rate_limiter = RateLimiter(limit=3, period=1)  # Limit 3 request per 1 seconds
+        self.rate_limiter = RateLimiter(limit=3, period=1)  # Limit 3 requests per 1 second
         self.server_address: Tuple[str, int] = (host, port)
         self.client_handler = ClientHandler(self, self.database, self.rate_limiter)
 
@@ -86,49 +83,65 @@ class TcpServer:
         await Logger.info('The server has stopped')
 
 
-
 class ClientHandler:
-    def __init__(self,
-        server: TcpServer,
-        database: types.SQLite | types.MySQL,
-        rate_limiter: RateLimiter
-    ) -> None:
+    def __init__(self, server: TCPServer, database: types.SQLite | types.MySQL, rate_limiter: RateLimiter):
         self.server = server
         self.database = database
         self.rate_limiter = rate_limiter
-        self.client_connections: List[TcpSession] = []  # Store TcpSession objects
+        self.client_connections: List[TCPSession] = []  # Store TCPSession objects
+
+    async def check_rate_limit(self, session: TCPSession) -> bool:
+        """Check if the client's request rate is within allowed limits."""
+        if not await self.rate_limiter.is_allowed(session.client_address[0]):
+            await Logger.warning("Rate limit exceeded. Disconnecting client.")
+            await session.disconnect()  # Disconnect the session if rate limit is exceeded
+            return False  # Indicate that the rate limit check failed
+        return True  # Indicate that the rate limit check passed
 
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Handle data from a client asynchronously with timeout."""
-
-        # Create TcpSession for the connected client
-        session = TcpSession(self.server, self.database, self.rate_limiter)
+        session = TCPSession()
         await session.connect(reader, writer)
 
+        if not await self.check_rate_limit(session):
+            return  # Terminate if rate limit is exceeded
+
+        # Initialize the TCP controller with the database and transport
+        controller = TCPController(self.database, session.transport)
+
         self.client_connections.append(session)
-        self.server.current_connections += 1  # Tăng số lượng kết nối
+        self.server.current_connections += 1  # Increase the number of connections
 
         try:
-            # Wait for the client to send data or for the connection to be closed
-            await session.receive_data()  # This will manage waiting for data.
-        finally:
-            await self.close_connection(session)
+            while session.is_connected:
+                try:
+                    code, command, data = await session.transport.receive()  # Receive data from the client
+                except Exception as e:
+                    await Logger.error(f"Error receiving data: {e}")
+                    break  # Break out of the loop on error
 
-    async def close_connection(self, session: TcpSession):
+                code = await controller.handle_command(code, command, data)  # Use the controller to handle the command
+
+                if code == 1:
+                    continue  # Continue if code is 1
+                elif code == 0:
+                    await session.disconnect()
+                    break  # Disconnect if code is 0
+        finally:
+            await self.close_connection(session)  # Ensure connection is closed
+
+    async def close_connection(self, session: TCPSession):
         """Close a client connection."""
         try:
-            # Ensure the session is connected before trying to disconnect
             if session.is_connected:
-                await session.disconnect()    # Close the session properly
+                await session.disconnect()  # Close the session properly
                 session.is_connected = False  # Mark the session as disconnected
 
-                # Remove the session only if it's still in the list
                 if session in self.client_connections:
                     self.client_connections.remove(session)
 
-            self.server.current_connections = -~self.server.current_connections
+                self.server.current_connections -= 1  # Decrease the current connection count
         except Exception as e:
-            # Catch any unexpected errors during disconnection
             await Logger.error(f"Error while closing connection: {e}")
 
     async def close_all_connections(self):
@@ -137,15 +150,8 @@ class ClientHandler:
             await Logger.info("No connections to close.")
             return
 
-        # Create a list to hold the tasks
-        close_tasks = []
+        close_tasks = [asyncio.create_task(self.close_connection(session)) for session in self.client_connections]
 
-        # Schedule each close_connection call as a task
-        for session in self.client_connections:
-            task = asyncio.create_task(self.close_connection(session))
-            close_tasks.append(task)
-
-        # Optionally await each task if you need to ensure they complete later
         for task in close_tasks:
             await task
 

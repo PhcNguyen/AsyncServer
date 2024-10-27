@@ -8,7 +8,7 @@ from sources.constants.cmd import Codes
 from sources.handlers.utils import is_valid_user_id
 
 
-class AccountCommands:
+class AccountHandler:
     def __init__(self, database):
         self.database = database
 

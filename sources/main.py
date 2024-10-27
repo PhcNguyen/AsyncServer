@@ -4,13 +4,13 @@
 import sys
 
 from sources.manager.sql import MySQL, SQLite
-from sources.server.tcpserver import TcpServer
+from sources.server.tcpserver import TCPServer
 
 
 
 if __name__ == "__main__":
     sql = MySQL() if "--mysql" in sys.argv else SQLite()
-    tcp_server = TcpServer(TcpServer.LOCAL, TcpServer.PORT, sql)
+    tcp_server = TCPServer(TCPServer.LOCAL, TCPServer.PORT, sql)
 
     # Check for the '--nogui' argument
     if "--nogui" in sys.argv:

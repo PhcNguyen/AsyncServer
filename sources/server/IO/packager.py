@@ -1,36 +1,43 @@
 import struct
-from typing import Union, List, Any
-
-
+import json
 
 class DataPackager:
     def __init__(self, encoding: str = 'utf-8'):
         self.encoding = encoding
 
-    def encode(self, data: Union[str, int, float, List[Any]]) -> bytes:
-        """Mã hóa dữ liệu thành bytes."""
-        if isinstance(data, bytes):
-            return data
+    def encode(self, items: list) -> bytes:
+        """Mã hóa danh sách các phần tử thành bytes."""
+        encoded_data = b''
 
-        if isinstance(data, str):
-            return data.encode(self.encoding)
+        for item in items:
+            if isinstance(item, str):  # Chuỗi
+                encoded_data += b's'  # Tiền tố xác định là chuỗi
+                str_bytes = item.encode(self.encoding)
+                encoded_data += struct.pack('!i', len(str_bytes))  # Độ dài chuỗi
+                encoded_data += str_bytes  # Nội dung chuỗi
+            elif isinstance(item, int):  # Số nguyên
+                encoded_data += b'i'  # Tiền tố xác định là số nguyên
+                encoded_data += struct.pack('!i', item)  # Giá trị số nguyên
+            elif isinstance(item, float):  # Số thực
+                encoded_data += b'f'  # Tiền tố xác định là số thực
+                encoded_data += struct.pack('!f', item)  # Giá trị số thực
+            elif isinstance(item, dict) or isinstance(item, list):  # JSON
+                encoded_data += b'j'  # Tiền tố xác định là JSON
+                json_bytes = json.dumps(item).encode(self.encoding)
+                encoded_data += struct.pack('!i', len(json_bytes))  # Độ dài JSON
+                encoded_data += json_bytes  # Nội dung JSON
+            else:
+                raise b'\x80'
 
-        if isinstance(data, int):
-            return struct.pack('!i', data)
+        # Tiền tố tổng độ dài của dữ liệu
+        total_length = struct.pack('!i', len(encoded_data))
 
-        if isinstance(data, float):
-            return struct.pack('!f', data)
+        return total_length + encoded_data
 
-        if isinstance(data, list):
-            encoded_items = b''.join(self.encode(item) for item in data)
-            return struct.pack('!i', len(encoded_items)) + encoded_items
-
-        return (128).to_bytes(1)
-
-    def decode(self, data: bytes) -> Union[str, int, float, List[Any]]:
+    def decode(self, data: bytes):
         """Giải mã bytes về kiểu dữ liệu gốc."""
         if not data:
-            raise ValueError("Dữ liệu không hợp lệ.")
+            return b'\x80'
 
         length = struct.unpack('!i', data[:4])[0]
         items = []
@@ -51,7 +58,13 @@ class DataPackager:
             elif item_type == b'f':  # Số thực
                 items.append(struct.unpack('!f', data[offset:offset + 4])[0])
                 offset += 4
+            elif item_type == b'j':  # JSON
+                json_length = struct.unpack('!i', data[offset:offset + 4])[0]
+                offset += 4
+                json_data = data[offset:offset + json_length].decode(self.encoding)
+                items.append(json.loads(json_data))  # Chuyển đổi JSON về kiểu dữ liệu gốc
+                offset += json_length
             else:
-                raise ValueError("Kiểu dữ liệu không hợp lệ.")
+                raise b'\x80'
 
         return items
